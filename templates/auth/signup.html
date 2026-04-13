@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Create Account — AllBook{% endblock %}
+{% block content %}
+<div class="auth-page">
+    <div class="auth-card auth-card-wide">
+        <div class="auth-logo">
+            <a href="{{ url_for('index') }}">
+                <span>📖</span> All<span class="logo-accent">Book</span>
+            </a>
+        </div>
+        <h1 class="auth-title">Create your account</h1>
+        <p class="auth-sub">Book appointments and manage your reservations in one place.</p>
+
+        <form method="post" action="{{ url_for('auth.signup') }}" class="auth-form">
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label>Full Name <span class="req">*</span></label>
+                    <input type="text" name="name" placeholder="Jane Smith" required autocomplete="name">
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" name="phone" placeholder="(555) 000-0000" autocomplete="tel">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Email Address <span class="req">*</span></label>
+                <input type="email" name="email" placeholder="you@example.com" required autocomplete="email">
+            </div>
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label>Password <span class="req">*</span></label>
+                    <input type="password" name="password" placeholder="Min. 6 characters" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password <span class="req">*</span></label>
+                    <input type="password" name="confirm_password" placeholder="Repeat password" required>
+                </div>
+            </div>
+            <button type="submit" class="btn-auth-submit">Create Account →</button>
+        </form>
+
+        <div class="auth-footer-links">
+            Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
+        </div>
+        <div class="auth-alt-action">
+            <span>Own a business?</span>
+            <a href="{{ url_for('auth.biz_signup') }}" class="auth-alt-link">List it on AllBook →</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

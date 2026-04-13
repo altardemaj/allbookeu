@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Business Profile — {{ business.name }} — AllBook{% endblock %}
+{% block content %}
+<div class="dash-layout">
+    <aside class="dash-sidebar dash-sidebar-biz">
+        <div class="dash-sidebar-user">
+            <div class="dash-avatar dash-avatar-biz">{{ owner.name[0].upper() }}</div>
+            <div>
+                <div class="dash-user-name">{{ business.name }}</div>
+                <div class="dash-user-email">{{ business.category.replace('_',' ').title() }}</div>
+            </div>
+        </div>
+        <nav class="dash-nav">
+            <a href="{{ url_for('biz.dashboard') }}" class="dash-nav-item"><span>📊</span> Dashboard</a>
+            <a href="{{ url_for('biz.bookings') }}" class="dash-nav-item"><span>📅</span> Bookings</a>
+            <a href="{{ url_for('biz.services') }}" class="dash-nav-item"><span>✂️</span> Services & Pricing</a>
+            <a href="{{ url_for('biz.profile') }}" class="dash-nav-item dash-nav-active"><span>⚙️</span> Business Profile</a>
+            <div class="dash-nav-divider"></div>
+            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="dash-nav-item" target="_blank"><span>🔗</span> View Public Page</a>
+        </nav>
+        <form action="{{ url_for('auth.logout') }}" method="post" style="margin-top:auto;padding:20px">
+            <button type="submit" class="dash-logout-btn">🚪 Sign Out</button>
+        </form>
+    </aside>
+
+    <main class="dash-main">
+        <div class="dash-header">
+            <div>
+                <h1>Business Profile</h1>
+                <p>Update your listing information, hours, and photo.</p>
+            </div>
+            <a href="{{ url_for('business_detail', business_id=business.id) }}" target="_blank" class="btn-dash-ghost">View Listing →</a>
+        </div>
+
+        <!-- PHOTO PREVIEW -->
+        {% if business.image_url %}
+        <div class="biz-photo-preview">
+            <img src="{{ business.image_url }}" alt="{{ business.name }}">
+            <div class="biz-photo-overlay">
+                <span>Current Photo</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- BUSINESS INFO -->
+        <div class="dash-card">
+            <h2 class="dash-card-title">Business Information</h2>
+            <form method="post" action="{{ url_for('biz.profile') }}" class="dash-form">
+                <input type="hidden" name="action" value="update_info">
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label>Business Name <span class="req">*</span></label>
+                        <input type="text" name="name" value="{{ business.name }}" required class="dash-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Price Range</label>
+                        <select name="price_range" class="dash-input">
+                            {% for pr in ['$', '$$', '$$$', '$$$$'] %}
+                            <option value="{{ pr }}" {% if business.price_range == pr %}selected{% endif %}>{{ pr }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea name="description" class="dash-input form-textarea" rows="3" placeholder="Tell customers what makes your business special…">{{ business.description or '' }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Cover Photo URL</label>
+                    <input type="url" name="image_url" value="{{ business.image_url or '' }}" placeholder="https://…" class="dash-input">
+                    <p class="form-hint">Paste a direct image URL (JPG or PNG recommended). We suggest using Unsplash.</p>
+                </div>
+                <div class="form-group">
+                    <label>Street Address</label>
+                    <input type="text" name="address" value="{{ business.address or '' }}" class="dash-input">
+                </div>
+                <div class="form-row-3">
+                    <div class="form-group">
+                        <label>City <span class="req">*</span></label>
+                        <input type="text" name="city" value="{{ business.city }}" required class="dash-input">
+                    </div>
+                    <div class="form-group">
+                        <label>State</label>
+                        <input type="text" name="state" value="{{ business.state or '' }}" maxlength="2" class="dash-input">
+                    </div>
+                    <div class="form-group">
+                        <label>ZIP Code</label>
+                        <input type="text" name="zip_code" value="{{ business.zip_code or '' }}" class="dash-input">
+                    </div>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" name="phone" value="{{ business.phone or '' }}" class="dash-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Business Email</label>
+                        <input type="email" name="biz_email" value="{{ business.email or '' }}" class="dash-input">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Website</label>
+                    <input type="url" name="website" value="{{ business.website or '' }}" placeholder="https://yourwebsite.com" class="dash-input">
+                </div>
+                <div class="dash-form-footer">
+                    <button type="submit" class="btn-dash-primary">Save Profile</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- HOURS -->
+        <div class="dash-card" id="hours" style="margin-top:24px">
+            <h2 class="dash-card-title">Business Hours</h2>
+            <form method="post" action="{{ url_for('biz.profile') }}" class="dash-form">
+                <input type="hidden" name="action" value="update_hours">
+                <div class="hours-grid">
+                    {% for i in range(days|length) %}
+                    {% set day = days[i] %}
+                    {% set day_name = day_names[i] %}
+                    {% set current = hours_data.get(day, '9:00 AM – 6:00 PM') %}
+                    {% set is_closed = current == 'closed' %}
+                    <div class="hours-row" id="hours-row-{{ day }}">
+                        <div class="hours-day-label">{{ day_name }}</div>
+                        <label class="hours-closed-toggle">
+                            <input type="checkbox" name="closed_{{ day }}" id="closed_{{ day }}"
+                                   {% if is_closed %}checked{% endif %}
+                                   onchange="toggleDay('{{ day }}', this.checked)">
+                            <span>Closed</span>
+                        </label>
+                        <div class="hours-times" id="times-{{ day }}" {% if is_closed %}style="opacity:0.3;pointer-events:none"{% endif %}>
+                            <select name="open_{{ day }}" class="hours-select">
+                                {% for t in time_options %}
+                                {% set parts = current.split(' – ') %}
+                                <option value="{{ t }}" {% if parts[0].strip() == t %}selected{% endif %}>{{ t }}</option>
+                                {% endfor %}
+                            </select>
+                            <span class="hours-to">to</span>
+                            <select name="close_{{ day }}" class="hours-select">
+                                {% for t in time_options %}
+                                {% set parts = current.split(' – ') %}
+                                <option value="{{ t }}" {% if parts|length > 1 and parts[1].strip() == t %}selected{% endif %}>{{ t }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="dash-form-footer">
+                    <button type="submit" class="btn-dash-primary">Save Hours</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- CHANGE PASSWORD -->
+        <div class="dash-card" style="margin-top:24px">
+            <h2 class="dash-card-title">Change Password</h2>
+            <form method="post" action="{{ url_for('biz.profile') }}" class="dash-form">
+                <input type="hidden" name="action" value="change_password">
+                <div class="form-group">
+                    <label>Current Password</label>
+                    <input type="password" name="current_password" required class="dash-input">
+                </div>
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label>New Password</label>
+                        <input type="password" name="new_password" required minlength="6" class="dash-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm New Password</label>
+                        <input type="password" name="confirm_password" required class="dash-input">
+                    </div>
+                </div>
+                <div class="dash-form-footer">
+                    <button type="submit" class="btn-dash-primary">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>
+
+<script>
+function toggleDay(day, closed) {
+    const timesEl = document.getElementById('times-' + day);
+    timesEl.style.opacity = closed ? '0.3' : '1';
+    timesEl.style.pointerEvents = closed ? 'none' : 'auto';
+}
+</script>
+{% endblock %}

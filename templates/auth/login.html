@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Log In — AllBook{% endblock %}
+{% block content %}
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <a href="{{ url_for('index') }}">
+                <span>📖</span> All<span class="logo-accent">Book</span>
+            </a>
+        </div>
+        <h1 class="auth-title">Welcome back</h1>
+        <p class="auth-sub">Sign in to your account</p>
+
+        <!-- TABS -->
+        <div class="auth-tabs">
+            <button class="auth-tab {% if tab != 'owner' %}auth-tab-active{% endif %}"
+                    onclick="switchTab('customer')">Customer</button>
+            <button class="auth-tab {% if tab == 'owner' %}auth-tab-active{% endif %}"
+                    onclick="switchTab('owner')">Business Owner</button>
+        </div>
+
+        <!-- CUSTOMER FORM -->
+        <form method="post" action="{{ url_for('auth.login') }}"
+              id="formCustomer" class="auth-form {% if tab == 'owner' %}hidden{% endif %}">
+            <input type="hidden" name="account_type" value="customer">
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" name="email" placeholder="you@example.com" required autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn-auth-submit">Sign In</button>
+        </form>
+
+        <!-- OWNER FORM -->
+        <form method="post" action="{{ url_for('auth.login') }}?tab=owner"
+              id="formOwner" class="auth-form {% if tab != 'owner' %}hidden{% endif %}">
+            <input type="hidden" name="account_type" value="owner">
+            <div class="form-group">
+                <label>Business Email</label>
+                <input type="email" name="email" placeholder="owner@yourbusiness.com" required autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn-auth-submit">Sign In to Dashboard</button>
+        </form>
+
+        <div class="auth-footer-links">
+            <span id="customerSignupLink" class="{% if tab == 'owner' %}hidden{% endif %}">
+                Don't have an account?
+                <a href="{{ url_for('auth.signup') }}">Sign up for free</a>
+            </span>
+            <span id="ownerSignupLink" class="{% if tab != 'owner' %}hidden{% endif %}">
+                New to AllBook?
+                <a href="{{ url_for('auth.biz_signup') }}">List your business</a>
+            </span>
+        </div>
+    </div>
+</div>
+<script>
+function switchTab(type) {
+    const tabs = document.querySelectorAll('.auth-tab');
+    tabs[0].classList.toggle('auth-tab-active', type === 'customer');
+    tabs[1].classList.toggle('auth-tab-active', type === 'owner');
+    document.getElementById('formCustomer').classList.toggle('hidden', type === 'owner');
+    document.getElementById('formOwner').classList.toggle('hidden', type !== 'owner');
+    document.getElementById('customerSignupLink').classList.toggle('hidden', type === 'owner');
+    document.getElementById('ownerSignupLink').classList.toggle('hidden', type !== 'owner');
+}
+</script>
+{% endblock %}

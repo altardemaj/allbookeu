@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}
+  {% if query %}Results for "{{ query }}"{% elif category %}{{ category.replace('_',' ').title() }}{% else %}Browse All Businesses{% endif %} — AllBook
+{% endblock %}
+
+{% block content %}
+<div class="search-page">
+    <div class="search-hero">
+        <div class="container">
+            <form class="search-bar-full" action="{{ url_for('search') }}" method="get">
+                <div class="sbf-inner">
+                    <span class="sbf-icon">🔍</span>
+                    <input type="text" name="q" value="{{ query }}" placeholder="Search businesses, services…" autofocus>
+                    {% if category %}
+                    <input type="hidden" name="category" value="{{ category }}">
+                    {% endif %}
+                    <button type="submit">Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- CATEGORY PILLS -->
+        <div class="filter-pills">
+            <a href="{{ url_for('search', q=query) }}"
+               class="pill {% if not category %}pill-active{% endif %}">All</a>
+            {% for cat in categories %}
+            <a href="{{ url_for('search', q=query, category=cat.id) }}"
+               class="pill {% if category == cat.id %}pill-active{% endif %}">
+                {{ cat.icon }} {{ cat.name }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <!-- RESULTS HEADER -->
+        <div class="results-header">
+            <span class="results-count">
+                {% if businesses %}
+                    <strong>{{ businesses|length }}</strong> result{% if businesses|length != 1 %}s{% endif %}
+                    {% if query %}for "<em>{{ query }}</em>"{% endif %}
+                    {% if category %}in <em>{{ category.replace('_',' ').title() }}</em>{% endif %}
+                {% else %}
+                    No results found
+                    {% if query %}for "<em>{{ query }}</em>"{% endif %}
+                {% endif %}
+            </span>
+        </div>
+
+        {% if businesses %}
+        <div class="results-grid">
+            {% for b in businesses %}
+            <div class="business-card">
+                <a href="{{ url_for('business_detail', business_id=b.id) }}" class="card-img-link">
+                    <div class="card-img-wrap">
+                        <img src="{{ b.image_url }}" alt="{{ b.name }}" loading="lazy">
+                        <div class="card-category-badge">{{ b.category.replace('_', ' ').title() }}</div>
+                        {% if b.price_range %}
+                        <div class="card-price-badge">{{ b.price_range }}</div>
+                        {% endif %}
+                    </div>
+                </a>
+                <div class="card-body">
+                    <div class="card-top">
+                        <h3 class="card-name">
+                            <a href="{{ url_for('business_detail', business_id=b.id) }}">{{ b.name }}</a>
+                        </h3>
+                        <div class="card-rating">
+                            <span class="rating-star">⭐</span>
+                            <span class="rating-val">{{ "%.1f"|format(b.rating) }}</span>
+                            <span class="rating-count">({{ b.review_count }})</span>
+                        </div>
+                    </div>
+                    <p class="card-location">📍 {{ b.city }}, {{ b.state }}</p>
+                    <p class="card-desc">{{ b.description[:90] }}…</p>
+                    <a href="{{ url_for('business_detail', business_id=b.id) }}" class="btn-book">
+                        {% if b.category == 'restaurant' %}Reserve{% else %}Book Now{% endif %}
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-results">
+            <div class="no-results-icon">🔍</div>
+            <h2>No businesses found</h2>
+            <p>Try different keywords or browse by category.</p>
+            <a href="{{ url_for('index') }}" class="btn-book" style="display:inline-block;margin-top:1rem;">Back to Home</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

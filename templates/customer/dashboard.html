@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}My Bookings — AllBook{% endblock %}
+{% block content %}
+<div class="dash-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="dash-sidebar">
+        <div class="dash-sidebar-user">
+            <div class="dash-avatar">{{ user.name[0].upper() }}</div>
+            <div>
+                <div class="dash-user-name">{{ user.name }}</div>
+                <div class="dash-user-email">{{ user.email }}</div>
+            </div>
+        </div>
+        <nav class="dash-nav">
+            <a href="{{ url_for('customer.dashboard') }}" class="dash-nav-item dash-nav-active">
+                <span>📅</span> My Bookings
+            </a>
+            <a href="{{ url_for('customer.profile') }}" class="dash-nav-item">
+                <span>👤</span> Profile Settings
+            </a>
+            <a href="{{ url_for('search') }}" class="dash-nav-item">
+                <span>🔍</span> Find Businesses
+            </a>
+        </nav>
+        <form action="{{ url_for('auth.logout') }}" method="post" style="margin-top:auto;padding:20px">
+            <button type="submit" class="dash-logout-btn">🚪 Sign Out</button>
+        </form>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="dash-main">
+        <div class="dash-header">
+            <div>
+                <h1>My Bookings</h1>
+                <p>Manage your upcoming appointments and reservation history.</p>
+            </div>
+            <a href="{{ url_for('search') }}" class="btn-dash-primary">+ New Booking</a>
+        </div>
+
+        <!-- STATS ROW -->
+        <div class="dash-stats-row">
+            <div class="dash-stat-card">
+                <span class="dsc-icon">📅</span>
+                <div>
+                    <div class="dsc-num">{{ upcoming|length }}</div>
+                    <div class="dsc-label">Upcoming</div>
+                </div>
+            </div>
+            <div class="dash-stat-card">
+                <span class="dsc-icon">✅</span>
+                <div>
+                    <div class="dsc-num">{{ past|selectattr('status','equalto','completed')|list|length + past|selectattr('status','equalto','confirmed')|list|length }}</div>
+                    <div class="dsc-label">Completed</div>
+                </div>
+            </div>
+            <div class="dash-stat-card">
+                <span class="dsc-icon">✕</span>
+                <div>
+                    <div class="dsc-num">{{ past|selectattr('status','equalto','cancelled')|list|length }}</div>
+                    <div class="dsc-label">Cancelled</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- UPCOMING BOOKINGS -->
+        <section class="dash-section">
+            <h2 class="dash-section-title">Upcoming</h2>
+            {% if upcoming %}
+            <div class="booking-cards">
+                {% for b in upcoming %}
+                <div class="booking-card booking-card-upcoming">
+                    <div class="bc-biz-img">
+                        {% if b.business.image_url %}
+                        <img src="{{ b.business.image_url }}" alt="{{ b.business.name }}">
+                        {% else %}
+                        <div class="bc-img-placeholder">📍</div>
+                        {% endif %}
+                    </div>
+                    <div class="bc-details">
+                        <div class="bc-top">
+                            <div>
+                                <h3 class="bc-biz-name">
+                                    <a href="{{ url_for('business_detail', business_id=b.business.id) }}">{{ b.business.name }}</a>
+                                </h3>
+                                <span class="bc-category">{{ b.business.category.replace('_',' ').title() }}</span>
+                            </div>
+                            <span class="bc-status-badge bc-status-{{ b.status }}">{{ b.status.title() }}</span>
+                        </div>
+                        <div class="bc-info-row">
+                            <span>📅 {{ b.date_display() }}</span>
+                            <span>🕐 {{ b.booking_time }}</span>
+                            {% if b.party_size > 1 %}<span>👥 Party of {{ b.party_size }}</span>{% endif %}
+                            <span>📍 {{ b.business.city }}, {{ b.business.state }}</span>
+                        </div>
+                        {% if b.notes %}
+                        <p class="bc-notes">{{ b.notes }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="bc-actions">
+                        <a href="{{ url_for('business_detail', business_id=b.business.id) }}" class="bc-btn-view">View Business</a>
+                        <form action="{{ url_for('customer.cancel_booking', booking_id=b.id) }}" method="post"
+                              onsubmit="return confirm('Cancel this booking?')">
+                            <button type="submit" class="bc-btn-cancel">Cancel</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="dash-empty">
+                <div class="dash-empty-icon">📭</div>
+                <h3>No upcoming bookings</h3>
+                <p>Ready to book something? Browse thousands of businesses near you.</p>
+                <a href="{{ url_for('search') }}" class="btn-dash-primary" style="margin-top:16px;display:inline-block">Find Businesses</a>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- PAST BOOKINGS -->
+        {% if past %}
+        <section class="dash-section">
+            <h2 class="dash-section-title">History</h2>
+            <div class="booking-cards">
+                {% for b in past %}
+                <div class="booking-card booking-card-past">
+                    <div class="bc-biz-img">
+                        {% if b.business.image_url %}
+                        <img src="{{ b.business.image_url }}" alt="{{ b.business.name }}">
+                        {% endif %}
+                    </div>
+                    <div class="bc-details">
+                        <div class="bc-top">
+                            <div>
+                                <h3 class="bc-biz-name">
+                                    <a href="{{ url_for('business_detail', business_id=b.business.id) }}">{{ b.business.name }}</a>
+                                </h3>
+                                <span class="bc-category">{{ b.business.category.replace('_',' ').title() }}</span>
+                            </div>
+                            <span class="bc-status-badge bc-status-{{ b.status }}">{{ b.status.title() }}</span>
+                        </div>
+                        <div class="bc-info-row">
+                            <span>📅 {{ b.date_display() }}</span>
+                            <span>🕐 {{ b.booking_time }}</span>
+                            {% if b.party_size > 1 %}<span>👥 Party of {{ b.party_size }}</span>{% endif %}
+                        </div>
+                    </div>
+                    <div class="bc-actions">
+                        <a href="{{ url_for('business_detail', business_id=b.business.id) }}" class="bc-btn-view">Book Again</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}

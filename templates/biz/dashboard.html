@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — {{ business.name }} — AllBook{% endblock %}
+{% block content %}
+<div class="dash-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="dash-sidebar dash-sidebar-biz">
+        <div class="dash-sidebar-user">
+            <div class="dash-avatar dash-avatar-biz">{{ owner.name[0].upper() }}</div>
+            <div>
+                <div class="dash-user-name">{{ business.name }}</div>
+                <div class="dash-user-email">{{ business.category.replace('_',' ').title() }}</div>
+            </div>
+        </div>
+        <nav class="dash-nav">
+            <a href="{{ url_for('biz.dashboard') }}" class="dash-nav-item dash-nav-active">
+                <span>📊</span> Dashboard
+            </a>
+            <a href="{{ url_for('biz.bookings') }}" class="dash-nav-item">
+                <span>📅</span> Bookings
+            </a>
+            <a href="{{ url_for('biz.services') }}" class="dash-nav-item">
+                <span>✂️</span> Services & Pricing
+            </a>
+            <a href="{{ url_for('biz.profile') }}" class="dash-nav-item">
+                <span>⚙️</span> Business Profile
+            </a>
+            <div class="dash-nav-divider"></div>
+            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="dash-nav-item" target="_blank">
+                <span>🔗</span> View Public Page
+            </a>
+        </nav>
+        <form action="{{ url_for('auth.logout') }}" method="post" style="margin-top:auto;padding:20px">
+            <button type="submit" class="dash-logout-btn">🚪 Sign Out</button>
+        </form>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="dash-main">
+        <div class="dash-header">
+            <div>
+                <h1>Good {% set h = today.strftime('%H')|int %}{% if h < 12 %}Morning{% elif h < 17 %}Afternoon{% else %}Evening{% endif %}, {{ owner.name.split()[0] }} 👋</h1>
+                <p>Here's what's happening at {{ business.name }} today.</p>
+            </div>
+            <a href="{{ url_for('biz.bookings') }}" class="btn-dash-primary">View All Bookings</a>
+        </div>
+
+        <!-- STATS -->
+        <div class="dash-stats-row dash-stats-4">
+            <div class="dash-stat-card">
+                <span class="dsc-icon">📅</span>
+                <div>
+                    <div class="dsc-num">{{ today_bookings|length }}</div>
+                    <div class="dsc-label">Today</div>
+                </div>
+            </div>
+            <div class="dash-stat-card">
+                <span class="dsc-icon">📆</span>
+                <div>
+                    <div class="dsc-num">{{ week_bookings|length }}</div>
+                    <div class="dsc-label">This Week</div>
+                </div>
+            </div>
+            <div class="dash-stat-card">
+                <span class="dsc-icon">👥</span>
+                <div>
+                    <div class="dsc-num">{{ total_customers }}</div>
+                    <div class="dsc-label">Customers</div>
+                </div>
+            </div>
+            <div class="dash-stat-card">
+                <span class="dsc-icon">⭐</span>
+                <div>
+                    <div class="dsc-num">{{ "%.1f"|format(business.rating) }}</div>
+                    <div class="dsc-label">Rating</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="biz-dash-grid">
+
+            <!-- TODAY'S APPOINTMENTS -->
+            <section class="dash-section dash-section-main">
+                <h2 class="dash-section-title">Today's Schedule</h2>
+                {% if today_bookings %}
+                <div class="today-timeline">
+                    {% for b in today_bookings %}
+                    <div class="timeline-item">
+                        <div class="tl-time">{{ b.booking_time }}</div>
+                        <div class="tl-dot"></div>
+                        <div class="tl-card">
+                            <div class="tl-card-top">
+                                <span class="tl-name">{{ b.customer_name }}</span>
+                                <span class="tl-status tl-status-{{ b.status }}">{{ b.status.title() }}</span>
+                            </div>
+                            <div class="tl-card-meta">
+                                {% if b.party_size > 1 %}<span>👥 Party of {{ b.party_size }}</span>{% endif %}
+                                {% if b.customer_phone %}<span>📞 {{ b.customer_phone }}</span>{% endif %}
+                                {% if b.notes %}<span>💬 {{ b.notes[:60] }}{% if b.notes|length > 60 %}…{% endif %}</span>{% endif %}
+                            </div>
+                            <div class="tl-actions">
+                                <form action="{{ url_for('biz.update_booking_status', booking_id=b.id) }}" method="post" style="display:inline">
+                                    <input type="hidden" name="status" value="completed">
+                                    <button type="submit" class="tl-btn tl-btn-done">Mark Done</button>
+                                </form>
+                                <form action="{{ url_for('biz.update_booking_status', booking_id=b.id) }}" method="post" style="display:inline"
+                                      onsubmit="return confirm('Cancel this booking?')">
+                                    <input type="hidden" name="status" value="cancelled">
+                                    <button type="submit" class="tl-btn tl-btn-cancel">Cancel</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="dash-empty dash-empty-sm">
+                    <div class="dash-empty-icon">☀️</div>
+                    <p>No bookings scheduled for today.</p>
+                </div>
+                {% endif %}
+            </section>
+
+            <!-- WEEKLY CALENDAR -->
+            <section class="dash-section dash-section-side">
+                <h2 class="dash-section-title">This Week</h2>
+                <div class="week-calendar">
+                    {% for day in calendar_days %}
+                    <div class="wc-day {% if day.is_today %}wc-day-today{% endif %}">
+                        <div class="wc-day-header">
+                            <span class="wc-day-name">{{ day.display }}</span>
+                            <span class="wc-day-date">{{ day.full }}</span>
+                            {% if day.bookings %}
+                            <span class="wc-day-count">{{ day.bookings|length }}</span>
+                            {% endif %}
+                        </div>
+                        {% if day.bookings %}
+                        <div class="wc-bookings">
+                            {% for b in day.bookings[:3] %}
+                            <div class="wc-booking-chip">
+                                <span class="wc-chip-time">{{ b.booking_time }}</span>
+                                <span class="wc-chip-name">{{ b.customer_name.split()[0] }}</span>
+                            </div>
+                            {% endfor %}
+                            {% if day.bookings|length > 3 %}
+                            <div class="wc-more">+{{ day.bookings|length - 3 }} more</div>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="wc-empty">Free</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+
+        <!-- QUICK ACTIONS -->
+        <section class="dash-section" style="margin-top:12px">
+            <h2 class="dash-section-title">Quick Actions</h2>
+            <div class="quick-actions-grid">
+                <a href="{{ url_for('biz.bookings') }}" class="qa-card">
+                    <span class="qa-icon">📋</span>
+                    <span class="qa-label">Manage Bookings</span>
+                </a>
+                <a href="{{ url_for('biz.services') }}" class="qa-card">
+                    <span class="qa-icon">✂️</span>
+                    <span class="qa-label">Edit Services</span>
+                </a>
+                <a href="{{ url_for('biz.profile') }}" class="qa-card">
+                    <span class="qa-icon">📝</span>
+                    <span class="qa-label">Update Profile</span>
+                </a>
+                <a href="{{ url_for('biz.profile') }}#hours" class="qa-card">
+                    <span class="qa-icon">🕐</span>
+                    <span class="qa-label">Set Hours</span>
+                </a>
+                <a href="{{ url_for('business_detail', business_id=business.id) }}" class="qa-card" target="_blank">
+                    <span class="qa-icon">🔗</span>
+                    <span class="qa-label">View Listing</span>
+                </a>
+            </div>
+        </section>
+    </main>
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(pip install:*)",
+      "Bash(python app.py)",
+      "Bash(curl:*)",
+      "Bash(python -c ':*)"
+    ]
+  }
+}
