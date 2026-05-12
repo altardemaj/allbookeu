@@ -406,8 +406,11 @@ def seed_data():
 
 
 with app.app_context():
-    db.create_all()
-    seed_data()
+    try:
+        db.create_all()
+        seed_data()
+    except Exception as e:
+        print(f"DB init skipped: {e}")
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
