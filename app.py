@@ -7,7 +7,11 @@ import os
 load_dotenv()
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///allbook.db')
+_db_url = os.environ.get('DATABASE_URL', 'sqlite:///allbook.db')
+if _db_url.startswith('postgres://'):
+    _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = _db_url
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-fallback-secret')
 
@@ -52,11 +56,15 @@ def inject_auth():
 
 @app.route('/')
 def index():
-    featured = Business.query.filter_by(is_featured=True, category='restaurant').limit(8).all()
-    cities_data = []
-    for city in ['Prishtina', 'Prizren', 'Tirana', 'Durrës', 'Peja', 'Gjakova']:
-        count = Business.query.filter_by(city=city, category='restaurant').count()
-        cities_data.append({'name': city, 'count': count})
+    try:
+        featured = Business.query.filter_by(is_featured=True, category='restaurant').limit(8).all()
+        cities_data = []
+        for city in ['Prishtina', 'Prizren', 'Tirana', 'Durrës', 'Peja', 'Gjakova']:
+            count = Business.query.filter_by(city=city, category='restaurant').count()
+            cities_data.append({'name': city, 'count': count})
+    except Exception:
+        featured = []
+        cities_data = []
     return render_template('index.html', featured=featured, cities=cities_data, cuisines=CUISINES)
 
 
