@@ -4,48 +4,48 @@
 <div class="auth-page">
     <div class="auth-card">
         <a href="{{ url_for('index') }}" class="auth-logo">AllBookEU</a>
-        <h1 class="auth-title">Welcome back</h1>
-        <p class="auth-sub">Sign in to your account</p>
+        <h1 class="auth-title">{{ t('welcome_back') }}</h1>
+        <p class="auth-sub">{{ t('sign_in_account') }}</p>
 
         <div class="auth-tabs">
-            <button class="auth-tab {% if tab != 'owner' %}auth-tab-active{% endif %}" onclick="switchTab('customer')">Guest</button>
-            <button class="auth-tab {% if tab == 'owner' %}auth-tab-active{% endif %}" onclick="switchTab('owner')">Restaurant Owner</button>
+            <button class="auth-tab {% if tab != 'owner' %}auth-tab-active{% endif %}" onclick="switchTab('customer')">{{ t('guest') }}</button>
+            <button class="auth-tab {% if tab == 'owner' %}auth-tab-active{% endif %}" onclick="switchTab('owner')">{{ t('restaurant_owner') }}</button>
         </div>
 
         <form method="post" action="{{ url_for('auth.login') }}"
               id="formCustomer" class="auth-form {% if tab == 'owner' %}hidden{% endif %}">
             <input type="hidden" name="account_type" value="customer">
             <div class="auth-field">
-                <label>Email address</label>
+                <label>{{ t('email') }}</label>
                 <input type="email" name="email" placeholder="you@example.com" required autocomplete="email" class="rw-input">
             </div>
             <div class="auth-field">
-                <label>Password</label>
+                <label>{{ t('password') }}</label>
                 <input type="password" name="password" placeholder="••••••••" required class="rw-input">
             </div>
-            <button type="submit" class="btn-reserve" style="width:100%;margin-top:8px">Sign In</button>
+            <button type="submit" class="btn-reserve" style="width:100%;margin-top:8px">{{ t('sign_in_btn') }}</button>
         </form>
 
         <form method="post" action="{{ url_for('auth.login') }}?tab=owner"
               id="formOwner" class="auth-form {% if tab != 'owner' %}hidden{% endif %}">
             <input type="hidden" name="account_type" value="owner">
             <div class="auth-field">
-                <label>Business email</label>
+                <label>{{ t('business_email') }}</label>
                 <input type="email" name="email" placeholder="owner@restaurant.com" required autocomplete="email" class="rw-input">
             </div>
             <div class="auth-field">
-                <label>Password</label>
+                <label>{{ t('password') }}</label>
                 <input type="password" name="password" placeholder="••••••••" required class="rw-input">
             </div>
-            <button type="submit" class="btn-reserve" style="width:100%;margin-top:8px">Sign In to Dashboard</button>
+            <button type="submit" class="btn-reserve" style="width:100%;margin-top:8px">{{ t('sign_in_dashboard') }}</button>
         </form>
 
         <div class="auth-footer">
             <span id="customerSignupLink" class="{% if tab == 'owner' %}hidden{% endif %}">
-                No account? <a href="{{ url_for('auth.signup') }}">Sign up free</a>
+                {{ t('no_account') }} <a href="{{ url_for('auth.signup') }}">{{ t('sign_up_free') }}</a>
             </span>
             <span id="ownerSignupLink" class="{% if tab != 'owner' %}hidden{% endif %}">
-                New restaurant? <a href="{{ url_for('auth.biz_signup') }}">List your business</a>
+                {{ t('new_restaurant') }} <a href="{{ url_for('auth.biz_signup') }}">{{ t('list_business') }}</a>
             </span>
         </div>
     </div>

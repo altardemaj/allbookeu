@@ -9,9 +9,9 @@
             <form class="search-bar-form" action="{{ url_for('search') }}" method="get">
                 <div class="sbf-inner">
                     <div class="sbf-field">
-                        <label>Location</label>
+                        <label>{{ t('location') }}</label>
                         <select name="city">
-                            <option value="">Any city</option>
+                            <option value="">{{ t('any_city') }}</option>
                             <optgroup label="— Kosovo —">
                                 {% for c in kosovo_cities %}
                                 <option value="{{ c }}" {% if c == city %}selected{% endif %}>{{ c }}</option>
@@ -26,14 +26,14 @@
                     </div>
                     <div class="sbf-divider"></div>
                     <div class="sbf-field">
-                        <label>Date</label>
+                        <label>{{ t('date') }}</label>
                         <input type="date" name="date" value="{{ date_str }}">
                     </div>
                     <div class="sbf-divider"></div>
                     <div class="sbf-field">
-                        <label>Time</label>
+                        <label>{{ t('time') }}</label>
                         <select name="time">
-                            <option value="">Any time</option>
+                            <option value="">{{ t('any_time') }}</option>
                             {% for t in ['11:30 AM','12:00 PM','12:30 PM','1:00 PM','1:30 PM','5:00 PM','5:30 PM','6:00 PM','6:30 PM','7:00 PM','7:30 PM','8:00 PM','8:30 PM','9:00 PM'] %}
                             <option {% if t == time_str %}selected{% endif %}>{{ t }}</option>
                             {% endfor %}
@@ -41,16 +41,16 @@
                     </div>
                     <div class="sbf-divider"></div>
                     <div class="sbf-field">
-                        <label>Party size</label>
+                        <label>{{ t('party_size') }}</label>
                         <select name="party">
                             {% for i in range(1, 13) %}
                             <option value="{{ i }}" {% if party_str == i|string %}selected{% endif %}>
-                                {{ i }} {% if i == 1 %}person{% else %}people{% endif %}
+                                {{ i }} {{ t('people') }}
                             </option>
                             {% endfor %}
                         </select>
                     </div>
-                    <button type="submit" class="sbf-btn">Search</button>
+                    <button type="submit" class="sbf-btn">{{ t('search') }}</button>
                 </div>
             </form>
         </div>
@@ -61,13 +61,13 @@
 
             <!-- FILTERS SIDEBAR -->
             <aside class="search-filters">
-                <h3>Filters</h3>
+                <h3>{{ t('search') }}</h3>
 
                 <div class="filter-group">
-                    <label class="filter-label">Country</label>
+                    <label class="filter-label">{{ t('all_countries') }}</label>
                     <div class="filter-options">
                         <a href="{{ url_for('search', city=city, cuisine=cuisine, date=date_str, time=time_str, party=party_str) }}"
-                           class="filter-opt {% if not country %}active{% endif %}">All</a>
+                           class="filter-opt {% if not country %}active{% endif %}">{{ t('all_countries') }}</a>
                         <a href="{{ url_for('search', country='Kosovo', city=city, cuisine=cuisine, date=date_str, time=time_str, party=party_str) }}"
                            class="filter-opt {% if country == 'Kosovo' %}active{% endif %}">Kosovo</a>
                         <a href="{{ url_for('search', country='Albania', city=city, cuisine=cuisine, date=date_str, time=time_str, party=party_str) }}"
@@ -76,10 +76,10 @@
                 </div>
 
                 <div class="filter-group">
-                    <label class="filter-label">Cuisine</label>
+                    <label class="filter-label">{{ t('cuisine_type') }}</label>
                     <div class="filter-options filter-options-scroll">
                         <a href="{{ url_for('search', city=city, country=country, date=date_str, time=time_str, party=party_str) }}"
-                           class="filter-opt {% if not cuisine %}active{% endif %}">All cuisines</a>
+                           class="filter-opt {% if not cuisine %}active{% endif %}">{{ t('all_cuisines') }}</a>
                         {% for c in cuisines %}
                         <a href="{{ url_for('search', cuisine=c, city=city, country=country, date=date_str, time=time_str, party=party_str) }}"
                            class="filter-opt {% if cuisine == c %}active{% endif %}">{{ c }}</a>
@@ -128,7 +128,7 @@
                                     <p class="result-desc">{{ b.description[:130] }}…</p>
                                 </div>
                                 <div class="result-booked-badge">
-                                    Booked {{ (b.review_count // 8) }} times today
+                                    {{ (b.review_count // 8) }} {{ t('booked_today') }}
                                 </div>
                             </div>
 
@@ -152,9 +152,9 @@
                 {% else %}
                 <div class="no-results">
                     <div class="no-results-icon">🍽</div>
-                    <h3>No restaurants found</h3>
-                    <p>Try adjusting your search — a different city, time, or removing a filter.</p>
-                    <a href="{{ url_for('search') }}" class="btn-outline">Clear all filters</a>
+                    <h3>{{ t('no_results') }}</h3>
+                    <p>{{ t('no_results_sub') }}</p>
+                    <a href="{{ url_for('search') }}" class="btn-outline">{{ t('all_cuisines') }}</a>
                 </div>
                 {% endif %}
             </div>

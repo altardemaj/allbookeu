@@ -35,29 +35,29 @@
                 </div>
 
                 <section class="rp-section">
-                    <h2>About</h2>
+                    <h2>{{ t('description') }}</h2>
                     <p class="rp-description">{{ business.description }}</p>
                 </section>
 
                 <section class="rp-section">
-                    <h2>Location &amp; Hours</h2>
+                    <h2>{{ t('location_label') }} &amp; {{ t('hours') }}</h2>
                     <div class="rp-info-grid">
                         <div class="rp-contact">
                             {% if business.address %}
                             <div class="rp-info-row">
-                                <span class="rp-info-label">Address</span>
+                                <span class="rp-info-label">{{ t('street_address') }}</span>
                                 <span>{{ business.address }}, {{ business.city }}</span>
                             </div>
                             {% endif %}
                             {% if business.phone %}
                             <div class="rp-info-row">
-                                <span class="rp-info-label">Phone</span>
+                                <span class="rp-info-label">{{ t('phone') }}</span>
                                 <a href="tel:{{ business.phone }}">{{ business.phone }}</a>
                             </div>
                             {% endif %}
                             {% if business.email %}
                             <div class="rp-info-row">
-                                <span class="rp-info-label">Email</span>
+                                <span class="rp-info-label">{{ t('email') }}</span>
                                 <a href="mailto:{{ business.email }}">{{ business.email }}</a>
                             </div>
                             {% endif %}
@@ -77,7 +77,7 @@
                 </section>
 
                 <section class="rp-section">
-                    <h2>Reviews <span class="reviews-count">({{ reviews|length }})</span></h2>
+                    <h2>{{ t('reviews') }} <span class="reviews-count">({{ reviews|length }})</span></h2>
                     {% if reviews %}
                     <div class="reviews-list">
                         {% for review in reviews %}
@@ -99,7 +99,7 @@
                         {% endfor %}
                     </div>
                     {% else %}
-                    <p class="no-reviews">No reviews yet — be the first to dine here!</p>
+                    <p class="no-reviews">{{ t('no_reviews') }}</p>
                     {% endif %}
                 </section>
             </div>
@@ -109,7 +109,7 @@
                 {% if business.reservations_paused %}
                 <div class="reservation-paused-box">
                     <div class="rpb-icon">⏸</div>
-                    <h3>Reservations paused</h3>
+                    <h3>{{ t('reservations_paused') }}</h3>
                     <p>{{ business.pause_message or 'Online reservations are temporarily unavailable.' }}</p>
                     {% if business.phone %}
                     <a href="tel:{{ business.phone }}" class="btn-call">Call us: {{ business.phone }}</a>
@@ -118,20 +118,20 @@
                 {% else %}
                 <div class="reservation-widget" id="reservationWidget">
                     <div class="rw-header">
-                        <h3>Make a Reservation</h3>
+                        <h3>{{ t('book_table') }}</h3>
                     </div>
 
                     <div class="rw-section">
-                        <label class="rw-label">Party size</label>
+                        <label class="rw-label">{{ t('party_size') }}</label>
                         <div class="party-size-row">
                             <button type="button" class="party-btn" id="partyMinus">−</button>
-                            <span class="party-display"><span id="partyCount">{{ pre_party or 2 }}</span> people</span>
+                            <span class="party-display"><span id="partyCount">{{ pre_party or 2 }}</span> {{ t('people') }}</span>
                             <button type="button" class="party-btn" id="partyPlus">+</button>
                         </div>
                     </div>
 
                     <div class="rw-section">
-                        <label class="rw-label">Select a date</label>
+                        <label class="rw-label">{{ t('date') }}</label>
                         <div class="date-scroll" id="dateScroll">
                             {% for slot in slots %}
                             <button class="date-btn {% if slot.date == pre_date or (loop.first and not pre_date) %}date-active{% endif %}"
@@ -145,7 +145,7 @@
                     </div>
 
                     <div class="rw-section">
-                        <label class="rw-label">Available times</label>
+                        <label class="rw-label">{{ t('available_times') }}</label>
                         <div class="time-grid" id="timeGrid">
                             {% if slots %}
                                 {% for t in slots[0].times %}
@@ -156,10 +156,10 @@
                     </div>
 
                     <div class="rw-summary" id="rwSummary" style="display:none;">
-                        <div class="rws-row"><span class="rws-label">Date</span><span id="summaryDate">–</span></div>
-                        <div class="rws-row"><span class="rws-label">Time</span><span id="summaryTime">–</span></div>
-                        <div class="rws-row"><span class="rws-label">Party</span><span id="summaryParty">–</span></div>
-                        <button class="btn-continue" id="btnContinue">Continue →</button>
+                        <div class="rws-row"><span class="rws-label">{{ t('date') }}</span><span id="summaryDate">–</span></div>
+                        <div class="rws-row"><span class="rws-label">{{ t('time') }}</span><span id="summaryTime">–</span></div>
+                        <div class="rws-row"><span class="rws-label">{{ t('party_size') }}</span><span id="summaryParty">–</span></div>
+                        <button class="btn-continue" id="btnContinue">{{ t('confirm_booking') }} →</button>
                     </div>
 
                     <div class="rw-form" id="rwForm" style="display:none;">
@@ -170,17 +170,17 @@
                         <input type="email" id="bookEmail" placeholder="Email address *" class="rw-input" value="{{ prefill.email if prefill else '' }}">
                         <input type="tel" id="bookPhone" placeholder="Phone number" class="rw-input" value="{{ prefill.phone if prefill else '' }}">
                         <textarea id="bookNotes" placeholder="Special requests (allergies, occasion, seating…)" class="rw-input rw-textarea"></textarea>
-                        <button class="btn-reserve" id="btnReserve">Confirm reservation</button>
-                        <p class="rw-policy">You'll receive an email confirmation instantly.</p>
+                        <button class="btn-reserve" id="btnReserve">{{ t('confirm_booking') }}</button>
+                        <p class="rw-policy">{{ t('email_confirmation') }}</p>
                     </div>
                 </div>
 
                 <div class="reservation-success" id="reservationSuccess" style="display:none;">
                     <div class="rs-check">✓</div>
-                    <h3>Reservation confirmed!</h3>
+                    <h3>{{ t('reservation_confirmed') }}</h3>
                     <p id="successMsg"></p>
                     <div class="rs-details" id="successDetails"></div>
-                    <button class="btn-outline" onclick="resetWidget()">Make another reservation</button>
+                    <button class="btn-outline" onclick="resetWidget()">{{ t('make_another') }}</button>
                 </div>
                 {% endif %}
 

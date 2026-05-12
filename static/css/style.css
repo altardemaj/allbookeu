@@ -53,6 +53,11 @@ img { max-width: 100%; display: block; }
 .nav-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--red); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; }
 .nav-avatar-biz { background: var(--sidebar-bg); }
 .nav-caret { font-size: 0.7rem; color: var(--text-muted); }
+.lang-switcher { display: flex; align-items: center; gap: 4px; margin-left: 8px; }
+.lang-btn { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-decoration: none; padding: 2px 4px; border-radius: 4px; transition: color 0.15s; }
+.lang-btn:hover { color: var(--text); }
+.lang-active { color: var(--primary) !important; }
+.lang-sep { color: var(--border); font-size: 0.75rem; }
 .nav-dropdown { position: absolute; right: 0; top: calc(100% + 8px); background: #fff; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); min-width: 220px; display: none; overflow: hidden; }
 .nav-dropdown.open { display: block; }
 .nav-dropdown-header { padding: 14px 16px; border-bottom: 1px solid var(--border); }

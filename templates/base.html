@@ -33,7 +33,7 @@
 
         <div class="nav-links">
             {% if user_type == 'customer' and current_user %}
-                <a href="{{ url_for('customer.dashboard') }}" class="nav-link">My Reservations</a>
+                <a href="{{ url_for('customer.dashboard') }}" class="nav-link">{{ t('my_reservations') }}</a>
                 <div class="nav-user-menu">
                     <button class="nav-avatar-btn" id="navAvatarBtn">
                         <span class="nav-avatar">{{ current_user.name[0].upper() }}</span>
@@ -45,19 +45,19 @@
                             <span class="nav-dd-name">{{ current_user.name }}</span>
                             <span class="nav-dd-email">{{ current_user.email }}</span>
                         </div>
-                        <a href="{{ url_for('customer.dashboard') }}" class="nav-dd-item">My Reservations</a>
-                        <a href="{{ url_for('customer.profile') }}" class="nav-dd-item">Account Settings</a>
+                        <a href="{{ url_for('customer.dashboard') }}" class="nav-dd-item">{{ t('my_reservations') }}</a>
+                        <a href="{{ url_for('customer.profile') }}" class="nav-dd-item">{{ t('account_settings') }}</a>
                         <div class="nav-dd-divider"></div>
                         <form action="{{ url_for('auth.logout') }}" method="post" style="margin:0">
-                            <button type="submit" class="nav-dd-item nav-dd-logout">Sign Out</button>
+                            <button type="submit" class="nav-dd-item nav-dd-logout">{{ t('sign_out') }}</button>
                         </form>
                     </div>
                 </div>
 
             {% elif user_type == 'owner' and current_owner %}
-                <a href="{{ url_for('biz.dashboard') }}" class="nav-link">Dashboard</a>
-                <a href="{{ url_for('biz.bookings') }}" class="nav-link">Reservations</a>
-                <a href="{{ url_for('biz.tables') }}" class="nav-link">Tables</a>
+                <a href="{{ url_for('biz.dashboard') }}" class="nav-link">{{ t('dashboard') }}</a>
+                <a href="{{ url_for('biz.bookings') }}" class="nav-link">{{ t('reservations') }}</a>
+                <a href="{{ url_for('biz.tables') }}" class="nav-link">{{ t('tables') }}</a>
                 <div class="nav-user-menu">
                     <button class="nav-avatar-btn" id="navAvatarBtn">
                         <span class="nav-avatar nav-avatar-biz">{{ current_owner.name[0].upper() }}</span>
@@ -67,25 +67,31 @@
                     <div class="nav-dropdown" id="navDropdown">
                         <div class="nav-dropdown-header">
                             <span class="nav-dd-name">{{ current_owner.name }}</span>
-                            <span class="nav-dd-email">Restaurant Owner</span>
+                            <span class="nav-dd-email">{{ t('restaurant_owner') }}</span>
                         </div>
-                        <a href="{{ url_for('biz.dashboard') }}" class="nav-dd-item">Dashboard</a>
-                        <a href="{{ url_for('biz.bookings') }}" class="nav-dd-item">Reservations</a>
-                        <a href="{{ url_for('biz.tables') }}" class="nav-dd-item">Table Setup</a>
-                        <a href="{{ url_for('biz.services') }}" class="nav-dd-item">Menu Items</a>
-                        <a href="{{ url_for('biz.profile') }}" class="nav-dd-item">Restaurant Profile</a>
+                        <a href="{{ url_for('biz.dashboard') }}" class="nav-dd-item">{{ t('dashboard') }}</a>
+                        <a href="{{ url_for('biz.bookings') }}" class="nav-dd-item">{{ t('reservations') }}</a>
+                        <a href="{{ url_for('biz.tables') }}" class="nav-dd-item">{{ t('table_setup') }}</a>
+                        <a href="{{ url_for('biz.services') }}" class="nav-dd-item">{{ t('menu_items') }}</a>
+                        <a href="{{ url_for('biz.profile') }}" class="nav-dd-item">{{ t('restaurant_profile') }}</a>
                         <div class="nav-dd-divider"></div>
                         <form action="{{ url_for('auth.logout') }}" method="post" style="margin:0">
-                            <button type="submit" class="nav-dd-item nav-dd-logout">Sign Out</button>
+                            <button type="submit" class="nav-dd-item nav-dd-logout">{{ t('sign_out') }}</button>
                         </form>
                     </div>
                 </div>
 
             {% else %}
-                <a href="{{ url_for('auth.login') }}" class="nav-link">Sign In</a>
-                <a href="{{ url_for('auth.signup') }}" class="btn-nav-signup">Create Account</a>
-                <a href="{{ url_for('auth.biz_signup') }}" class="btn-nav-biz">For Restaurants</a>
+                <a href="{{ url_for('auth.login') }}" class="nav-link">{{ t('sign_in') }}</a>
+                <a href="{{ url_for('auth.signup') }}" class="btn-nav-signup">{{ t('create_account') }}</a>
+                <a href="{{ url_for('auth.biz_signup') }}" class="btn-nav-biz">{{ t('for_restaurants') }}</a>
             {% endif %}
+
+            <div class="lang-switcher">
+                <a href="{{ url_for('set_language', code='sq') }}" class="lang-btn {% if lang == 'sq' %}lang-active{% endif %}">AL</a>
+                <span class="lang-sep">|</span>
+                <a href="{{ url_for('set_language', code='en') }}" class="lang-btn {% if lang == 'en' %}lang-active{% endif %}">EN</a>
+            </div>
         </div>
     </div>
 </nav>
@@ -97,7 +103,7 @@
         <div class="footer-top">
             <div class="footer-brand">
                 <span class="footer-logo">AllBookEU</span>
-                <p>Restaurant reservations across Kosovo & Albania.</p>
+                <p>{{ t('footer_tagline') }}</p>
             </div>
             <div class="footer-cols">
                 <div class="footer-col">
@@ -121,7 +127,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>© 2025 AllBookEU. All rights reserved.</p>
+            <p>{{ t('all_rights') }}</p>
             <div class="footer-legal">
                 <a href="#">Privacy</a>
                 <a href="#">Terms</a>

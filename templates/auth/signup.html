@@ -4,42 +4,42 @@
 <div class="auth-page">
     <div class="auth-card">
         <a href="{{ url_for('index') }}" class="auth-logo">AllBookEU</a>
-        <h1 class="auth-title">Create your account</h1>
-        <p class="auth-sub">Book tables at the best restaurants in Kosovo &amp; Albania.</p>
+        <h1 class="auth-title">{{ t('create_your_account') }}</h1>
+        <p class="auth-sub">{{ t('signup_sub') }}</p>
 
         <form method="post" action="{{ url_for('auth.signup') }}" class="auth-form">
             <div class="auth-row">
                 <div class="auth-field">
-                    <label>Full name *</label>
-                    <input type="text" name="name" placeholder="Your name" required autocomplete="name" class="rw-input">
+                    <label>{{ t('full_name') }} *</label>
+                    <input type="text" name="name" placeholder="{{ t('full_name') }}" required autocomplete="name" class="rw-input">
                 </div>
                 <div class="auth-field">
-                    <label>Phone number</label>
+                    <label>{{ t('phone_number') }}</label>
                     <input type="tel" name="phone" placeholder="+383 44 000 000" autocomplete="tel" class="rw-input">
                 </div>
             </div>
             <div class="auth-field">
-                <label>Email address *</label>
+                <label>{{ t('email') }} *</label>
                 <input type="email" name="email" placeholder="you@example.com" required autocomplete="email" class="rw-input">
             </div>
             <div class="auth-row">
                 <div class="auth-field">
-                    <label>Password *</label>
+                    <label>{{ t('password') }} *</label>
                     <input type="password" name="password" placeholder="Min. 6 characters" required minlength="6" class="rw-input">
                 </div>
                 <div class="auth-field">
-                    <label>Confirm password *</label>
+                    <label>{{ t('confirm_password') }} *</label>
                     <input type="password" name="confirm_password" placeholder="Repeat password" required class="rw-input">
                 </div>
             </div>
-            <button type="submit" class="btn-reserve" style="width:100%;margin-top:8px">Create Account</button>
+            <button type="submit" class="btn-reserve" style="width:100%;margin-top:8px">{{ t('create_account') }}</button>
         </form>
 
         <div class="auth-footer">
-            Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
+            {{ t('already_account') }} <a href="{{ url_for('auth.login') }}">{{ t('sign_in_btn') }}</a>
         </div>
         <div class="auth-footer" style="margin-top:8px">
-            Own a restaurant? <a href="{{ url_for('auth.biz_signup') }}">List it on AllBookEU →</a>
+            {{ t('own_restaurant') }} <a href="{{ url_for('auth.biz_signup') }}">{{ t('list_on_allbook') }}</a>
         </div>
     </div>
 </div>

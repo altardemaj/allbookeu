@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}My Bookings — AllBook{% endblock %}
+{% block title %}{{ t('my_bookings') }} — AllBook{% endblock %}
 {% block content %}
 <div class="dash-layout">
 
@@ -14,17 +14,17 @@
         </div>
         <nav class="dash-nav">
             <a href="{{ url_for('customer.dashboard') }}" class="dash-nav-item dash-nav-active">
-                <span>📅</span> My Bookings
+                <span>📅</span> {{ t('my_bookings') }}
             </a>
             <a href="{{ url_for('customer.profile') }}" class="dash-nav-item">
-                <span>👤</span> Profile Settings
+                <span>👤</span> {{ t('profile_settings') }}
             </a>
             <a href="{{ url_for('search') }}" class="dash-nav-item">
-                <span>🔍</span> Find Businesses
+                <span>🔍</span> {{ t('find_businesses') }}
             </a>
         </nav>
         <form action="{{ url_for('auth.logout') }}" method="post" style="margin-top:auto;padding:20px">
-            <button type="submit" class="dash-logout-btn">🚪 Sign Out</button>
+            <button type="submit" class="dash-logout-btn">🚪 {{ t('sign_out') }}</button>
         </form>
     </aside>
 
@@ -32,10 +32,10 @@
     <main class="dash-main">
         <div class="dash-header">
             <div>
-                <h1>My Bookings</h1>
-                <p>Manage your upcoming appointments and reservation history.</p>
+                <h1>{{ t('my_bookings') }}</h1>
+                <p>{{ t('browse_hint') }}</p>
             </div>
-            <a href="{{ url_for('search') }}" class="btn-dash-primary">+ New Booking</a>
+            <a href="{{ url_for('search') }}" class="btn-dash-primary">{{ t('new_booking') }}</a>
         </div>
 
         <!-- STATS ROW -->
@@ -44,28 +44,28 @@
                 <span class="dsc-icon">📅</span>
                 <div>
                     <div class="dsc-num">{{ upcoming|length }}</div>
-                    <div class="dsc-label">Upcoming</div>
+                    <div class="dsc-label">{{ t('upcoming') }}</div>
                 </div>
             </div>
             <div class="dash-stat-card">
                 <span class="dsc-icon">✅</span>
                 <div>
                     <div class="dsc-num">{{ past|selectattr('status','equalto','completed')|list|length + past|selectattr('status','equalto','confirmed')|list|length }}</div>
-                    <div class="dsc-label">Completed</div>
+                    <div class="dsc-label">{{ t('completed') }}</div>
                 </div>
             </div>
             <div class="dash-stat-card">
                 <span class="dsc-icon">✕</span>
                 <div>
                     <div class="dsc-num">{{ past|selectattr('status','equalto','cancelled')|list|length }}</div>
-                    <div class="dsc-label">Cancelled</div>
+                    <div class="dsc-label">{{ t('cancelled') }}</div>
                 </div>
             </div>
         </div>
 
         <!-- UPCOMING BOOKINGS -->
         <section class="dash-section">
-            <h2 class="dash-section-title">Upcoming</h2>
+            <h2 class="dash-section-title">{{ t('upcoming') }}</h2>
             {% if upcoming %}
             <div class="booking-cards">
                 {% for b in upcoming %}
@@ -90,7 +90,7 @@
                         <div class="bc-info-row">
                             <span>📅 {{ b.date_display() }}</span>
                             <span>🕐 {{ b.booking_time }}</span>
-                            {% if b.party_size > 1 %}<span>👥 Party of {{ b.party_size }}</span>{% endif %}
+                            {% if b.party_size > 1 %}<span>👥 {{ t('party_of') }} {{ b.party_size }}</span>{% endif %}
                             <span>📍 {{ b.business.city }}, {{ b.business.state }}</span>
                         </div>
                         {% if b.notes %}
@@ -98,10 +98,10 @@
                         {% endif %}
                     </div>
                     <div class="bc-actions">
-                        <a href="{{ url_for('business_detail', business_id=b.business.id) }}" class="bc-btn-view">View Business</a>
+                        <a href="{{ url_for('business_detail', business_id=b.business.id) }}" class="bc-btn-view">{{ t('view_business') }}</a>
                         <form action="{{ url_for('customer.cancel_booking', booking_id=b.id) }}" method="post"
                               onsubmit="return confirm('Cancel this booking?')">
-                            <button type="submit" class="bc-btn-cancel">Cancel</button>
+                            <button type="submit" class="bc-btn-cancel">{{ t('cancel') }}</button>
                         </form>
                     </div>
                 </div>
@@ -110,9 +110,9 @@
             {% else %}
             <div class="dash-empty">
                 <div class="dash-empty-icon">📭</div>
-                <h3>No upcoming bookings</h3>
-                <p>Ready to book something? Browse thousands of businesses near you.</p>
-                <a href="{{ url_for('search') }}" class="btn-dash-primary" style="margin-top:16px;display:inline-block">Find Businesses</a>
+                <h3>{{ t('no_upcoming_bookings') }}</h3>
+                <p>{{ t('browse_hint') }}</p>
+                <a href="{{ url_for('search') }}" class="btn-dash-primary" style="margin-top:16px;display:inline-block">{{ t('find_businesses') }}</a>
             </div>
             {% endif %}
         </section>
@@ -120,7 +120,7 @@
         <!-- PAST BOOKINGS -->
         {% if past %}
         <section class="dash-section">
-            <h2 class="dash-section-title">History</h2>
+            <h2 class="dash-section-title">{{ t('history') }}</h2>
             <div class="booking-cards">
                 {% for b in past %}
                 <div class="booking-card booking-card-past">
@@ -142,11 +142,11 @@
                         <div class="bc-info-row">
                             <span>📅 {{ b.date_display() }}</span>
                             <span>🕐 {{ b.booking_time }}</span>
-                            {% if b.party_size > 1 %}<span>👥 Party of {{ b.party_size }}</span>{% endif %}
+                            {% if b.party_size > 1 %}<span>👥 {{ t('party_of') }} {{ b.party_size }}</span>{% endif %}
                         </div>
                     </div>
                     <div class="bc-actions">
-                        <a href="{{ url_for('business_detail', business_id=b.business.id) }}" class="bc-btn-view">Book Again</a>
+                        <a href="{{ url_for('business_detail', business_id=b.business.id) }}" class="bc-btn-view">{{ t('book_again') }}</a>
                     </div>
                 </div>
                 {% endfor %}

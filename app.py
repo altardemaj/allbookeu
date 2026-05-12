@@ -3,6 +3,7 @@ from database import db, Business, Booking, Review, User, BusinessOwner, Service
 from datetime import datetime, date, timedelta
 from dotenv import load_dotenv
 import os
+from translations import get_translation
 
 load_dotenv()
 
@@ -44,13 +45,18 @@ def inject_auth():
         current_user = User.query.get(user_id)
     elif user_type == 'owner' and user_id:
         current_owner = BusinessOwner.query.get(user_id)
+    lang = session.get('lang', 'sq')
+    def t(key):
+        return get_translation(lang, key)
     return dict(
         current_user=current_user,
         current_owner=current_owner,
         user_type=user_type,
         kosovo_cities=KOSOVO_CITIES,
         albania_cities=ALBANIA_CITIES,
-        all_cuisines=CUISINES
+        all_cuisines=CUISINES,
+        lang=lang,
+        t=t,
     )
 
 
@@ -220,6 +226,13 @@ def book():
         'table_info': table_info,
         'message': f'Reservation confirmed at {business.name} on {booking_date} at {booking_time}!'
     })
+
+
+@app.route('/lang/<code>')
+def set_language(code):
+    if code in ('sq', 'en'):
+        session['lang'] = code
+    return redirect(request.referrer or url_for('index'))
 
 
 @app.route('/setup')

@@ -4,44 +4,44 @@
 <div class="auth-page">
     <div class="auth-card auth-card-wide">
         <a href="{{ url_for('index') }}" class="auth-logo">AllBookEU</a>
-        <div class="auth-biz-badge">For Restaurants</div>
-        <h1 class="auth-title">List your restaurant</h1>
-        <p class="auth-sub">Start accepting online reservations in minutes. Free to get started.</p>
+        <div class="auth-biz-badge">{{ t('for_restaurants') }}</div>
+        <h1 class="auth-title">{{ t('list_restaurant') }}</h1>
+        <p class="auth-sub">{{ t('biz_signup_sub') }}</p>
 
         <form method="post" action="{{ url_for('auth.biz_signup') }}" class="auth-form">
 
-            <div class="auth-section-label">1 — Your account</div>
+            <div class="auth-section-label">{{ t('your_account_section') }}</div>
             <div class="auth-row">
                 <div class="auth-field">
-                    <label>Your full name *</label>
-                    <input type="text" name="owner_name" placeholder="Your name" required class="rw-input">
+                    <label>{{ t('your_full_name') }} *</label>
+                    <input type="text" name="owner_name" placeholder="{{ t('your_full_name') }}" required class="rw-input">
                 </div>
                 <div class="auth-field">
-                    <label>Email address *</label>
+                    <label>{{ t('email') }} *</label>
                     <input type="email" name="email" placeholder="you@restaurant.com" required class="rw-input">
                 </div>
             </div>
             <div class="auth-row">
                 <div class="auth-field">
-                    <label>Password *</label>
+                    <label>{{ t('password') }} *</label>
                     <input type="password" name="password" placeholder="Min. 6 characters" required minlength="6" class="rw-input">
                 </div>
                 <div class="auth-field">
-                    <label>Confirm password *</label>
+                    <label>{{ t('confirm_password') }} *</label>
                     <input type="password" name="confirm_password" placeholder="Repeat password" required class="rw-input">
                 </div>
             </div>
 
-            <div class="auth-section-label" style="margin-top:24px">2 — Restaurant details</div>
+            <div class="auth-section-label" style="margin-top:24px">{{ t('restaurant_details') }}</div>
             <div class="auth-row">
                 <div class="auth-field">
-                    <label>Restaurant name *</label>
+                    <label>{{ t('restaurant_name') }} *</label>
                     <input type="text" name="biz_name" placeholder="e.g. Soma, Mullixhiu…" required class="rw-input">
                 </div>
                 <div class="auth-field">
-                    <label>Cuisine type</label>
+                    <label>{{ t('cuisine_type') }}</label>
                     <select name="cuisine" class="rw-input">
-                        <option value="">Select cuisine…</option>
+                        <option value="">{{ t('select_cuisine') }}</option>
                         {% for c in all_cuisines %}
                         <option value="{{ c }}">{{ c }}</option>
                         {% endfor %}
@@ -49,16 +49,16 @@
                 </div>
             </div>
             <div class="auth-field">
-                <label>Description</label>
-                <textarea name="description" placeholder="Tell guests what makes your restaurant special…" class="rw-input rw-textarea" rows="2"></textarea>
+                <label>{{ t('description') }}</label>
+                <textarea name="description" placeholder="{{ t('description_placeholder') }}" class="rw-input rw-textarea" rows="2"></textarea>
             </div>
             <div class="auth-row">
                 <div class="auth-field">
-                    <label>Street address</label>
+                    <label>{{ t('street_address') }}</label>
                     <input type="text" name="address" placeholder="Rr. Nëna Terezë 12" class="rw-input">
                 </div>
                 <div class="auth-field auth-field-sm">
-                    <label>City *</label>
+                    <label>{{ t('city') }} *</label>
                     <select name="city" required class="rw-input">
                         <optgroup label="Kosovo">
                             {% for c in kosovo_cities %}
@@ -82,20 +82,20 @@
             </div>
             <div class="auth-row">
                 <div class="auth-field">
-                    <label>Phone</label>
+                    <label>{{ t('phone') }}</label>
                     <input type="tel" name="phone" placeholder="+383 44 000 000" class="rw-input">
                 </div>
                 <div class="auth-field">
-                    <label>Restaurant email</label>
+                    <label>{{ t('restaurant_email') }}</label>
                     <input type="email" name="biz_email" placeholder="info@restaurant.com" class="rw-input">
                 </div>
             </div>
 
-            <button type="submit" class="btn-reserve" style="width:100%;margin-top:16px">Create Restaurant Account →</button>
+            <button type="submit" class="btn-reserve" style="width:100%;margin-top:16px">{{ t('create_restaurant_account') }}</button>
         </form>
 
         <div class="auth-footer">
-            Already have an account? <a href="{{ url_for('auth.login', tab='owner') }}">Sign in</a>
+            {{ t('already_account') }} <a href="{{ url_for('auth.login', tab='owner') }}">{{ t('sign_in_btn') }}</a>
         </div>
     </div>
 </div>

@@ -7,15 +7,15 @@
 <section class="hero">
     <div class="hero-overlay"></div>
     <div class="hero-content">
-        <h1>Find your table</h1>
-        <p class="hero-sub">Discover and reserve the best restaurants across Kosovo &amp; Albania.</p>
+        <h1>{{ t('hero_title') }}</h1>
+        <p class="hero-sub">{{ t('hero_sub') }}</p>
 
         <form class="hero-search-form" action="{{ url_for('search') }}" method="get">
             <div class="hsf-inner">
                 <div class="hsf-field">
-                    <label>Location</label>
+                    <label>{{ t('location') }}</label>
                     <select name="city">
-                        <option value="">Any city</option>
+                        <option value="">{{ t('any_city') }}</option>
                         <optgroup label="— Kosovo —">
                             {% for city in kosovo_cities %}
                             <option value="{{ city }}">{{ city }}</option>
@@ -30,14 +30,14 @@
                 </div>
                 <div class="hsf-divider"></div>
                 <div class="hsf-field">
-                    <label>Date</label>
+                    <label>{{ t('date') }}</label>
                     <input type="date" name="date" id="heroDate">
                 </div>
                 <div class="hsf-divider"></div>
                 <div class="hsf-field">
-                    <label>Time</label>
+                    <label>{{ t('time') }}</label>
                     <select name="time">
-                        <option value="">Any time</option>
+                        <option value="">{{ t('any_time') }}</option>
                         <option>11:30 AM</option><option>12:00 PM</option><option>12:30 PM</option>
                         <option>1:00 PM</option><option>1:30 PM</option>
                         <option>5:00 PM</option><option>5:30 PM</option><option>6:00 PM</option>
@@ -47,17 +47,17 @@
                 </div>
                 <div class="hsf-divider"></div>
                 <div class="hsf-field">
-                    <label>Party size</label>
+                    <label>{{ t('party_size') }}</label>
                     <select name="party">
                         {% for i in range(1, 13) %}
                         <option value="{{ i }}" {% if i == 2 %}selected{% endif %}>
-                            {{ i }} {% if i == 1 %}person{% else %}people{% endif %}
+                            {{ i }} {{ t('people') }}
                         </option>
                         {% endfor %}
                         <option value="13">Larger party</option>
                     </select>
                 </div>
-                <button type="submit" class="hsf-btn">Find a table</button>
+                <button type="submit" class="hsf-btn">{{ t('find_table') }}</button>
             </div>
         </form>
     </div>
@@ -79,15 +79,15 @@
 <section class="restaurants-section">
     <div class="container">
         <div class="section-header">
-            <h2>Featured Restaurants</h2>
-            <a href="{{ url_for('search') }}" class="see-all">See all →</a>
+            <h2>{{ t('featured_restaurants') }}</h2>
+            <a href="{{ url_for('search') }}" class="see-all">{{ t('see_all') }}</a>
         </div>
         <div class="restaurant-grid">
             {% for b in featured %}
             <a href="{{ url_for('business_detail', business_id=b.id) }}" class="restaurant-card">
                 <div class="rc-img-wrap">
                     <img src="{{ b.image_url }}" alt="{{ b.name }}" loading="lazy">
-                    <div class="rc-booked-badge">Booked {{ (b.review_count // 8) }} times today</div>
+                    <div class="rc-booked-badge">{{ (b.review_count // 8) }} {{ t('booked_today') }}</div>
                 </div>
                 <div class="rc-body">
                     <div class="rc-top">
@@ -125,13 +125,13 @@
 <section class="cities-section">
     <div class="container">
         <div class="section-header">
-            <h2>Explore by City</h2>
+            <h2>{{ t('explore_by_city') }}</h2>
         </div>
         <div class="cities-grid">
             {% for c in cities %}
             <a href="{{ url_for('search', city=c.name) }}" class="city-card">
                 <div class="city-name">{{ c.name }}</div>
-                <div class="city-count">{{ c.count }} restaurant{% if c.count != 1 %}s{% endif %}</div>
+                <div class="city-count">{{ c.count }} {{ t('restaurants') }}</div>
             </a>
             {% endfor %}
         </div>
@@ -143,16 +143,23 @@
     <div class="container">
         <div class="cta-box">
             <div class="cta-left">
-                <h2>Own a restaurant?</h2>
-                <p>Join AllBookEU and start accepting online reservations. Manage your tables, pause bookings instantly, and grow your business — free to start.</p>
-                <a href="{{ url_for('auth.biz_signup') }}" class="btn-cta">Get started free</a>
+                <h2>{{ t('for_restaurants_title') }}</h2>
+                <p>{{ t('for_restaurants_sub') }}</p>
+                <a href="{{ url_for('auth.biz_signup') }}" class="btn-cta">{{ t('get_listed') }}</a>
             </div>
             <div class="cta-right">
                 <div class="cta-features">
+                    {% if lang == 'sq' %}
+                    <div class="cta-feature"><span class="cta-check">✓</span><span>Rezervime online 24/7</span></div>
+                    <div class="cta-feature"><span class="cta-check">✓</span><span>Menaxhim i tavolinave</span></div>
+                    <div class="cta-feature"><span class="cta-check">✓</span><span>Pezullo rezervimet me një klik</span></div>
+                    <div class="cta-feature"><span class="cta-check">✓</span><span>Historia e mysafirëve</span></div>
+                    {% else %}
                     <div class="cta-feature"><span class="cta-check">✓</span><span>Online reservations 24/7</span></div>
                     <div class="cta-feature"><span class="cta-check">✓</span><span>Table management &amp; floor plan</span></div>
                     <div class="cta-feature"><span class="cta-check">✓</span><span>Pause reservations with one click</span></div>
                     <div class="cta-feature"><span class="cta-check">✓</span><span>Guest history &amp; management</span></div>
+                    {% endif %}
                 </div>
             </div>
         </div>
