@@ -1,12 +1,15 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from database import db, Business, Booking, Review, User, BusinessOwner, Service, RestaurantTable
 from datetime import datetime, date, timedelta
-from sqlalchemy import text
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///allbook.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'allbook-secret-key-2024'
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-fallback-secret')
 
 db.init_app(app)
 
@@ -405,21 +408,5 @@ def seed_data():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        try:
-            with db.engine.connect() as conn:
-                for col_sql in [
-                    'ALTER TABLE businesses ADD COLUMN cuisine VARCHAR(100)',
-                    'ALTER TABLE businesses ADD COLUMN country VARCHAR(50) DEFAULT "Kosovo"',
-                    'ALTER TABLE businesses ADD COLUMN reservations_paused BOOLEAN DEFAULT 0',
-                    'ALTER TABLE businesses ADD COLUMN pause_message VARCHAR(300)',
-                    'ALTER TABLE bookings ADD COLUMN table_id INTEGER REFERENCES restaurant_tables(id)',
-                ]:
-                    try:
-                        conn.execute(text(col_sql))
-                        conn.commit()
-                    except Exception:
-                        pass
-        except Exception:
-            pass
         seed_data()
     app.run(debug=True, port=5000)
