@@ -3,23 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}AllBook — Book Any Business{% endblock %}</title>
+    <title>{% block title %}AllBookEU — Restaurant Reservations in Kosovo & Albania{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth_dash.css') }}">
     {% block head %}{% endblock %}
 </head>
 <body>
 
-<!-- FLASH MESSAGES -->
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 <div class="flash-container">
     {% for category, message in messages %}
     <div class="flash flash-{{ category }}">
-        <span>{{ '✓' if category == 'success' else '✕' }}</span>
-        {{ message }}
+        <span class="flash-icon">{% if category == 'success' %}✓{% elif category == 'warning' %}⚠{% else %}✕{% endif %}</span>
+        <span>{{ message }}</span>
         <button class="flash-close" onclick="this.parentElement.remove()">×</button>
     </div>
     {% endfor %}
@@ -27,30 +25,15 @@
 {% endif %}
 {% endwith %}
 
-<!-- NAVBAR -->
 <nav class="navbar">
     <div class="navbar-inner">
         <a href="{{ url_for('index') }}" class="logo">
-            <span class="logo-icon">📖</span>
-            <span class="logo-text">All<span class="logo-accent">Book</span></span>
+            <span class="logo-text">AllBookEU</span>
         </a>
 
-        <form class="nav-search" action="{{ url_for('search') }}" method="get">
-            <div class="nav-search-wrap">
-                <span class="nav-search-icon">🔍</span>
-                <input type="text" name="q" placeholder="Search businesses, services…"
-                       value="{{ request.args.get('q', '') }}">
-                <button type="submit">Search</button>
-            </div>
-        </form>
-
         <div class="nav-links">
-            <a href="{{ url_for('index') }}" class="nav-link-plain">Home</a>
-            <a href="{{ url_for('search') }}" class="nav-link-plain">Browse</a>
-
             {% if user_type == 'customer' and current_user %}
-                <!-- CUSTOMER LOGGED IN -->
-                <a href="{{ url_for('customer.dashboard') }}" class="nav-link-plain">My Bookings</a>
+                <a href="{{ url_for('customer.dashboard') }}" class="nav-link">My Reservations</a>
                 <div class="nav-user-menu">
                     <button class="nav-avatar-btn" id="navAvatarBtn">
                         <span class="nav-avatar">{{ current_user.name[0].upper() }}</span>
@@ -62,18 +45,19 @@
                             <span class="nav-dd-name">{{ current_user.name }}</span>
                             <span class="nav-dd-email">{{ current_user.email }}</span>
                         </div>
-                        <a href="{{ url_for('customer.dashboard') }}" class="nav-dd-item">📅 My Bookings</a>
-                        <a href="{{ url_for('customer.profile') }}" class="nav-dd-item">⚙️ Profile Settings</a>
+                        <a href="{{ url_for('customer.dashboard') }}" class="nav-dd-item">My Reservations</a>
+                        <a href="{{ url_for('customer.profile') }}" class="nav-dd-item">Account Settings</a>
                         <div class="nav-dd-divider"></div>
                         <form action="{{ url_for('auth.logout') }}" method="post" style="margin:0">
-                            <button type="submit" class="nav-dd-item nav-dd-logout">🚪 Sign Out</button>
+                            <button type="submit" class="nav-dd-item nav-dd-logout">Sign Out</button>
                         </form>
                     </div>
                 </div>
 
             {% elif user_type == 'owner' and current_owner %}
-                <!-- BUSINESS OWNER LOGGED IN -->
-                <a href="{{ url_for('biz.dashboard') }}" class="nav-link-plain">My Dashboard</a>
+                <a href="{{ url_for('biz.dashboard') }}" class="nav-link">Dashboard</a>
+                <a href="{{ url_for('biz.bookings') }}" class="nav-link">Reservations</a>
+                <a href="{{ url_for('biz.tables') }}" class="nav-link">Tables</a>
                 <div class="nav-user-menu">
                     <button class="nav-avatar-btn" id="navAvatarBtn">
                         <span class="nav-avatar nav-avatar-biz">{{ current_owner.name[0].upper() }}</span>
@@ -83,26 +67,24 @@
                     <div class="nav-dropdown" id="navDropdown">
                         <div class="nav-dropdown-header">
                             <span class="nav-dd-name">{{ current_owner.name }}</span>
-                            <span class="nav-dd-email">Business Owner</span>
+                            <span class="nav-dd-email">Restaurant Owner</span>
                         </div>
-                        <a href="{{ url_for('biz.dashboard') }}" class="nav-dd-item">📊 Dashboard</a>
-                        <a href="{{ url_for('biz.bookings') }}" class="nav-dd-item">📅 Bookings</a>
-                        <a href="{{ url_for('biz.services') }}" class="nav-dd-item">✂️ Services</a>
-                        <a href="{{ url_for('biz.profile') }}" class="nav-dd-item">⚙️ Business Profile</a>
+                        <a href="{{ url_for('biz.dashboard') }}" class="nav-dd-item">Dashboard</a>
+                        <a href="{{ url_for('biz.bookings') }}" class="nav-dd-item">Reservations</a>
+                        <a href="{{ url_for('biz.tables') }}" class="nav-dd-item">Table Setup</a>
+                        <a href="{{ url_for('biz.services') }}" class="nav-dd-item">Menu Items</a>
+                        <a href="{{ url_for('biz.profile') }}" class="nav-dd-item">Restaurant Profile</a>
                         <div class="nav-dd-divider"></div>
                         <form action="{{ url_for('auth.logout') }}" method="post" style="margin:0">
-                            <button type="submit" class="nav-dd-item nav-dd-logout">🚪 Sign Out</button>
+                            <button type="submit" class="nav-dd-item nav-dd-logout">Sign Out</button>
                         </form>
                     </div>
                 </div>
 
             {% else %}
-                <!-- LOGGED OUT -->
-                <a href="{{ url_for('auth.login') }}" class="nav-link-plain">Log In</a>
-                <div class="nav-signup-group">
-                    <a href="{{ url_for('auth.signup') }}" class="btn-nav-cta">Sign Up</a>
-                    <a href="{{ url_for('auth.biz_signup') }}" class="btn-nav-biz">List Your Business</a>
-                </div>
+                <a href="{{ url_for('auth.login') }}" class="nav-link">Sign In</a>
+                <a href="{{ url_for('auth.signup') }}" class="btn-nav-signup">Create Account</a>
+                <a href="{{ url_for('auth.biz_signup') }}" class="btn-nav-biz">For Restaurants</a>
             {% endif %}
         </div>
     </div>
@@ -110,50 +92,45 @@
 
 {% block content %}{% endblock %}
 
-<!-- FOOTER -->
 <footer class="footer">
     <div class="footer-inner">
-        <div class="footer-brand">
-            <div style="display:flex;align-items:center;gap:8px">
-                <span class="logo-icon">📖</span>
-                <span class="logo-text" style="font-size:1.35rem;font-weight:800;color:#F5F5F5">All<span class="logo-accent">Book</span></span>
+        <div class="footer-top">
+            <div class="footer-brand">
+                <span class="footer-logo">AllBookEU</span>
+                <p>Restaurant reservations across Kosovo & Albania.</p>
             </div>
-            <p>The all-in-one booking platform for every business.</p>
+            <div class="footer-cols">
+                <div class="footer-col">
+                    <h4>Kosovo</h4>
+                    {% for city in kosovo_cities[:6] %}
+                    <a href="{{ url_for('search', city=city) }}">{{ city }}</a>
+                    {% endfor %}
+                </div>
+                <div class="footer-col">
+                    <h4>Albania</h4>
+                    {% for city in albania_cities[:6] %}
+                    <a href="{{ url_for('search', city=city) }}">{{ city }}</a>
+                    {% endfor %}
+                </div>
+                <div class="footer-col">
+                    <h4>AllBookEU</h4>
+                    <a href="{{ url_for('auth.biz_signup') }}">For Restaurants</a>
+                    <a href="{{ url_for('auth.signup') }}">Create Account</a>
+                    <a href="{{ url_for('auth.login') }}">Sign In</a>
+                </div>
+            </div>
         </div>
-        <div class="footer-cols">
-            <div class="footer-col">
-                <h4>For Customers</h4>
-                <a href="{{ url_for('search') }}">Find Businesses</a>
-                <a href="{{ url_for('auth.signup') }}">Create Account</a>
-                <a href="#">How It Works</a>
+        <div class="footer-bottom">
+            <p>© 2025 AllBookEU. All rights reserved.</p>
+            <div class="footer-legal">
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
             </div>
-            <div class="footer-col">
-                <h4>For Businesses</h4>
-                <a href="{{ url_for('auth.biz_signup') }}">List Your Business</a>
-                <a href="#">Pricing</a>
-                <a href="#">Partner Program</a>
-            </div>
-            <div class="footer-col">
-                <h4>Company</h4>
-                <a href="#">About Us</a>
-                <a href="#">Careers</a>
-                <a href="#">Contact</a>
-            </div>
-        </div>
-    </div>
-    <div class="footer-bottom">
-        <p>© 2024 AllBook Inc. All rights reserved.</p>
-        <div class="footer-legal">
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
-            <a href="#">Cookies</a>
         </div>
     </div>
 </footer>
 
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 <script>
-// User menu dropdown
 const avatarBtn = document.getElementById('navAvatarBtn');
 const dropdown = document.getElementById('navDropdown');
 if (avatarBtn && dropdown) {
@@ -163,14 +140,12 @@ if (avatarBtn && dropdown) {
     });
     document.addEventListener('click', () => dropdown.classList.remove('open'));
 }
-// Auto-dismiss flash messages
 setTimeout(() => {
     document.querySelectorAll('.flash').forEach(el => {
         el.style.opacity = '0';
-        el.style.transform = 'translateY(-8px)';
         setTimeout(() => el.remove(), 300);
     });
-}, 4000);
+}, 5000);
 </script>
 {% block scripts %}{% endblock %}
 </body>

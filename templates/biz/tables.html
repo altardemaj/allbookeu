@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}Table Setup — {{ business.name }}{% endblock %}
+
+{% block content %}
+<div class="dash-page">
+    <div class="dash-sidebar">
+        <div class="ds-biz-name">{{ business.name }}</div>
+        <nav class="ds-nav">
+            <a href="{{ url_for('biz.dashboard') }}" class="ds-link">Dashboard</a>
+            <a href="{{ url_for('biz.bookings') }}" class="ds-link">Reservations</a>
+            <a href="{{ url_for('biz.tables') }}" class="ds-link active">Tables</a>
+            <a href="{{ url_for('biz.services') }}" class="ds-link">Menu Items</a>
+            <a href="{{ url_for('biz.profile') }}" class="ds-link">Profile</a>
+        </nav>
+
+        <div class="ds-pause-box {% if business.reservations_paused %}is-paused{% endif %}">
+            {% if business.reservations_paused %}
+            <div class="dpb-status paused">⏸ Reservations paused</div>
+            <p class="dpb-msg">{{ business.pause_message }}</p>
+            <form method="post" action="{{ url_for('biz.toggle_pause') }}">
+                <input type="hidden" name="action" value="resume">
+                <button type="submit" class="btn-resume">Resume reservations</button>
+            </form>
+            {% else %}
+            <div class="dpb-status open">● Accepting reservations</div>
+            <form method="post" action="{{ url_for('biz.toggle_pause') }}">
+                <input type="hidden" name="action" value="pause">
+                <input type="text" name="pause_message" placeholder="Reason (optional)" class="dpb-reason-input">
+                <button type="submit" class="btn-pause">Pause reservations</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="dash-main">
+        <div class="dash-header">
+            <h1>Table Setup</h1>
+            <p>Configure your floor plan. AllBookEU auto-assigns tables to reservations based on party size.</p>
+        </div>
+
+        <!-- ADD TABLE FORM -->
+        <div class="tables-add-box">
+            <h3>Add a Table</h3>
+            <form method="post" class="add-table-form">
+                <input type="hidden" name="action" value="add">
+                <div class="atf-row">
+                    <div class="atf-field">
+                        <label>Table name / number</label>
+                        <input type="text" name="table_number" placeholder="e.g. T1, Corner, B3" required class="atf-input">
+                    </div>
+                    <div class="atf-field atf-field-sm">
+                        <label>Seats</label>
+                        <select name="capacity" class="atf-input">
+                            {% for i in [1,2,3,4,5,6,7,8,10,12,15,20] %}
+                            <option value="{{ i }}" {% if i == 4 %}selected{% endif %}>{{ i }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="atf-field">
+                        <label>Section</label>
+                        <select name="section" class="atf-input">
+                            {% for s in sections %}
+                            <option>{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="atf-field">
+                        <label>Notes (optional)</label>
+                        <input type="text" name="notes" placeholder="window seat, accessible…" class="atf-input">
+                    </div>
+                    <button type="submit" class="btn-add-table">+ Add</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- FLOOR PLAN -->
+        {% if sections_map %}
+        <div class="floor-plan">
+            {% for section_name, tables in sections_map.items() %}
+            <div class="floor-section">
+                <div class="fs-header">
+                    <h3 class="fs-name">{{ section_name }}</h3>
+                    <span class="fs-count">{{ tables|length }} table{% if tables|length != 1 %}s{% endif %}</span>
+                </div>
+                <div class="fs-tables">
+                    {% for t in tables %}
+                    <div class="table-card {% if not t.is_active %}table-inactive{% endif %}">
+                        <div class="tc-top">
+                            <div class="tc-number">{{ t.table_number }}</div>
+                            <div class="tc-seats">{{ t.capacity }} seats</div>
+                        </div>
+                        {% if t.notes %}
+                        <div class="tc-notes">{{ t.notes }}</div>
+                        {% endif %}
+                        <div class="tc-badge-wrap">
+                            {% if t.is_active %}
+                            <span class="tc-badge active">Active</span>
+                            {% else %}
+                            <span class="tc-badge inactive">Inactive</span>
+                            {% endif %}
+                        </div>
+                        <div class="tc-actions">
+                            <button class="tc-btn" onclick="openEditModal({{ t.id }},'{{ t.table_number }}',{{ t.capacity }},'{{ t.section }}','{{ t.notes or '' }}')">Edit</button>
+                            <form method="post" style="display:inline">
+                                <input type="hidden" name="action" value="toggle">
+                                <input type="hidden" name="table_id" value="{{ t.id }}">
+                                <button type="submit" class="tc-btn">{{ 'Deactivate' if t.is_active else 'Activate' }}</button>
+                            </form>
+                            <form method="post" style="display:inline" onsubmit="return confirm('Remove table {{ t.table_number }}?')">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="table_id" value="{{ t.id }}">
+                                <button type="submit" class="tc-btn tc-delete">Remove</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-tables-empty">
+            <div class="nte-icon">🪑</div>
+            <h3>No tables yet</h3>
+            <p>Add your first table above to set up your floor plan. AllBookEU will auto-assign tables to reservations based on party size and availability.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal" style="display:none">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>Edit Table</h3>
+            <button class="modal-close" onclick="closeEditModal()">×</button>
+        </div>
+        <form method="post" class="modal-form">
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="table_id" id="editTableId">
+            <div class="modal-field">
+                <label>Table name / number</label>
+                <input type="text" name="table_number" id="editTableNumber" required class="rw-input">
+            </div>
+            <div class="modal-field">
+                <label>Seats</label>
+                <select name="capacity" id="editCapacity" class="rw-input">
+                    {% for i in [1,2,3,4,5,6,7,8,10,12,15,20] %}
+                    <option value="{{ i }}">{{ i }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="modal-field">
+                <label>Section</label>
+                <select name="section" id="editSection" class="rw-input">
+                    {% for s in sections %}
+                    <option>{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="modal-field">
+                <label>Notes</label>
+                <input type="text" name="notes" id="editNotes" placeholder="Optional notes" class="rw-input">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-outline" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn-reserve">Save changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditModal(id, number, capacity, section, notes) {
+    document.getElementById('editTableId').value = id;
+    document.getElementById('editTableNumber').value = number;
+    document.getElementById('editCapacity').value = capacity;
+    document.getElementById('editSection').value = section;
+    document.getElementById('editNotes').value = notes;
+    document.getElementById('editModal').style.display = 'flex';
+}
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+});
+</script>
+{% endblock %}

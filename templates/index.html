@@ -1,194 +1,165 @@
 {% extends "base.html" %}
-{% block title %}AllBook — Book Any Business, Anywhere{% endblock %}
+{% block title %}AllBookEU — Restaurant Reservations in Kosovo & Albania{% endblock %}
 
 {% block content %}
 
 <!-- HERO -->
 <section class="hero">
-    <div class="hero-bg"></div>
+    <div class="hero-overlay"></div>
     <div class="hero-content">
-        <div class="hero-badge">🌟 Trusted by 10,000+ businesses</div>
-        <h1>Book <span class="hero-gradient">anything</span>,<br>anywhere, anytime.</h1>
-        <p class="hero-sub">Restaurants, salons, spas, barbershops, gyms — all in one place.<br>Discover and book the best businesses near you.</p>
+        <h1>Find your table</h1>
+        <p class="hero-sub">Discover and reserve the best restaurants across Kosovo &amp; Albania.</p>
 
-        <form class="hero-search" action="{{ url_for('search') }}" method="get">
-            <div class="hero-search-box">
-                <div class="hero-search-field">
-                    <span class="hs-icon">🔍</span>
-                    <input type="text" name="q" placeholder="Business name, service, or keyword…" autocomplete="off">
+        <form class="hero-search-form" action="{{ url_for('search') }}" method="get">
+            <div class="hsf-inner">
+                <div class="hsf-field">
+                    <label>Location</label>
+                    <select name="city">
+                        <option value="">Any city</option>
+                        <optgroup label="— Kosovo —">
+                            {% for city in kosovo_cities %}
+                            <option value="{{ city }}">{{ city }}</option>
+                            {% endfor %}
+                        </optgroup>
+                        <optgroup label="— Albania —">
+                            {% for city in albania_cities %}
+                            <option value="{{ city }}">{{ city }}</option>
+                            {% endfor %}
+                        </optgroup>
+                    </select>
                 </div>
-                <div class="hero-search-divider"></div>
-                <div class="hero-search-field">
-                    <span class="hs-icon">📍</span>
-                    <input type="text" placeholder="New York, NY" readonly>
+                <div class="hsf-divider"></div>
+                <div class="hsf-field">
+                    <label>Date</label>
+                    <input type="date" name="date" id="heroDate">
                 </div>
-                <button type="submit" class="hero-search-btn">Search</button>
+                <div class="hsf-divider"></div>
+                <div class="hsf-field">
+                    <label>Time</label>
+                    <select name="time">
+                        <option value="">Any time</option>
+                        <option>11:30 AM</option><option>12:00 PM</option><option>12:30 PM</option>
+                        <option>1:00 PM</option><option>1:30 PM</option>
+                        <option>5:00 PM</option><option>5:30 PM</option><option>6:00 PM</option>
+                        <option>6:30 PM</option><option>7:00 PM</option><option>7:30 PM</option>
+                        <option>8:00 PM</option><option>8:30 PM</option><option>9:00 PM</option>
+                    </select>
+                </div>
+                <div class="hsf-divider"></div>
+                <div class="hsf-field">
+                    <label>Party size</label>
+                    <select name="party">
+                        {% for i in range(1, 13) %}
+                        <option value="{{ i }}" {% if i == 2 %}selected{% endif %}>
+                            {{ i }} {% if i == 1 %}person{% else %}people{% endif %}
+                        </option>
+                        {% endfor %}
+                        <option value="13">Larger party</option>
+                    </select>
+                </div>
+                <button type="submit" class="hsf-btn">Find a table</button>
             </div>
         </form>
-
-        <div class="hero-tags">
-            {% for cat in categories %}
-            <a href="{{ url_for('search', category=cat.id) }}" class="hero-tag">
-                {{ cat.icon }} {{ cat.name }}
-            </a>
-            {% endfor %}
-        </div>
-    </div>
-    <div class="hero-visual">
-        <div class="hero-card-float card-1">
-            <span>⭐ 4.9</span><span>Just booked!</span>
-        </div>
-        <div class="hero-card-float card-2">
-            <span>✅ Confirmed</span><span>Today 3:00 PM</span>
-        </div>
-        <div class="hero-card-float card-3">
-            <span>🎉 You're in!</span><span>Serenity Spa</span>
-        </div>
     </div>
 </section>
 
-<!-- CATEGORIES -->
-<section class="categories-section">
+<!-- CUISINE FILTERS -->
+<section class="cuisine-bar">
     <div class="container">
-        <div class="section-header">
-            <h2>Browse by Category</h2>
-            <p>From a quick trim to a gourmet dinner — we've got you covered.</p>
-        </div>
-        <div class="category-grid">
-            {% for cat in categories %}
-            <a href="{{ url_for('search', category=cat.id) }}" class="category-card cat-{{ cat.id }}">
-                <div class="cat-icon-wrap">
-                    <span class="cat-icon">{{ cat.icon }}</span>
-                </div>
-                <span class="cat-name">{{ cat.name }}</span>
-                <span class="cat-arrow">→</span>
-            </a>
+        <div class="cuisine-scroll">
+            <a href="{{ url_for('search') }}" class="cuisine-pill active">All</a>
+            {% for c in cuisines %}
+            <a href="{{ url_for('search', cuisine=c) }}" class="cuisine-pill">{{ c }}</a>
             {% endfor %}
         </div>
     </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section class="how-it-works">
+<!-- FEATURED RESTAURANTS -->
+<section class="restaurants-section">
     <div class="container">
         <div class="section-header">
-            <h2>How AllBook Works</h2>
-            <p>Booking made effortless in three simple steps.</p>
+            <h2>Featured Restaurants</h2>
+            <a href="{{ url_for('search') }}" class="see-all">See all →</a>
         </div>
-        <div class="steps-grid">
-            <div class="step-card">
-                <div class="step-num">01</div>
-                <div class="step-icon">🔍</div>
-                <h3>Search & Discover</h3>
-                <p>Browse thousands of top-rated businesses by name, category, or location. Read reviews and see real photos.</p>
-            </div>
-            <div class="step-card">
-                <div class="step-num">02</div>
-                <div class="step-icon">📅</div>
-                <h3>Pick Your Time</h3>
-                <p>See real-time availability and choose a date and time that works perfectly for your schedule.</p>
-            </div>
-            <div class="step-card">
-                <div class="step-num">03</div>
-                <div class="step-icon">✅</div>
-                <h3>Confirm & Go</h3>
-                <p>Instant confirmation sent to your email. No phone calls, no waiting — just show up and enjoy.</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- FEATURED BUSINESSES -->
-<section class="featured-section">
-    <div class="container">
-        <div class="section-header">
-            <h2>Featured Businesses</h2>
-            <p>Hand-picked top-rated businesses loved by our community.</p>
-            <a href="{{ url_for('search') }}" class="see-all-link">See all →</a>
-        </div>
-        <div class="business-grid">
+        <div class="restaurant-grid">
             {% for b in featured %}
-            <div class="business-card">
-                <a href="{{ url_for('business_detail', business_id=b.id) }}" class="card-img-link">
-                    <div class="card-img-wrap">
-                        <img src="{{ b.image_url }}" alt="{{ b.name }}" loading="lazy">
-                        <div class="card-category-badge">{{ b.category.replace('_', ' ').title() }}</div>
-                        {% if b.price_range %}
-                        <div class="card-price-badge">{{ b.price_range }}</div>
-                        {% endif %}
-                    </div>
-                </a>
-                <div class="card-body">
-                    <div class="card-top">
-                        <h3 class="card-name">
-                            <a href="{{ url_for('business_detail', business_id=b.id) }}">{{ b.name }}</a>
-                        </h3>
-                        <div class="card-rating">
-                            <span class="rating-star">⭐</span>
-                            <span class="rating-val">{{ "%.1f"|format(b.rating) }}</span>
-                            <span class="rating-count">({{ b.review_count }})</span>
+            <a href="{{ url_for('business_detail', business_id=b.id) }}" class="restaurant-card">
+                <div class="rc-img-wrap">
+                    <img src="{{ b.image_url }}" alt="{{ b.name }}" loading="lazy">
+                    <div class="rc-booked-badge">Booked {{ (b.review_count // 8) }} times today</div>
+                </div>
+                <div class="rc-body">
+                    <div class="rc-top">
+                        <h3 class="rc-name">{{ b.name }}</h3>
+                        <div class="rc-rating">
+                            <span class="rc-star">★</span>
+                            <span>{{ "%.1f"|format(b.rating) }}</span>
+                            <span class="rc-count">({{ b.review_count }})</span>
                         </div>
                     </div>
-                    <p class="card-location">📍 {{ b.city }}, {{ b.state }}</p>
-                    <p class="card-desc">{{ b.description[:90] }}…</p>
-                    <a href="{{ url_for('business_detail', business_id=b.id) }}" class="btn-book">
-                        {% if b.category == 'restaurant' %}Reserve{% else %}Book Now{% endif %}
-                    </a>
+                    <div class="rc-meta">
+                        <span class="rc-price">{{ b.price_range or '€€' }}</span>
+                        <span class="rc-dot">·</span>
+                        <span>{{ b.cuisine or 'Restaurant' }}</span>
+                        <span class="rc-dot">·</span>
+                        <span>{{ b.city }}</span>
+                    </div>
+                    {% if not b.reservations_paused %}
+                    <div class="rc-times">
+                        {% for t in ['7:00 PM', '7:30 PM', '8:00 PM'] %}
+                        <span class="rc-time-btn">{{ t }}</span>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="rc-paused">Reservations paused</div>
+                    {% endif %}
                 </div>
-            </div>
+            </a>
             {% endfor %}
         </div>
     </div>
 </section>
 
-<!-- STATS BANNER -->
-<section class="stats-section">
+<!-- CITIES -->
+<section class="cities-section">
     <div class="container">
-        <div class="stats-grid">
-            <div class="stat-item">
-                <span class="stat-num">10K+</span>
-                <span class="stat-label">Businesses Listed</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-num">500K+</span>
-                <span class="stat-label">Bookings Made</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-num">50+</span>
-                <span class="stat-label">Cities Covered</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-num">4.9★</span>
-                <span class="stat-label">Average Rating</span>
-            </div>
+        <div class="section-header">
+            <h2>Explore by City</h2>
+        </div>
+        <div class="cities-grid">
+            {% for c in cities %}
+            <a href="{{ url_for('search', city=c.name) }}" class="city-card">
+                <div class="city-name">{{ c.name }}</div>
+                <div class="city-count">{{ c.count }} restaurant{% if c.count != 1 %}s{% endif %}</div>
+            </a>
+            {% endfor %}
         </div>
     </div>
 </section>
 
-<!-- CTA BANNER -->
+<!-- FOR RESTAURANTS CTA -->
 <section class="cta-section">
     <div class="container">
         <div class="cta-box">
-            <div class="cta-text">
-                <h2>Own a business?</h2>
-                <p>Join thousands of businesses already growing with AllBook. Set up your profile in minutes and start accepting bookings today — completely free.</p>
-                <div class="cta-actions">
-                    <a href="#" class="btn-cta-primary">Get Started Free</a>
-                    <a href="#" class="btn-cta-ghost">Learn More →</a>
-                </div>
+            <div class="cta-left">
+                <h2>Own a restaurant?</h2>
+                <p>Join AllBookEU and start accepting online reservations. Manage your tables, pause bookings instantly, and grow your business — free to start.</p>
+                <a href="{{ url_for('auth.biz_signup') }}" class="btn-cta">Get started free</a>
             </div>
-            <div class="cta-visual">
-                <div class="cta-mockup">
-                    <div class="cm-line cm-bold">Your Business Name</div>
-                    <div class="cm-line">⭐⭐⭐⭐⭐  5.0 (0 reviews)</div>
-                    <div class="cm-line cm-muted">📍 Your City, State</div>
-                    <div class="cm-divider"></div>
-                    <div class="cm-line">📅 Mon – Fri  9am – 6pm</div>
-                    <div class="cm-btn">Book Appointment →</div>
+            <div class="cta-right">
+                <div class="cta-features">
+                    <div class="cta-feature"><span class="cta-check">✓</span><span>Online reservations 24/7</span></div>
+                    <div class="cta-feature"><span class="cta-check">✓</span><span>Table management &amp; floor plan</span></div>
+                    <div class="cta-feature"><span class="cta-check">✓</span><span>Pause reservations with one click</span></div>
+                    <div class="cta-feature"><span class="cta-check">✓</span><span>Guest history &amp; management</span></div>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
+<script>
+document.getElementById('heroDate').valueAsDate = new Date();
+</script>
 {% endblock %}

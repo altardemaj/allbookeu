@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 from functools import wraps
-from database import db, BusinessOwner, Business, Booking, Service
+from database import db, BusinessOwner, Business, Booking, Service, RestaurantTable
 from datetime import date, timedelta
 import json
 
@@ -17,6 +17,8 @@ TIME_OPTIONS = [
     '6:00 PM','6:30 PM','7:00 PM','7:30 PM','8:00 PM','8:30 PM',
     '9:00 PM','9:30 PM','10:00 PM',
 ]
+
+SECTIONS = ['Main Floor', 'Terrace', 'Garden', 'Private Room', 'Bar', 'Rooftop', 'Basement']
 
 
 def owner_required(f):
@@ -40,14 +42,13 @@ def get_owner_business():
 def dashboard():
     owner, business = get_owner_business()
     if not business:
-        flash('No business found. Please complete your profile.', 'error')
+        flash('No restaurant found. Please complete your profile.', 'error')
         return redirect(url_for('biz.profile'))
 
     today = date.today()
     today_bookings = business.today_bookings()
     week_bookings = business.week_bookings()
 
-    # Build upcoming 7-day calendar data
     calendar_days = []
     for i in range(7):
         day = today + timedelta(days=i)
@@ -67,6 +68,16 @@ def dashboard():
         .filter(Booking.status != 'cancelled')\
         .distinct().count()
 
+    tables = RestaurantTable.query.filter_by(business_id=business.id, is_active=True).all()
+    table_status = []
+    for t in tables:
+        booked_times = [b.booking_time for b in today_bookings if b.table_id == t.id]
+        table_status.append({
+            'table': t,
+            'booked_times': booked_times,
+            'is_occupied': len(booked_times) > 0
+        })
+
     return render_template('biz/dashboard.html',
                            owner=owner, business=business,
                            today_bookings=today_bookings,
@@ -74,6 +85,7 @@ def dashboard():
                            calendar_days=calendar_days,
                            total_bookings=total_bookings,
                            total_customers=total_customers,
+                           table_status=table_status,
                            today=today)
 
 
@@ -116,8 +128,102 @@ def update_booking_status(booking_id):
     if new_status in ('confirmed', 'cancelled', 'completed'):
         booking.status = new_status
         db.session.commit()
-        flash(f'Booking #{booking.id} marked as {new_status}.', 'success')
+        flash(f'Reservation #{booking.id} marked as {new_status}.', 'success')
     return redirect(url_for('biz.bookings'))
+
+
+@biz.route('/pause', methods=['POST'])
+@owner_required
+def toggle_pause():
+    owner, business = get_owner_business()
+    if not business:
+        return jsonify({'error': 'No restaurant found'}), 404
+
+    action = request.form.get('action')
+    pause_message = request.form.get('pause_message', '').strip()
+
+    if action == 'pause':
+        business.reservations_paused = True
+        business.pause_message = pause_message or 'Reservations are temporarily paused. Please call us to book.'
+        db.session.commit()
+        flash('Reservations are now paused. Guests will see a message when they try to book.', 'warning')
+    elif action == 'resume':
+        business.reservations_paused = False
+        db.session.commit()
+        flash('Reservations are open again. Guests can book online.', 'success')
+
+    return redirect(request.referrer or url_for('biz.dashboard'))
+
+
+@biz.route('/tables', methods=['GET', 'POST'])
+@owner_required
+def tables():
+    owner, business = get_owner_business()
+    if not business:
+        return redirect(url_for('biz.dashboard'))
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        if action == 'add':
+            table_number = request.form.get('table_number', '').strip()
+            capacity = int(request.form.get('capacity', 4))
+            section = request.form.get('section', 'Main Floor').strip()
+            notes = request.form.get('notes', '').strip()
+            if table_number:
+                t = RestaurantTable(
+                    business_id=business.id,
+                    table_number=table_number,
+                    capacity=capacity,
+                    section=section,
+                    notes=notes
+                )
+                db.session.add(t)
+                db.session.commit()
+                flash(f'Table {table_number} added to {section}.', 'success')
+            else:
+                flash('Table number is required.', 'error')
+
+        elif action == 'edit':
+            table_id = int(request.form.get('table_id', 0))
+            t = RestaurantTable.query.get(table_id)
+            if t and t.business_id == business.id:
+                t.table_number = request.form.get('table_number', t.table_number).strip()
+                t.capacity = int(request.form.get('capacity', t.capacity))
+                t.section = request.form.get('section', t.section).strip()
+                t.notes = request.form.get('notes', '').strip()
+                db.session.commit()
+                flash(f'Table {t.table_number} updated.', 'success')
+
+        elif action == 'toggle':
+            table_id = int(request.form.get('table_id', 0))
+            t = RestaurantTable.query.get(table_id)
+            if t and t.business_id == business.id:
+                t.is_active = not t.is_active
+                db.session.commit()
+                status_word = 'activated' if t.is_active else 'deactivated'
+                flash(f'Table {t.table_number} {status_word}.', 'success')
+
+        elif action == 'delete':
+            table_id = int(request.form.get('table_id', 0))
+            t = RestaurantTable.query.get(table_id)
+            if t and t.business_id == business.id:
+                db.session.delete(t)
+                db.session.commit()
+                flash('Table removed.', 'success')
+
+        return redirect(url_for('biz.tables'))
+
+    all_tables = RestaurantTable.query.filter_by(business_id=business.id)\
+        .order_by(RestaurantTable.section, RestaurantTable.table_number).all()
+
+    sections_map = {}
+    for t in all_tables:
+        sections_map.setdefault(t.section, []).append(t)
+
+    return render_template('biz/tables.html', owner=owner, business=business,
+                           all_tables=all_tables, sections_map=sections_map,
+                           sections=SECTIONS)
 
 
 @biz.route('/services', methods=['GET', 'POST'])
@@ -140,9 +246,9 @@ def services():
                               description=description, duration_minutes=duration, price=price)
                 db.session.add(svc)
                 db.session.commit()
-                flash(f'Service "{name}" added.', 'success')
+                flash(f'Menu item "{name}" added.', 'success')
             else:
-                flash('Service name is required.', 'error')
+                flash('Name is required.', 'error')
 
         elif action == 'edit':
             svc_id = int(request.form.get('service_id', 0))
@@ -153,7 +259,7 @@ def services():
                 svc.duration_minutes = int(request.form.get('duration_minutes', 60))
                 svc.price = float(request.form.get('price', 0))
                 db.session.commit()
-                flash('Service updated.', 'success')
+                flash('Menu item updated.', 'success')
 
         elif action == 'delete':
             svc_id = int(request.form.get('service_id', 0))
@@ -161,7 +267,7 @@ def services():
             if svc and svc.business_id == business.id:
                 db.session.delete(svc)
                 db.session.commit()
-                flash('Service removed.', 'success')
+                flash('Menu item removed.', 'success')
 
         return redirect(url_for('biz.services'))
 
@@ -184,20 +290,20 @@ def profile():
 
         if action == 'update_info':
             business.name = request.form.get('name', business.name).strip()
+            business.cuisine = request.form.get('cuisine', '').strip()
             business.description = request.form.get('description', '').strip()
             business.address = request.form.get('address', '').strip()
             business.city = request.form.get('city', '').strip()
-            business.state = request.form.get('state', '').strip()
-            business.zip_code = request.form.get('zip_code', '').strip()
+            business.country = request.form.get('country', 'Kosovo').strip()
             business.phone = request.form.get('phone', '').strip()
             business.email = request.form.get('biz_email', '').strip()
             business.website = request.form.get('website', '').strip()
-            business.price_range = request.form.get('price_range', '$$')
+            business.price_range = request.form.get('price_range', '€€')
             img = request.form.get('image_url', '').strip()
             if img:
                 business.image_url = img
             db.session.commit()
-            flash('Business profile updated.', 'success')
+            flash('Restaurant profile updated.', 'success')
 
         elif action == 'update_hours':
             hours = {}
@@ -207,7 +313,7 @@ def profile():
                     hours[day] = 'closed'
                 else:
                     open_t = request.form.get(f'open_{day}', '9:00 AM')
-                    close_t = request.form.get(f'close_{day}', '6:00 PM')
+                    close_t = request.form.get(f'close_{day}', '10:00 PM')
                     hours[day] = f"{open_t} – {close_t}"
             business.hours = json.dumps(hours)
             db.session.commit()
@@ -230,7 +336,11 @@ def profile():
 
         return redirect(url_for('biz.profile'))
 
+    from app import KOSOVO_CITIES, ALBANIA_CITIES, CUISINES
     hours_data = business.get_hours_display()
     return render_template('biz/profile.html', owner=owner, business=business,
                            hours_data=hours_data, days=DAYS, day_names=DAY_NAMES,
-                           time_options=TIME_OPTIONS)
+                           time_options=TIME_OPTIONS,
+                           kosovo_cities=KOSOVO_CITIES,
+                           albania_cities=ALBANIA_CITIES,
+                           cuisines=CUISINES)

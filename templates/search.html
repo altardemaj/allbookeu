@@ -1,93 +1,164 @@
 {% extends "base.html" %}
-{% block title %}
-  {% if query %}Results for "{{ query }}"{% elif category %}{{ category.replace('_',' ').title() }}{% else %}Browse All Businesses{% endif %} — AllBook
-{% endblock %}
+{% block title %}Restaurants in {{ city or 'Kosovo & Albania' }} — AllBookEU{% endblock %}
 
 {% block content %}
 <div class="search-page">
-    <div class="search-hero">
+    <!-- SEARCH BAR -->
+    <div class="search-bar-wrap">
         <div class="container">
-            <form class="search-bar-full" action="{{ url_for('search') }}" method="get">
+            <form class="search-bar-form" action="{{ url_for('search') }}" method="get">
                 <div class="sbf-inner">
-                    <span class="sbf-icon">🔍</span>
-                    <input type="text" name="q" value="{{ query }}" placeholder="Search businesses, services…" autofocus>
-                    {% if category %}
-                    <input type="hidden" name="category" value="{{ category }}">
-                    {% endif %}
-                    <button type="submit">Search</button>
+                    <div class="sbf-field">
+                        <label>Location</label>
+                        <select name="city">
+                            <option value="">Any city</option>
+                            <optgroup label="— Kosovo —">
+                                {% for c in kosovo_cities %}
+                                <option value="{{ c }}" {% if c == city %}selected{% endif %}>{{ c }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            <optgroup label="— Albania —">
+                                {% for c in albania_cities %}
+                                <option value="{{ c }}" {% if c == city %}selected{% endif %}>{{ c }}</option>
+                                {% endfor %}
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="sbf-divider"></div>
+                    <div class="sbf-field">
+                        <label>Date</label>
+                        <input type="date" name="date" value="{{ date_str }}">
+                    </div>
+                    <div class="sbf-divider"></div>
+                    <div class="sbf-field">
+                        <label>Time</label>
+                        <select name="time">
+                            <option value="">Any time</option>
+                            {% for t in ['11:30 AM','12:00 PM','12:30 PM','1:00 PM','1:30 PM','5:00 PM','5:30 PM','6:00 PM','6:30 PM','7:00 PM','7:30 PM','8:00 PM','8:30 PM','9:00 PM'] %}
+                            <option {% if t == time_str %}selected{% endif %}>{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="sbf-divider"></div>
+                    <div class="sbf-field">
+                        <label>Party size</label>
+                        <select name="party">
+                            {% for i in range(1, 13) %}
+                            <option value="{{ i }}" {% if party_str == i|string %}selected{% endif %}>
+                                {{ i }} {% if i == 1 %}person{% else %}people{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="sbf-btn">Search</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="container">
-        <!-- CATEGORY PILLS -->
-        <div class="filter-pills">
-            <a href="{{ url_for('search', q=query) }}"
-               class="pill {% if not category %}pill-active{% endif %}">All</a>
-            {% for cat in categories %}
-            <a href="{{ url_for('search', q=query, category=cat.id) }}"
-               class="pill {% if category == cat.id %}pill-active{% endif %}">
-                {{ cat.icon }} {{ cat.name }}
-            </a>
-            {% endfor %}
-        </div>
+    <div class="container search-body">
+        <div class="search-layout">
 
-        <!-- RESULTS HEADER -->
-        <div class="results-header">
-            <span class="results-count">
-                {% if businesses %}
-                    <strong>{{ businesses|length }}</strong> result{% if businesses|length != 1 %}s{% endif %}
-                    {% if query %}for "<em>{{ query }}</em>"{% endif %}
-                    {% if category %}in <em>{{ category.replace('_',' ').title() }}</em>{% endif %}
-                {% else %}
-                    No results found
-                    {% if query %}for "<em>{{ query }}</em>"{% endif %}
-                {% endif %}
-            </span>
-        </div>
+            <!-- FILTERS SIDEBAR -->
+            <aside class="search-filters">
+                <h3>Filters</h3>
 
-        {% if businesses %}
-        <div class="results-grid">
-            {% for b in businesses %}
-            <div class="business-card">
-                <a href="{{ url_for('business_detail', business_id=b.id) }}" class="card-img-link">
-                    <div class="card-img-wrap">
-                        <img src="{{ b.image_url }}" alt="{{ b.name }}" loading="lazy">
-                        <div class="card-category-badge">{{ b.category.replace('_', ' ').title() }}</div>
-                        {% if b.price_range %}
-                        <div class="card-price-badge">{{ b.price_range }}</div>
-                        {% endif %}
+                <div class="filter-group">
+                    <label class="filter-label">Country</label>
+                    <div class="filter-options">
+                        <a href="{{ url_for('search', city=city, cuisine=cuisine, date=date_str, time=time_str, party=party_str) }}"
+                           class="filter-opt {% if not country %}active{% endif %}">All</a>
+                        <a href="{{ url_for('search', country='Kosovo', city=city, cuisine=cuisine, date=date_str, time=time_str, party=party_str) }}"
+                           class="filter-opt {% if country == 'Kosovo' %}active{% endif %}">Kosovo</a>
+                        <a href="{{ url_for('search', country='Albania', city=city, cuisine=cuisine, date=date_str, time=time_str, party=party_str) }}"
+                           class="filter-opt {% if country == 'Albania' %}active{% endif %}">Albania</a>
                     </div>
-                </a>
-                <div class="card-body">
-                    <div class="card-top">
-                        <h3 class="card-name">
-                            <a href="{{ url_for('business_detail', business_id=b.id) }}">{{ b.name }}</a>
-                        </h3>
-                        <div class="card-rating">
-                            <span class="rating-star">⭐</span>
-                            <span class="rating-val">{{ "%.1f"|format(b.rating) }}</span>
-                            <span class="rating-count">({{ b.review_count }})</span>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Cuisine</label>
+                    <div class="filter-options filter-options-scroll">
+                        <a href="{{ url_for('search', city=city, country=country, date=date_str, time=time_str, party=party_str) }}"
+                           class="filter-opt {% if not cuisine %}active{% endif %}">All cuisines</a>
+                        {% for c in cuisines %}
+                        <a href="{{ url_for('search', cuisine=c, city=city, country=country, date=date_str, time=time_str, party=party_str) }}"
+                           class="filter-opt {% if cuisine == c %}active{% endif %}">{{ c }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </aside>
+
+            <!-- RESULTS -->
+            <div class="search-results">
+                <div class="results-header">
+                    <p class="results-count">
+                        <strong>{{ businesses|length }}</strong>
+                        restaurant{% if businesses|length != 1 %}s{% endif %}
+                        {% if city %} in <strong>{{ city }}</strong>{% endif %}
+                        {% if cuisine %} · <strong>{{ cuisine }}</strong>{% endif %}
+                        {% if date_str and time_str %} available at <strong>{{ time_str }}</strong>{% endif %}
+                    </p>
+                </div>
+
+                {% if businesses %}
+                <div class="results-list">
+                    {% for b in businesses %}
+                    <div class="result-card">
+                        <a href="{{ url_for('business_detail', business_id=b.id, date=date_str, time=time_str, party=party_str) }}"
+                           class="result-img-link">
+                            <img src="{{ b.image_url }}" alt="{{ b.name }}" loading="lazy">
+                        </a>
+                        <div class="result-body">
+                            <div class="result-top">
+                                <div class="result-info">
+                                    <h3 class="result-name">
+                                        <a href="{{ url_for('business_detail', business_id=b.id, date=date_str, time=time_str, party=party_str) }}">{{ b.name }}</a>
+                                    </h3>
+                                    <div class="result-meta">
+                                        <span class="rc-star">★</span>
+                                        <span class="result-rating">{{ "%.1f"|format(b.rating) }}</span>
+                                        <span class="rc-count">({{ b.review_count }})</span>
+                                        <span class="rc-dot">·</span>
+                                        <span>{{ b.price_range or '€€' }}</span>
+                                        <span class="rc-dot">·</span>
+                                        <span>{{ b.cuisine or 'Restaurant' }}</span>
+                                        <span class="rc-dot">·</span>
+                                        <span>{{ b.city }}, {{ b.country }}</span>
+                                    </div>
+                                    <p class="result-desc">{{ b.description[:130] }}…</p>
+                                </div>
+                                <div class="result-booked-badge">
+                                    Booked {{ (b.review_count // 8) }} times today
+                                </div>
+                            </div>
+
+                            {% if b.reservations_paused %}
+                            <div class="result-paused">
+                                ⏸ {{ b.pause_message or 'Reservations temporarily paused' }}
+                            </div>
+                            {% else %}
+                            <div class="result-times">
+                                {% for t in ['6:30 PM', '7:00 PM', '7:30 PM', '8:00 PM', '8:30 PM'] %}
+                                <a href="{{ url_for('business_detail', business_id=b.id, date=date_str, time=t, party=party_str) }}"
+                                   class="result-time-btn">{{ t }}</a>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
-                    <p class="card-location">📍 {{ b.city }}, {{ b.state }}</p>
-                    <p class="card-desc">{{ b.description[:90] }}…</p>
-                    <a href="{{ url_for('business_detail', business_id=b.id) }}" class="btn-book">
-                        {% if b.category == 'restaurant' %}Reserve{% else %}Book Now{% endif %}
-                    </a>
+                    {% endfor %}
                 </div>
+
+                {% else %}
+                <div class="no-results">
+                    <div class="no-results-icon">🍽</div>
+                    <h3>No restaurants found</h3>
+                    <p>Try adjusting your search — a different city, time, or removing a filter.</p>
+                    <a href="{{ url_for('search') }}" class="btn-outline">Clear all filters</a>
+                </div>
+                {% endif %}
             </div>
-            {% endfor %}
         </div>
-        {% else %}
-        <div class="no-results">
-            <div class="no-results-icon">🔍</div>
-            <h2>No businesses found</h2>
-            <p>Try different keywords or browse by category.</p>
-            <a href="{{ url_for('index') }}" class="btn-book" style="display:inline-block;margin-top:1rem;">Back to Home</a>
-        </div>
-        {% endif %}
     </div>
 </div>
 {% endblock %}

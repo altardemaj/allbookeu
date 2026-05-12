@@ -74,9 +74,11 @@ class Business(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
     category = db.Column(db.String(50), nullable=False)
+    cuisine = db.Column(db.String(100))
     description = db.Column(db.Text)
     address = db.Column(db.String(300))
     city = db.Column(db.String(100))
+    country = db.Column(db.String(50), default='Kosovo')
     state = db.Column(db.String(50))
     zip_code = db.Column(db.String(20))
     phone = db.Column(db.String(30))
@@ -88,13 +90,19 @@ class Business(db.Model):
     price_range = db.Column(db.String(10))
     hours = db.Column(db.Text)
     is_featured = db.Column(db.Boolean, default=False)
+    reservations_paused = db.Column(db.Boolean, default=False)
+    pause_message = db.Column(db.String(300), default='Reservations are temporarily paused.')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     bookings = db.relationship('Booking', backref='business', lazy=True)
     reviews = db.relationship('Review', backref='business', lazy=True)
     services = db.relationship('Service', backref='business', lazy=True)
+    tables = db.relationship('RestaurantTable', backref='business', lazy=True,
+                             order_by='RestaurantTable.section, RestaurantTable.table_number')
 
     def get_available_times(self, for_date):
+        if self.reservations_paused:
+            return []
         times = RESTAURANT_TIMES if self.category == 'restaurant' else DEFAULT_TIMES
         booked = {b.booking_time for b in self.bookings
                   if b.booking_date == for_date and b.status == 'confirmed'}
@@ -130,13 +138,37 @@ class Business(db.Model):
             'id': self.id,
             'name': self.name,
             'category': self.category,
+            'cuisine': self.cuisine,
             'description': self.description,
             'city': self.city,
+            'country': self.country,
             'rating': self.rating,
             'review_count': self.review_count,
             'price_range': self.price_range,
             'image_url': self.image_url,
         }
+
+
+class RestaurantTable(db.Model):
+    __tablename__ = 'restaurant_tables'
+
+    id = db.Column(db.Integer, primary_key=True)
+    business_id = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=False)
+    table_number = db.Column(db.String(20), nullable=False)
+    capacity = db.Column(db.Integer, nullable=False, default=4)
+    section = db.Column(db.String(100), default='Main Floor')
+    is_active = db.Column(db.Boolean, default=True)
+    notes = db.Column(db.String(200))
+
+    bookings = db.relationship('Booking', backref='table', lazy=True, foreign_keys='Booking.table_id')
+
+    def is_booked_at(self, check_date, check_time):
+        return Booking.query.filter_by(
+            table_id=self.id,
+            booking_date=check_date,
+            booking_time=check_time,
+            status='confirmed'
+        ).first() is not None
 
 
 class Service(db.Model):
@@ -167,6 +199,7 @@ class Booking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     business_id = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    table_id = db.Column(db.Integer, db.ForeignKey('restaurant_tables.id'), nullable=True)
     customer_name = db.Column(db.String(200), nullable=False)
     customer_email = db.Column(db.String(200), nullable=False)
     customer_phone = db.Column(db.String(30))

@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
-from database import db, Business, Booking, Review, User, BusinessOwner, Service
+from database import db, Business, Booking, Review, User, BusinessOwner, Service, RestaurantTable
 from datetime import datetime, date, timedelta
 from sqlalchemy import text
 
@@ -10,7 +10,6 @@ app.secret_key = 'allbook-secret-key-2024'
 
 db.init_app(app)
 
-# Register blueprints
 from auth_routes import auth
 from customer_routes import customer
 from biz_routes import biz
@@ -18,19 +17,18 @@ app.register_blueprint(auth)
 app.register_blueprint(customer)
 app.register_blueprint(biz)
 
-CATEGORIES = [
-    {'id': 'restaurant', 'name': 'Restaurants', 'icon': '🍽️'},
-    {'id': 'hair_salon', 'name': 'Hair Salons', 'icon': '✂️'},
-    {'id': 'barbershop', 'name': 'Barbershops', 'icon': '💈'},
-    {'id': 'spa', 'name': 'Spas', 'icon': '🧖'},
-    {'id': 'nail_salon', 'name': 'Nail Salons', 'icon': '💅'},
-    {'id': 'gym', 'name': 'Gyms', 'icon': '🏋️'},
+KOSOVO_CITIES = ['Prishtina', 'Prizren', 'Peja', 'Gjakova', 'Ferizaj', 'Gjilan', 'Mitrovica', 'Vushtrri', 'Podujeva', 'Suhareka']
+ALBANIA_CITIES = ['Tirana', 'Durrës', 'Shkodër', 'Vlorë', 'Elbasan', 'Fier', 'Korçë', 'Berat', 'Sarandë', 'Lushnja']
+
+CUISINES = [
+    'Albanian', 'Italian', 'Mediterranean', 'Grill & BBQ',
+    'Seafood', 'Traditional Kosovan', 'International', 'Pizza',
+    'Fast Food', 'Cafe & Bistro', 'Sushi', 'Turkish'
 ]
 
 
 @app.context_processor
 def inject_auth():
-    """Inject auth state into all templates."""
     current_user = None
     current_owner = None
     user_type = session.get('user_type')
@@ -42,56 +40,111 @@ def inject_auth():
     return dict(
         current_user=current_user,
         current_owner=current_owner,
-        user_type=user_type
+        user_type=user_type,
+        kosovo_cities=KOSOVO_CITIES,
+        albania_cities=ALBANIA_CITIES,
+        all_cuisines=CUISINES
     )
 
 
 @app.route('/')
 def index():
-    featured = Business.query.filter_by(is_featured=True).limit(8).all()
-    return render_template('index.html', featured=featured, categories=CATEGORIES)
+    featured = Business.query.filter_by(is_featured=True, category='restaurant').limit(8).all()
+    cities_data = []
+    for city in ['Prishtina', 'Prizren', 'Tirana', 'Durrës', 'Peja', 'Gjakova']:
+        count = Business.query.filter_by(city=city, category='restaurant').count()
+        cities_data.append({'name': city, 'count': count})
+    return render_template('index.html', featured=featured, cities=cities_data, cuisines=CUISINES)
 
 
 @app.route('/search')
 def search():
     query = request.args.get('q', '').strip()
-    category = request.args.get('category', '').strip()
-    businesses = Business.query
+    city = request.args.get('city', '').strip()
+    cuisine = request.args.get('cuisine', '').strip()
+    country = request.args.get('country', '').strip()
+    date_str = request.args.get('date', '').strip()
+    time_str = request.args.get('time', '').strip()
+    party_str = request.args.get('party', '2').strip()
+
+    businesses = Business.query.filter_by(category='restaurant')
     if query:
         businesses = businesses.filter(
             Business.name.ilike(f'%{query}%') |
             Business.description.ilike(f'%{query}%') |
-            Business.city.ilike(f'%{query}%')
+            Business.cuisine.ilike(f'%{query}%')
         )
-    if category:
-        businesses = businesses.filter_by(category=category)
+    if city:
+        businesses = businesses.filter_by(city=city)
+    if country:
+        businesses = businesses.filter_by(country=country)
+    if cuisine:
+        businesses = businesses.filter_by(cuisine=cuisine)
+
     businesses = businesses.all()
-    return render_template('search.html', businesses=businesses, query=query,
-                           category=category, categories=CATEGORIES)
+
+    if date_str and time_str:
+        try:
+            search_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            available = []
+            for b in businesses:
+                if not b.reservations_paused and time_str in b.get_available_times(search_date):
+                    available.append(b)
+            businesses = available
+        except ValueError:
+            pass
+
+    all_cities = KOSOVO_CITIES + ALBANIA_CITIES
+
+    return render_template('search.html',
+                           businesses=businesses,
+                           query=query,
+                           city=city,
+                           cuisine=cuisine,
+                           country=country,
+                           date_str=date_str,
+                           time_str=time_str,
+                           party_str=party_str,
+                           all_cities=all_cities,
+                           cuisines=CUISINES)
 
 
-@app.route('/business/<int:business_id>')
+@app.route('/restaurant/<int:business_id>')
 def business_detail(business_id):
     business = Business.query.get_or_404(business_id)
     reviews = Review.query.filter_by(business_id=business_id)\
         .order_by(Review.created_at.desc()).all()
+
+    pre_date = request.args.get('date', '')
+    pre_time = request.args.get('time', '')
+    pre_party = request.args.get('party', '2')
+
     slots = []
     today = date.today()
-    for i in range(7):
+    for i in range(14):
         day = today + timedelta(days=i)
         slots.append({
             'date': day.strftime('%Y-%m-%d'),
             'display': day.strftime('%a, %b %d'),
-            'times': business.get_available_times(day)
+            'short_day': day.strftime('%a'),
+            'short_date': day.strftime('%b %d'),
+            'times': business.get_available_times(day) if not business.reservations_paused else []
         })
-    # Pre-fill customer info if logged in
+
     prefill = {}
     if session.get('user_type') == 'customer':
         user = User.query.get(session.get('user_id'))
         if user:
             prefill = {'name': user.name, 'email': user.email, 'phone': user.phone or ''}
-    return render_template('business.html', business=business, reviews=reviews,
-                           slots=slots, categories=CATEGORIES, prefill=prefill)
+
+    return render_template('business.html',
+                           business=business,
+                           reviews=reviews,
+                           slots=slots,
+                           prefill=prefill,
+                           pre_date=pre_date,
+                           pre_time=pre_time,
+                           pre_party=pre_party)
 
 
 @app.route('/book', methods=['POST'])
@@ -103,23 +156,36 @@ def book():
     phone = data.get('phone', '').strip()
     booking_date = data.get('date')
     booking_time = data.get('time')
-    party_size = data.get('party_size', 1)
+    party_size = data.get('party_size', 2)
     notes = data.get('notes', '')
 
     if not all([business_id, name, email, booking_date, booking_time]):
-        return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+        return jsonify({'success': False, 'error': 'Please fill in all required fields.'}), 400
 
     business = Business.query.get(business_id)
     if not business:
-        return jsonify({'success': False, 'error': 'Business not found'}), 404
+        return jsonify({'success': False, 'error': 'Restaurant not found.'}), 404
+
+    if business.reservations_paused:
+        return jsonify({'success': False, 'error': business.pause_message or 'Reservations are paused.'}), 400
 
     user_id = None
     if session.get('user_type') == 'customer':
         user_id = session.get('user_id')
 
+    table_id = None
+    tables = RestaurantTable.query.filter_by(business_id=business_id, is_active=True).all()
+    if tables:
+        check_date = datetime.strptime(booking_date, '%Y-%m-%d').date()
+        for t in sorted(tables, key=lambda x: x.capacity):
+            if t.capacity >= party_size and not t.is_booked_at(check_date, booking_time):
+                table_id = t.id
+                break
+
     booking = Booking(
         business_id=business_id,
         user_id=user_id,
+        table_id=table_id,
         customer_name=name,
         customer_email=email,
         customer_phone=phone,
@@ -132,20 +198,29 @@ def book():
     db.session.add(booking)
     db.session.commit()
 
+    table_info = ''
+    if table_id:
+        t = RestaurantTable.query.get(table_id)
+        table_info = f'{t.section} – Table {t.table_number}'
+
     return jsonify({
         'success': True,
         'booking_id': booking.id,
-        'message': f'Booking confirmed at {business.name} on {booking_date} at {booking_time}!'
+        'table_info': table_info,
+        'message': f'Reservation confirmed at {business.name} on {booking_date} at {booking_time}!'
     })
 
 
 @app.route('/api/businesses')
 def api_businesses():
-    category = request.args.get('category')
+    city = request.args.get('city')
+    cuisine = request.args.get('cuisine')
     q = request.args.get('q', '')
-    businesses = Business.query
-    if category:
-        businesses = businesses.filter_by(category=category)
+    businesses = Business.query.filter_by(category='restaurant')
+    if city:
+        businesses = businesses.filter_by(city=city)
+    if cuisine:
+        businesses = businesses.filter_by(cuisine=cuisine)
     if q:
         businesses = businesses.filter(Business.name.ilike(f'%{q}%'))
     result = [b.to_dict() for b in businesses.limit(20).all()]
@@ -155,102 +230,174 @@ def api_businesses():
 def seed_data():
     if Business.query.count() > 0:
         return
-    sample_businesses = [
-        Business(name="The Garden Table", category="restaurant",
-                 description="Farm-to-table cuisine in a warm, inviting atmosphere. Seasonal menus crafted by James Beard nominated chef.",
-                 address="124 Oak Street", city="New York", state="NY", zip_code="10001",
-                 phone="(212) 555-0101", email="info@gardentable.com",
-                 rating=4.8, review_count=312, price_range="$$$",
+
+    restaurants = [
+        # PRISHTINA, KOSOVO
+        Business(name="Soma Book Station", category="restaurant", cuisine="Cafe & Bistro",
+                 description="Prishtina's most beloved all-day cafe and bistro. Artisan coffee, fresh pastries, and a curated menu in a cozy book-lined setting.",
+                 address="Rr. Sejdi Kryeziu 9", city="Prishtina", country="Kosovo",
+                 phone="+383 44 111 001", email="info@soma.ks",
+                 rating=4.9, review_count=412, price_range="€€",
+                 image_url="https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&q=80",
+                 is_featured=True,
+                 hours='{"mon":"8am-10pm","tue":"8am-10pm","wed":"8am-10pm","thu":"8am-11pm","fri":"8am-11pm","sat":"9am-11pm","sun":"10am-9pm"}'),
+        Business(name="Tiffany Restaurant", category="restaurant", cuisine="Mediterranean",
+                 description="Elegant Mediterranean cuisine in the heart of Prishtina. Fresh seafood, grilled meats, and fine wines in a sophisticated atmosphere.",
+                 address="Rr. UCK 181", city="Prishtina", country="Kosovo",
+                 phone="+383 44 111 002", email="reservations@tiffany.ks",
+                 rating=4.7, review_count=284, price_range="€€€",
+                 image_url="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=80",
+                 is_featured=True,
+                 hours='{"mon":"12pm-11pm","tue":"12pm-11pm","wed":"12pm-11pm","thu":"12pm-midnight","fri":"12pm-midnight","sat":"12pm-midnight","sun":"1pm-10pm"}'),
+        Business(name="Piazza Restaurant", category="restaurant", cuisine="Italian",
+                 description="Authentic Italian flavors brought to Kosovo. Wood-fired pizzas, fresh pasta, and tiramisu made from traditional family recipes.",
+                 address="Sheshi Nena Tereze", city="Prishtina", country="Kosovo",
+                 phone="+383 44 111 003", email="info@piazza.ks",
+                 rating=4.6, review_count=198, price_range="€€",
+                 image_url="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&q=80",
+                 is_featured=True,
+                 hours='{"mon":"11am-11pm","tue":"11am-11pm","wed":"11am-11pm","thu":"11am-midnight","fri":"11am-midnight","sat":"11am-midnight","sun":"12pm-10pm"}'),
+        Business(name="Liburnia Restaurant", category="restaurant", cuisine="Traditional Kosovan",
+                 description="A celebration of Kosovo's rich culinary heritage. Traditional recipes passed down through generations — tavë kosi, flija, and grilled lamb.",
+                 address="Rr. Garibaldi 22", city="Prishtina", country="Kosovo",
+                 phone="+383 44 111 004", email="info@liburnia.ks",
+                 rating=4.8, review_count=356, price_range="€€",
+                 image_url="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80",
+                 is_featured=True,
+                 hours='{"mon":"11am-10pm","tue":"11am-10pm","wed":"11am-10pm","thu":"11am-11pm","fri":"11am-11pm","sat":"11am-11pm","sun":"12pm-10pm"}'),
+        # PRIZREN, KOSOVO
+        Business(name="Mrizi i Zanave Prizren", category="restaurant", cuisine="Traditional Kosovan",
+                 description="Stone-walled restaurant inside Prizren's old bazaar. Slow-cooked meats, wild herbs, and homemade bread baked in a clay oven.",
+                 address="Rruga e Kalasë 5", city="Prizren", country="Kosovo",
+                 phone="+383 44 222 001", email="info@mriziprizren.ks",
+                 rating=4.9, review_count=503, price_range="€€",
+                 image_url="https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&q=80",
+                 is_featured=True,
+                 hours='{"mon":"10am-11pm","tue":"10am-11pm","wed":"10am-11pm","thu":"10am-midnight","fri":"10am-midnight","sat":"10am-midnight","sun":"11am-10pm"}'),
+        Business(name="Shtepia e Vjetër", category="restaurant", cuisine="Albanian",
+                 description="Perched above the Bistrica river with views of Prizren fortress. Albanian cuisine served in a 19th-century Ottoman house.",
+                 address="Rr. Remzi Ademi 3", city="Prizren", country="Kosovo",
+                 phone="+383 44 222 002", email="info@shtepiavjeter.ks",
+                 rating=4.7, review_count=219, price_range="€€",
                  image_url="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80",
-                 is_featured=True, hours='{"mon":"5pm-10pm","tue":"5pm-10pm","wed":"5pm-10pm","thu":"5pm-11pm","fri":"5pm-11pm","sat":"4pm-11pm","sun":"4pm-9pm"}'),
-        Business(name="Luxe Hair Studio", category="hair_salon",
-                 description="Award-winning hair salon offering cuts, color, and styling. Home to NYC's top colorists.",
-                 address="88 5th Avenue", city="New York", state="NY", zip_code="10011",
-                 phone="(212) 555-0202", email="book@luxehair.com",
-                 rating=4.9, review_count=198, price_range="$$$",
-                 image_url="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&q=80",
-                 is_featured=True, hours='{"mon":"9am-7pm","tue":"9am-7pm","wed":"9am-7pm","thu":"9am-8pm","fri":"9am-8pm","sat":"8am-6pm","sun":"closed"}'),
-        Business(name="King's Barbershop", category="barbershop",
-                 description="Classic cuts with a modern twist. Straight razor shaves and premium grooming in a vintage setting.",
-                 address="33 West 14th St", city="New York", state="NY", zip_code="10011",
-                 phone="(212) 555-0303", email="kings@barbershop.com",
-                 rating=4.7, review_count=445, price_range="$$",
-                 image_url="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&q=80",
-                 is_featured=True, hours='{"mon":"8am-8pm","tue":"8am-8pm","wed":"8am-8pm","thu":"8am-8pm","fri":"8am-9pm","sat":"7am-9pm","sun":"9am-5pm"}'),
-        Business(name="Serenity Spa & Wellness", category="spa",
-                 description="A tranquil escape in the heart of the city. Swedish massage, deep tissue, facials, and body treatments.",
-                 address="205 Park Avenue", city="New York", state="NY", zip_code="10003",
-                 phone="(212) 555-0404", email="relax@serenityspa.com",
-                 rating=4.9, review_count=267, price_range="$$$$",
-                 image_url="https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&q=80",
-                 is_featured=True, hours='{"mon":"10am-8pm","tue":"10am-8pm","wed":"10am-8pm","thu":"10am-9pm","fri":"10am-9pm","sat":"9am-9pm","sun":"10am-7pm"}'),
-        Business(name="Polished Nail Bar", category="nail_salon",
-                 description="Luxury nail care with non-toxic polishes. Gel, acrylic, and organic treatments by certified technicians.",
-                 address="67 Spring Street", city="New York", state="NY", zip_code="10012",
-                 phone="(212) 555-0505", email="hello@polishednails.com",
-                 rating=4.6, review_count=189, price_range="$$",
-                 image_url="https://images.unsplash.com/photo-1604654894610-df63bc536371?w=600&q=80",
-                 is_featured=True, hours='{"mon":"10am-7pm","tue":"10am-7pm","wed":"10am-7pm","thu":"10am-8pm","fri":"10am-8pm","sat":"9am-7pm","sun":"11am-6pm"}'),
-        Business(name="Iron & Flow Fitness", category="gym",
-                 description="Premium fitness studio with personal training, yoga, HIIT classes and state-of-the-art equipment.",
-                 address="410 West 42nd St", city="New York", state="NY", zip_code="10036",
-                 phone="(212) 555-0606", email="train@ironflow.com",
-                 rating=4.8, review_count=523, price_range="$$$",
-                 image_url="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&q=80",
-                 is_featured=True, hours='{"mon":"5am-11pm","tue":"5am-11pm","wed":"5am-11pm","thu":"5am-11pm","fri":"5am-10pm","sat":"6am-9pm","sun":"7am-8pm"}'),
-        Business(name="Sakura Japanese Kitchen", category="restaurant",
-                 description="Authentic Japanese cuisine with omakase experience, fresh sushi bar, and handcrafted ramen.",
-                 address="15 East 52nd St", city="New York", state="NY", zip_code="10022",
-                 phone="(212) 555-0707", email="reserve@sakurakitchen.com",
-                 rating=4.9, review_count=401, price_range="$$$$",
-                 image_url="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&q=80",
-                 is_featured=True, hours='{"mon":"closed","tue":"5pm-10pm","wed":"5pm-10pm","thu":"5pm-10pm","fri":"5pm-11pm","sat":"12pm-11pm","sun":"12pm-9pm"}'),
-        Business(name="Color & Co.", category="hair_salon",
-                 description="Specialty color salon focused on balayage, highlights, and corrective color. Davines product line.",
-                 address="112 Bleecker St", city="New York", state="NY", zip_code="10012",
-                 phone="(212) 555-0808", email="color@colorandco.com",
-                 rating=4.7, review_count=156, price_range="$$$",
-                 image_url="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&q=80",
-                 is_featured=True, hours='{"mon":"closed","tue":"10am-7pm","wed":"10am-7pm","thu":"10am-8pm","fri":"10am-8pm","sat":"9am-6pm","sun":"closed"}'),
+                 is_featured=False,
+                 hours='{"mon":"11am-10pm","tue":"11am-10pm","wed":"11am-10pm","thu":"11am-11pm","fri":"11am-11pm","sat":"11am-11pm","sun":"12pm-9pm"}'),
+        # PEJA, KOSOVO
+        Business(name="Te Peja Restaurant", category="restaurant", cuisine="Grill & BBQ",
+                 description="Famous for Peja's legendary grilled meats. The qebapa and shish here have won awards at every regional food festival.",
+                 address="Rr. Mbretëreshës 10", city="Peja", country="Kosovo",
+                 phone="+383 44 333 001", email="info@tepeja.ks",
+                 rating=4.8, review_count=388, price_range="€",
+                 image_url="https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=80",
+                 is_featured=True,
+                 hours='{"mon":"10am-11pm","tue":"10am-11pm","wed":"10am-11pm","thu":"10am-midnight","fri":"10am-midnight","sat":"10am-midnight","sun":"11am-10pm"}'),
+        # GJAKOVA, KOSOVO
+        Business(name="Gjarperi Restaurant", category="restaurant", cuisine="Traditional Kosovan",
+                 description="Gjakova's most storied restaurant, serving traditional Kosovan fare in a historic setting for over 30 years.",
+                 address="Çarshia e Madhe 14", city="Gjakova", country="Kosovo",
+                 phone="+383 44 444 001", email="info@gjarperi.ks",
+                 rating=4.6, review_count=267, price_range="€€",
+                 image_url="https://images.unsplash.com/photo-1424847651672-bf20a4b0982b?w=600&q=80",
+                 is_featured=False,
+                 hours='{"mon":"11am-10pm","tue":"11am-10pm","wed":"11am-10pm","thu":"11am-11pm","fri":"11am-11pm","sat":"11am-11pm","sun":"12pm-9pm"}'),
+        # TIRANA, ALBANIA
+        Business(name="Mullixhiu", category="restaurant", cuisine="Albanian",
+                 description="Tirana's most celebrated fine dining destination. Chef Bledar Kola elevates traditional Albanian ingredients into extraordinary modern cuisine.",
+                 address="Rr. Sami Frashëri, Parku Rinia", city="Tirana", country="Albania",
+                 phone="+355 69 111 001", email="reservations@mullixhiu.al",
+                 rating=4.9, review_count=621, price_range="€€€€",
+                 image_url="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=80",
+                 is_featured=True,
+                 hours='{"mon":"closed","tue":"12pm-11pm","wed":"12pm-11pm","thu":"12pm-11pm","fri":"12pm-midnight","sat":"12pm-midnight","sun":"12pm-10pm"}'),
+        Business(name="Oda Restaurant", category="restaurant", cuisine="Albanian",
+                 description="A cultural institution in Tirana serving traditional Albanian and Kosovan dishes in a beautiful Ottoman-style setting.",
+                 address="Rr. Luigi Gurakuqi 12", city="Tirana", country="Albania",
+                 phone="+355 69 111 002", email="info@oda.al",
+                 rating=4.7, review_count=445, price_range="€€",
+                 image_url="https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&q=80",
+                 is_featured=True,
+                 hours='{"mon":"11am-11pm","tue":"11am-11pm","wed":"11am-11pm","thu":"11am-11pm","fri":"11am-midnight","sat":"11am-midnight","sun":"12pm-10pm"}'),
+        Business(name="Blloku Social Club", category="restaurant", cuisine="International",
+                 description="The heart of Tirana's trendy Blloku district. International menu, craft cocktails, and electric atmosphere from brunch to late night.",
+                 address="Rr. Pjetër Bogdani 7, Blloku", city="Tirana", country="Albania",
+                 phone="+355 69 111 003", email="info@blloku.al",
+                 rating=4.5, review_count=312, price_range="€€€",
+                 image_url="https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&q=80",
+                 is_featured=True,
+                 hours='{"mon":"9am-midnight","tue":"9am-midnight","wed":"9am-midnight","thu":"9am-1am","fri":"9am-2am","sat":"10am-2am","sun":"10am-midnight"}'),
+        # DURRËS, ALBANIA
+        Business(name="Plazhi i Ri Seafood", category="restaurant", cuisine="Seafood",
+                 description="Fresh-caught Adriatic seafood served on the beach. Grilled fish, lobster, and mussels paired with cold local wine.",
+                 address="Rr. Taulantia, Plazhi", city="Durrës", country="Albania",
+                 phone="+355 69 222 001", email="info@plazhi.al",
+                 rating=4.8, review_count=534, price_range="€€€",
+                 image_url="https://images.unsplash.com/photo-1432139555190-58524dae6a55?w=600&q=80",
+                 is_featured=True,
+                 hours='{"mon":"12pm-11pm","tue":"12pm-11pm","wed":"12pm-11pm","thu":"12pm-11pm","fri":"12pm-midnight","sat":"11am-midnight","sun":"11am-11pm"}'),
+        # SHKODËR, ALBANIA
+        Business(name="Tradita Restaurant", category="restaurant", cuisine="Albanian",
+                 description="An ode to northern Albanian tradition. Rustic interiors, open hearth cooking, and the finest gjellë e zezë in the country.",
+                 address="Rr. Edith Durham 3", city="Shkodër", country="Albania",
+                 phone="+355 69 333 001", email="info@tradita.al",
+                 rating=4.8, review_count=289, price_range="€€",
+                 image_url="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80",
+                 is_featured=False,
+                 hours='{"mon":"11am-10pm","tue":"11am-10pm","wed":"11am-10pm","thu":"11am-11pm","fri":"11am-11pm","sat":"11am-11pm","sun":"12pm-9pm"}'),
+        # VLORË, ALBANIA
+        Business(name="Lungomare Restaurant", category="restaurant", cuisine="Seafood",
+                 description="Spectacular promenade views over the Bay of Vlorë. Premium seafood, local wines, and sunsets that make every meal unforgettable.",
+                 address="Lungomare Vlorë 45", city="Vlorë", country="Albania",
+                 phone="+355 69 444 001", email="info@lungomare.al",
+                 rating=4.7, review_count=367, price_range="€€€",
+                 image_url="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80",
+                 is_featured=True,
+                 hours='{"mon":"12pm-11pm","tue":"12pm-11pm","wed":"12pm-11pm","thu":"12pm-11pm","fri":"12pm-midnight","sat":"11am-midnight","sun":"11am-11pm"}'),
     ]
-    for b in sample_businesses:
-        db.session.add(b)
+
+    for r in restaurants:
+        db.session.add(r)
     db.session.flush()
 
     reviews_data = [
-        Review(business_id=1, reviewer_name="Sarah M.", rating=5, comment="Absolutely stunning food and atmosphere."),
-        Review(business_id=1, reviewer_name="James K.", rating=5, comment="Best farm-to-table in the city."),
-        Review(business_id=2, reviewer_name="Emily R.", rating=5, comment="My colorist here is a wizard!"),
-        Review(business_id=3, reviewer_name="Marcus T.", rating=5, comment="Best haircut I've had in years."),
-        Review(business_id=4, reviewer_name="Amanda L.", rating=5, comment="Pure heaven. Incredibly professional staff."),
-        Review(business_id=5, reviewer_name="Jessica W.", rating=5, comment="My nails lasted 3 weeks! Stunning nail art."),
-        Review(business_id=6, reviewer_name="David C.", rating=5, comment="Personal training here is next level."),
-        Review(business_id=7, reviewer_name="Priya S.", rating=5, comment="The omakase experience is unforgettable."),
-        Review(business_id=8, reviewer_name="Nicole B.", rating=5, comment="Finally found my forever colorist!"),
+        Review(business_id=1, reviewer_name="Arta K.", rating=5, comment="Best coffee in Prishtina, hands down. Love the atmosphere!"),
+        Review(business_id=1, reviewer_name="Besnik M.", rating=5, comment="Came for brunch, stayed for hours. Incredible food and vibe."),
+        Review(business_id=2, reviewer_name="Elena R.", rating=5, comment="The seafood pasta was exceptional. Will be back next week."),
+        Review(business_id=3, reviewer_name="Valmir S.", rating=4, comment="Great pizza, very authentic Italian flavors."),
+        Review(business_id=4, reviewer_name="Flutura H.", rating=5, comment="Tavë kosi here is the best I've ever had. Real home cooking."),
+        Review(business_id=5, reviewer_name="Driton B.", rating=5, comment="The flija in the old bazaar setting — magical experience."),
+        Review(business_id=7, reviewer_name="Kushtrim L.", rating=5, comment="The qebapa here are legendary. Worth the drive from Prishtina."),
+        Review(business_id=9, reviewer_name="Mirela P.", rating=5, comment="Mullixhiu is in another league. Albania's finest table, full stop."),
+        Review(business_id=10, reviewer_name="Arjan D.", rating=5, comment="The oda setting is beautiful and the food matches it perfectly."),
+        Review(business_id=12, reviewer_name="Klaudia N.", rating=5, comment="Fresh fish straight from the Adriatic. Perfect seaside lunch."),
+        Review(business_id=14, reviewer_name="Gjergji T.", rating=5, comment="The sunset from the terrace here is worth a trip alone."),
     ]
-    for r in reviews_data:
-        db.session.add(r)
+    for rv in reviews_data:
+        db.session.add(rv)
 
-    # Seed services
-    services_data = [
-        Service(business_id=1, name="Dinner Reservation", duration_minutes=90, price=0, description="Reserve a table for dinner service"),
-        Service(business_id=1, name="Private Dining Room", duration_minutes=180, price=500, description="Exclusive private room for special occasions"),
-        Service(business_id=2, name="Haircut & Blowout", duration_minutes=60, price=120, description="Precision cut and professional blow dry"),
-        Service(business_id=2, name="Full Color & Highlights", duration_minutes=150, price=280, description="Full color treatment or balayage highlights"),
-        Service(business_id=3, name="Classic Haircut", duration_minutes=30, price=45, description="Scissor or clipper cut with style"),
-        Service(business_id=3, name="Hot Towel Shave", duration_minutes=45, price=55, description="Traditional straight razor shave with hot towel"),
-        Service(business_id=4, name="Swedish Massage (60 min)", duration_minutes=60, price=130, description="Full body relaxation massage"),
-        Service(business_id=4, name="Deep Tissue Massage (90 min)", duration_minutes=90, price=185, description="Therapeutic deep tissue treatment"),
-        Service(business_id=4, name="Signature Facial", duration_minutes=75, price=150, description="Custom facial tailored to your skin type"),
-        Service(business_id=5, name="Gel Manicure", duration_minutes=60, price=55, description="Long-lasting gel polish manicure"),
-        Service(business_id=5, name="Full Set Acrylics", duration_minutes=90, price=75, description="Full acrylic nail set with design"),
-        Service(business_id=6, name="Personal Training Session", duration_minutes=60, price=95, description="One-on-one session with certified trainer"),
-        Service(business_id=6, name="HIIT Class", duration_minutes=45, price=35, description="High-intensity interval training group class"),
-        Service(business_id=7, name="Omakase Experience", duration_minutes=120, price=250, description="Chef's choice multi-course tasting menu"),
-        Service(business_id=8, name="Balayage Color", duration_minutes=180, price=320, description="Hand-painted balayage for a natural look"),
+    tables_data = [
+        RestaurantTable(business_id=1, table_number="T1", capacity=2, section="Main Floor"),
+        RestaurantTable(business_id=1, table_number="T2", capacity=2, section="Main Floor"),
+        RestaurantTable(business_id=1, table_number="T3", capacity=4, section="Main Floor"),
+        RestaurantTable(business_id=1, table_number="T4", capacity=4, section="Main Floor"),
+        RestaurantTable(business_id=1, table_number="T5", capacity=6, section="Main Floor"),
+        RestaurantTable(business_id=1, table_number="P1", capacity=2, section="Terrace"),
+        RestaurantTable(business_id=1, table_number="P2", capacity=4, section="Terrace"),
+        RestaurantTable(business_id=1, table_number="P3", capacity=4, section="Terrace"),
+        RestaurantTable(business_id=2, table_number="T1", capacity=2, section="Main Floor"),
+        RestaurantTable(business_id=2, table_number="T2", capacity=4, section="Main Floor"),
+        RestaurantTable(business_id=2, table_number="T3", capacity=4, section="Main Floor"),
+        RestaurantTable(business_id=2, table_number="T4", capacity=6, section="Main Floor"),
+        RestaurantTable(business_id=2, table_number="R1", capacity=8, section="Private Room"),
+        RestaurantTable(business_id=2, table_number="R2", capacity=12, section="Private Room"),
+        RestaurantTable(business_id=9, table_number="T1", capacity=2, section="Main Floor"),
+        RestaurantTable(business_id=9, table_number="T2", capacity=2, section="Main Floor"),
+        RestaurantTable(business_id=9, table_number="T3", capacity=4, section="Main Floor"),
+        RestaurantTable(business_id=9, table_number="T4", capacity=4, section="Main Floor"),
+        RestaurantTable(business_id=9, table_number="G1", capacity=6, section="Garden"),
+        RestaurantTable(business_id=9, table_number="G2", capacity=8, section="Garden"),
     ]
-    for s in services_data:
-        db.session.add(s)
+    for t in tables_data:
+        db.session.add(t)
 
     db.session.commit()
 
@@ -258,12 +405,21 @@ def seed_data():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        # Migrate existing bookings table: add user_id column if absent
         try:
             with db.engine.connect() as conn:
-                conn.execute(text('ALTER TABLE bookings ADD COLUMN user_id INTEGER REFERENCES users(id)'))
-                conn.commit()
+                for col_sql in [
+                    'ALTER TABLE businesses ADD COLUMN cuisine VARCHAR(100)',
+                    'ALTER TABLE businesses ADD COLUMN country VARCHAR(50) DEFAULT "Kosovo"',
+                    'ALTER TABLE businesses ADD COLUMN reservations_paused BOOLEAN DEFAULT 0',
+                    'ALTER TABLE businesses ADD COLUMN pause_message VARCHAR(300)',
+                    'ALTER TABLE bookings ADD COLUMN table_id INTEGER REFERENCES restaurant_tables(id)',
+                ]:
+                    try:
+                        conn.execute(text(col_sql))
+                        conn.commit()
+                    except Exception:
+                        pass
         except Exception:
-            pass  # column already exists
+            pass
         seed_data()
     app.run(debug=True, port=5000)
