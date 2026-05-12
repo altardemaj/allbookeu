@@ -1,149 +1,121 @@
 {% extends "base.html" %}
-{% block title %}Services — {{ business.name }} — AllBook{% endblock %}
+{% block title %}Menu Items — {{ business.name }} — AllBookEU{% endblock %}
 {% block content %}
-<div class="dash-layout">
-    <aside class="dash-sidebar dash-sidebar-biz">
-        <div class="dash-sidebar-user">
-            <div class="dash-avatar dash-avatar-biz">{{ owner.name[0].upper() }}</div>
-            <div>
-                <div class="dash-user-name">{{ business.name }}</div>
-                <div class="dash-user-email">{{ business.category.replace('_',' ').title() }}</div>
-            </div>
-        </div>
-        <nav class="dash-nav">
-            <a href="{{ url_for('biz.dashboard') }}" class="dash-nav-item"><span>📊</span> Dashboard</a>
-            <a href="{{ url_for('biz.bookings') }}" class="dash-nav-item"><span>📅</span> Bookings</a>
-            <a href="{{ url_for('biz.services') }}" class="dash-nav-item dash-nav-active"><span>✂️</span> Services & Pricing</a>
-            <a href="{{ url_for('biz.profile') }}" class="dash-nav-item"><span>⚙️</span> Business Profile</a>
-            <div class="dash-nav-divider"></div>
-            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="dash-nav-item" target="_blank"><span>🔗</span> View Public Page</a>
+<div class="dash-page">
+    <div class="dash-sidebar">
+        <div class="ds-biz-name">{{ business.name }}</div>
+        <nav class="ds-nav">
+            <a href="{{ url_for('biz.dashboard') }}" class="ds-link">Dashboard</a>
+            <a href="{{ url_for('biz.bookings') }}" class="ds-link">Reservations</a>
+            <a href="{{ url_for('biz.tables') }}" class="ds-link">Tables</a>
+            <a href="{{ url_for('biz.services') }}" class="ds-link active">Menu Items</a>
+            <a href="{{ url_for('biz.profile') }}" class="ds-link">Profile</a>
+            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="ds-link" target="_blank">View Listing ↗</a>
         </nav>
-        <form action="{{ url_for('auth.logout') }}" method="post" style="margin-top:auto;padding:20px">
-            <button type="submit" class="dash-logout-btn">🚪 Sign Out</button>
-        </form>
-    </aside>
 
-    <main class="dash-main">
+        <div class="ds-pause-box {% if business.reservations_paused %}is-paused{% endif %}">
+            {% if business.reservations_paused %}
+            <div class="dpb-status paused">⏸ Reservations paused</div>
+            <p class="dpb-msg">{{ business.pause_message }}</p>
+            <form method="post" action="{{ url_for('biz.toggle_pause') }}">
+                <input type="hidden" name="action" value="resume">
+                <button type="submit" class="btn-resume">Resume reservations</button>
+            </form>
+            {% else %}
+            <div class="dpb-status open">● Accepting reservations</div>
+            <form method="post" action="{{ url_for('biz.toggle_pause') }}">
+                <input type="hidden" name="action" value="pause">
+                <input type="text" name="pause_message" placeholder="Reason (optional)" class="dpb-reason-input">
+                <button type="submit" class="btn-pause">Pause reservations</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="dash-main">
         <div class="dash-header">
-            <div>
-                <h1>Services & Pricing</h1>
-                <p>Manage what you offer and how much it costs.</p>
-            </div>
+            <h1>Menu Items</h1>
+            <p>Showcase your dishes and specialties on your public listing.</p>
         </div>
 
-        <!-- ADD SERVICE FORM -->
-        <div class="dash-card">
-            <h2 class="dash-card-title">Add a Service</h2>
-            <form method="post" action="{{ url_for('biz.services') }}" class="dash-form">
+        <div class="tables-add-box">
+            <h3>Add a Menu Item</h3>
+            <form method="post" action="{{ url_for('biz.services') }}">
                 <input type="hidden" name="action" value="add">
-                <div class="form-row-2">
-                    <div class="form-group">
-                        <label>Service Name <span class="req">*</span></label>
-                        <input type="text" name="name" placeholder="e.g. Haircut & Blowout" required class="dash-input">
+                <div class="atf-row">
+                    <div class="atf-field">
+                        <label>Item name</label>
+                        <input type="text" name="name" placeholder="e.g. Tavë Kosi, Qebapa…" required class="atf-input">
                     </div>
-                    <div class="form-group">
+                    <div class="atf-field">
                         <label>Description</label>
-                        <input type="text" name="description" placeholder="Short description" class="dash-input">
+                        <input type="text" name="description" placeholder="Short description" class="atf-input">
                     </div>
-                </div>
-                <div class="form-row-2">
-                    <div class="form-group">
-                        <label>Duration (minutes)</label>
-                        <select name="duration_minutes" class="dash-input">
-                            {% for m in [15, 30, 45, 60, 75, 90, 120, 150, 180, 240] %}
-                            <option value="{{ m }}" {% if m == 60 %}selected{% endif %}>{{ m }} min{% if m >= 60 %} ({{ m//60 }}h{% if m%60 %} {{ m%60 }}m{% endif %}){% endif %}</option>
-                            {% endfor %}
-                        </select>
+                    <div class="atf-field atf-field-sm">
+                        <label>Price (€)</label>
+                        <input type="number" name="price" placeholder="0" min="0" step="0.5" value="0" class="atf-input">
                     </div>
-                    <div class="form-group">
-                        <label>Price ($)</label>
-                        <input type="number" name="price" placeholder="0.00" min="0" step="0.01" value="0" class="dash-input">
-                    </div>
-                </div>
-                <div class="dash-form-footer">
-                    <button type="submit" class="btn-dash-primary">+ Add Service</button>
+                    <button type="submit" class="btn-add-table">+ Add</button>
                 </div>
             </form>
         </div>
 
-        <!-- SERVICES LIST -->
-        <section class="dash-section" style="margin-top:28px">
-            <h2 class="dash-section-title">Your Services ({{ services|length }})</h2>
-            {% if services %}
-            <div class="services-list">
-                {% for svc in services %}
-                <div class="service-item" id="svc-{{ svc.id }}">
-                    <div class="svc-info">
-                        <div class="svc-name">{{ svc.name }}</div>
-                        {% if svc.description %}
-                        <div class="svc-desc">{{ svc.description }}</div>
-                        {% endif %}
-                        <div class="svc-meta">
-                            <span class="svc-duration">🕐 {{ svc.duration_display() }}</span>
-                            <span class="svc-price">{% if svc.price > 0 %}${{ "%.0f"|format(svc.price) }}{% else %}Free / Included{% endif %}</span>
-                        </div>
-                    </div>
-                    <div class="svc-actions">
-                        <button class="svc-btn-edit" onclick="toggleEdit({{ svc.id }})">Edit</button>
-                        <form method="post" action="{{ url_for('biz.services') }}"
-                              onsubmit="return confirm('Remove this service?')" style="display:inline">
-                            <input type="hidden" name="action" value="delete">
-                            <input type="hidden" name="service_id" value="{{ svc.id }}">
-                            <button type="submit" class="svc-btn-delete">Remove</button>
-                        </form>
-                    </div>
-
-                    <!-- INLINE EDIT FORM -->
-                    <div class="svc-edit-form" id="edit-{{ svc.id }}" style="display:none">
-                        <form method="post" action="{{ url_for('biz.services') }}" class="dash-form">
-                            <input type="hidden" name="action" value="edit">
-                            <input type="hidden" name="service_id" value="{{ svc.id }}">
-                            <div class="form-row-2">
-                                <div class="form-group">
-                                    <label>Name</label>
-                                    <input type="text" name="name" value="{{ svc.name }}" required class="dash-input dash-input-sm">
-                                </div>
-                                <div class="form-group">
-                                    <label>Description</label>
-                                    <input type="text" name="description" value="{{ svc.description or '' }}" class="dash-input dash-input-sm">
-                                </div>
-                            </div>
-                            <div class="form-row-2">
-                                <div class="form-group">
-                                    <label>Duration</label>
-                                    <select name="duration_minutes" class="dash-input dash-input-sm">
-                                        {% for m in [15, 30, 45, 60, 75, 90, 120, 150, 180, 240] %}
-                                        <option value="{{ m }}" {% if m == svc.duration_minutes %}selected{% endif %}>{{ m }} min</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Price ($)</label>
-                                    <input type="number" name="price" value="{{ svc.price }}" min="0" step="0.01" class="dash-input dash-input-sm">
-                                </div>
-                            </div>
-                            <div class="dash-form-footer" style="gap:8px">
-                                <button type="submit" class="btn-dash-primary btn-sm">Save</button>
-                                <button type="button" class="btn-dash-ghost btn-sm" onclick="toggleEdit({{ svc.id }})">Cancel</button>
-                            </div>
-                        </form>
-                    </div>
+        {% if services %}
+        <div class="menu-list">
+            {% for svc in services %}
+            <div class="menu-item" id="svc-{{ svc.id }}">
+                <div class="menu-item-info">
+                    <div class="menu-item-name">{{ svc.name }}</div>
+                    {% if svc.description %}<div class="menu-item-desc">{{ svc.description }}</div>{% endif %}
+                    <div class="menu-item-price">{% if svc.price > 0 %}€{{ "%.0f"|format(svc.price) }}{% else %}On request{% endif %}</div>
                 </div>
-                {% endfor %}
+                <div class="tc-actions">
+                    <button class="tc-btn" onclick="toggleEdit({{ svc.id }})">Edit</button>
+                    <form method="post" action="{{ url_for('biz.services') }}" style="display:inline"
+                          onsubmit="return confirm('Remove this item?')">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="service_id" value="{{ svc.id }}">
+                        <button type="submit" class="tc-btn tc-delete">Remove</button>
+                    </form>
+                </div>
+                <div id="edit-{{ svc.id }}" style="display:none;margin-top:12px;width:100%">
+                    <form method="post" action="{{ url_for('biz.services') }}">
+                        <input type="hidden" name="action" value="edit">
+                        <input type="hidden" name="service_id" value="{{ svc.id }}">
+                        <div class="atf-row">
+                            <div class="atf-field">
+                                <label>Name</label>
+                                <input type="text" name="name" value="{{ svc.name }}" required class="atf-input">
+                            </div>
+                            <div class="atf-field">
+                                <label>Description</label>
+                                <input type="text" name="description" value="{{ svc.description or '' }}" class="atf-input">
+                            </div>
+                            <div class="atf-field atf-field-sm">
+                                <label>Price (€)</label>
+                                <input type="number" name="price" value="{{ svc.price }}" min="0" step="0.5" class="atf-input">
+                            </div>
+                            <button type="submit" class="btn-add-table">Save</button>
+                            <button type="button" class="btn-outline" onclick="toggleEdit({{ svc.id }})">Cancel</button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            {% else %}
-            <div class="dash-empty dash-empty-sm">
-                <div class="dash-empty-icon">✂️</div>
-                <p>No services yet. Add your first service above.</p>
-            </div>
-            {% endif %}
-        </section>
-    </main>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-tables-empty">
+            <div class="nte-icon">🍽</div>
+            <h3>No menu items yet</h3>
+            <p>Add your signature dishes to make your listing stand out.</p>
+        </div>
+        {% endif %}
+    </div>
 </div>
 <script>
 function toggleEdit(id) {
-    const form = document.getElementById('edit-' + id);
-    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    const el = document.getElementById('edit-' + id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 </script>
 {% endblock %}

@@ -1,153 +1,121 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — {{ business.name }} — AllBook{% endblock %}
+{% block title %}Dashboard — {{ business.name }} — AllBookEU{% endblock %}
 {% block content %}
-<div class="dash-layout">
-
-    <!-- SIDEBAR -->
-    <aside class="dash-sidebar dash-sidebar-biz">
-        <div class="dash-sidebar-user">
-            <div class="dash-avatar dash-avatar-biz">{{ owner.name[0].upper() }}</div>
-            <div>
-                <div class="dash-user-name">{{ business.name }}</div>
-                <div class="dash-user-email">{{ business.category.replace('_',' ').title() }}</div>
-            </div>
-        </div>
-        <nav class="dash-nav">
-            <a href="{{ url_for('biz.dashboard') }}" class="dash-nav-item dash-nav-active">
-                <span>📊</span> Dashboard
-            </a>
-            <a href="{{ url_for('biz.bookings') }}" class="dash-nav-item">
-                <span>📅</span> Bookings
-            </a>
-            <a href="{{ url_for('biz.services') }}" class="dash-nav-item">
-                <span>✂️</span> Services & Pricing
-            </a>
-            <a href="{{ url_for('biz.profile') }}" class="dash-nav-item">
-                <span>⚙️</span> Business Profile
-            </a>
-            <div class="dash-nav-divider"></div>
-            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="dash-nav-item" target="_blank">
-                <span>🔗</span> View Public Page
-            </a>
+<div class="dash-page">
+    <div class="dash-sidebar">
+        <div class="ds-biz-name">{{ business.name }}</div>
+        <nav class="ds-nav">
+            <a href="{{ url_for('biz.dashboard') }}" class="ds-link active">Dashboard</a>
+            <a href="{{ url_for('biz.bookings') }}" class="ds-link">Reservations</a>
+            <a href="{{ url_for('biz.tables') }}" class="ds-link">Tables</a>
+            <a href="{{ url_for('biz.services') }}" class="ds-link">Menu Items</a>
+            <a href="{{ url_for('biz.profile') }}" class="ds-link">Profile</a>
+            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="ds-link" target="_blank">View Listing ↗</a>
         </nav>
-        <form action="{{ url_for('auth.logout') }}" method="post" style="margin-top:auto;padding:20px">
-            <button type="submit" class="dash-logout-btn">🚪 Sign Out</button>
-        </form>
-    </aside>
 
-    <!-- MAIN -->
-    <main class="dash-main">
+        <div class="ds-pause-box {% if business.reservations_paused %}is-paused{% endif %}">
+            {% if business.reservations_paused %}
+            <div class="dpb-status paused">⏸ Reservations paused</div>
+            <p class="dpb-msg">{{ business.pause_message }}</p>
+            <form method="post" action="{{ url_for('biz.toggle_pause') }}">
+                <input type="hidden" name="action" value="resume">
+                <button type="submit" class="btn-resume">Resume reservations</button>
+            </form>
+            {% else %}
+            <div class="dpb-status open">● Accepting reservations</div>
+            <form method="post" action="{{ url_for('biz.toggle_pause') }}">
+                <input type="hidden" name="action" value="pause">
+                <input type="text" name="pause_message" placeholder="Reason (optional)" class="dpb-reason-input">
+                <button type="submit" class="btn-pause">Pause reservations</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="dash-main">
         <div class="dash-header">
             <div>
-                <h1>Good {% set h = today.strftime('%H')|int %}{% if h < 12 %}Morning{% elif h < 17 %}Afternoon{% else %}Evening{% endif %}, {{ owner.name.split()[0] }} 👋</h1>
+                <h1>{% set h = today.strftime('%H')|int %}{% if h < 12 %}Good morning{% elif h < 17 %}Good afternoon{% else %}Good evening{% endif %}, {{ owner.name.split()[0] }}</h1>
                 <p>Here's what's happening at {{ business.name }} today.</p>
             </div>
-            <a href="{{ url_for('biz.bookings') }}" class="btn-dash-primary">View All Bookings</a>
+            <a href="{{ url_for('biz.bookings') }}" class="btn-reserve">View All Reservations</a>
         </div>
 
-        <!-- STATS -->
-        <div class="dash-stats-row dash-stats-4">
-            <div class="dash-stat-card">
-                <span class="dsc-icon">📅</span>
-                <div>
-                    <div class="dsc-num">{{ today_bookings|length }}</div>
-                    <div class="dsc-label">Today</div>
-                </div>
+        <div class="db-stats">
+            <div class="db-stat">
+                <div class="db-stat-num">{{ today_bookings|length }}</div>
+                <div class="db-stat-label">Today</div>
             </div>
-            <div class="dash-stat-card">
-                <span class="dsc-icon">📆</span>
-                <div>
-                    <div class="dsc-num">{{ week_bookings|length }}</div>
-                    <div class="dsc-label">This Week</div>
-                </div>
+            <div class="db-stat">
+                <div class="db-stat-num">{{ week_bookings|length }}</div>
+                <div class="db-stat-label">This week</div>
             </div>
-            <div class="dash-stat-card">
-                <span class="dsc-icon">👥</span>
-                <div>
-                    <div class="dsc-num">{{ total_customers }}</div>
-                    <div class="dsc-label">Customers</div>
-                </div>
+            <div class="db-stat">
+                <div class="db-stat-num">{{ total_customers }}</div>
+                <div class="db-stat-label">Total guests</div>
             </div>
-            <div class="dash-stat-card">
-                <span class="dsc-icon">⭐</span>
-                <div>
-                    <div class="dsc-num">{{ "%.1f"|format(business.rating) }}</div>
-                    <div class="dsc-label">Rating</div>
-                </div>
+            <div class="db-stat">
+                <div class="db-stat-num">{{ "%.1f"|format(business.rating) }}</div>
+                <div class="db-stat-label">Rating</div>
             </div>
         </div>
 
-        <div class="biz-dash-grid">
-
-            <!-- TODAY'S APPOINTMENTS -->
-            <section class="dash-section dash-section-main">
-                <h2 class="dash-section-title">Today's Schedule</h2>
+        <div class="db-grid">
+            <section class="db-card db-card-main">
+                <h2 class="db-card-title">Today's Reservations</h2>
                 {% if today_bookings %}
-                <div class="today-timeline">
+                <div class="res-list">
                     {% for b in today_bookings %}
-                    <div class="timeline-item">
-                        <div class="tl-time">{{ b.booking_time }}</div>
-                        <div class="tl-dot"></div>
-                        <div class="tl-card">
-                            <div class="tl-card-top">
-                                <span class="tl-name">{{ b.customer_name }}</span>
-                                <span class="tl-status tl-status-{{ b.status }}">{{ b.status.title() }}</span>
+                    <div class="res-row">
+                        <div class="res-time">{{ b.booking_time }}</div>
+                        <div class="res-info">
+                            <div class="res-name">{{ b.customer_name }}</div>
+                            <div class="res-meta">
+                                Party of {{ b.party_size }}{% if b.customer_phone %} · {{ b.customer_phone }}{% endif %}{% if b.notes %} · {{ b.notes[:50] }}{% if b.notes|length > 50 %}…{% endif %}{% endif %}
                             </div>
-                            <div class="tl-card-meta">
-                                {% if b.party_size > 1 %}<span>👥 Party of {{ b.party_size }}</span>{% endif %}
-                                {% if b.customer_phone %}<span>📞 {{ b.customer_phone }}</span>{% endif %}
-                                {% if b.notes %}<span>💬 {{ b.notes[:60] }}{% if b.notes|length > 60 %}…{% endif %}</span>{% endif %}
-                            </div>
-                            <div class="tl-actions">
-                                <form action="{{ url_for('biz.update_booking_status', booking_id=b.id) }}" method="post" style="display:inline">
-                                    <input type="hidden" name="status" value="completed">
-                                    <button type="submit" class="tl-btn tl-btn-done">Mark Done</button>
-                                </form>
-                                <form action="{{ url_for('biz.update_booking_status', booking_id=b.id) }}" method="post" style="display:inline"
-                                      onsubmit="return confirm('Cancel this booking?')">
-                                    <input type="hidden" name="status" value="cancelled">
-                                    <button type="submit" class="tl-btn tl-btn-cancel">Cancel</button>
-                                </form>
-                            </div>
+                        </div>
+                        <div class="res-actions">
+                            <form action="{{ url_for('biz.update_booking_status', booking_id=b.id) }}" method="post" style="display:inline">
+                                <input type="hidden" name="status" value="completed">
+                                <button type="submit" class="tc-btn">Done</button>
+                            </form>
+                            <form action="{{ url_for('biz.update_booking_status', booking_id=b.id) }}" method="post" style="display:inline"
+                                  onsubmit="return confirm('Cancel this reservation?')">
+                                <input type="hidden" name="status" value="cancelled">
+                                <button type="submit" class="tc-btn tc-delete">Cancel</button>
+                            </form>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
                 {% else %}
-                <div class="dash-empty dash-empty-sm">
-                    <div class="dash-empty-icon">☀️</div>
-                    <p>No bookings scheduled for today.</p>
+                <div class="db-empty">
+                    <div class="db-empty-icon">☀️</div>
+                    <p>No reservations scheduled for today.</p>
                 </div>
                 {% endif %}
             </section>
 
-            <!-- WEEKLY CALENDAR -->
-            <section class="dash-section dash-section-side">
-                <h2 class="dash-section-title">This Week</h2>
-                <div class="week-calendar">
+            <section class="db-card db-card-side">
+                <h2 class="db-card-title">This Week</h2>
+                <div class="week-list">
                     {% for day in calendar_days %}
-                    <div class="wc-day {% if day.is_today %}wc-day-today{% endif %}">
-                        <div class="wc-day-header">
-                            <span class="wc-day-name">{{ day.display }}</span>
-                            <span class="wc-day-date">{{ day.full }}</span>
-                            {% if day.bookings %}
-                            <span class="wc-day-count">{{ day.bookings|length }}</span>
-                            {% endif %}
+                    <div class="week-row {% if day.is_today %}week-row-today{% endif %}">
+                        <div class="week-day-info">
+                            <span class="week-day-name">{{ day.display }}</span>
+                            <span class="week-day-date">{{ day.full }}</span>
                         </div>
                         {% if day.bookings %}
-                        <div class="wc-bookings">
-                            {% for b in day.bookings[:3] %}
-                            <div class="wc-booking-chip">
-                                <span class="wc-chip-time">{{ b.booking_time }}</span>
-                                <span class="wc-chip-name">{{ b.customer_name.split()[0] }}</span>
-                            </div>
+                        <div class="week-chips">
+                            {% for b in day.bookings[:2] %}
+                            <span class="week-chip">{{ b.booking_time }} · {{ b.customer_name.split()[0] }}</span>
                             {% endfor %}
-                            {% if day.bookings|length > 3 %}
-                            <div class="wc-more">+{{ day.bookings|length - 3 }} more</div>
+                            {% if day.bookings|length > 2 %}
+                            <span class="week-chip week-chip-more">+{{ day.bookings|length - 2 }} more</span>
                             {% endif %}
                         </div>
                         {% else %}
-                        <div class="wc-empty">Free</div>
+                        <span class="week-free">Free</span>
                         {% endif %}
                     </div>
                     {% endfor %}
@@ -155,32 +123,15 @@
             </section>
         </div>
 
-        <!-- QUICK ACTIONS -->
-        <section class="dash-section" style="margin-top:12px">
-            <h2 class="dash-section-title">Quick Actions</h2>
-            <div class="quick-actions-grid">
-                <a href="{{ url_for('biz.bookings') }}" class="qa-card">
-                    <span class="qa-icon">📋</span>
-                    <span class="qa-label">Manage Bookings</span>
-                </a>
-                <a href="{{ url_for('biz.services') }}" class="qa-card">
-                    <span class="qa-icon">✂️</span>
-                    <span class="qa-label">Edit Services</span>
-                </a>
-                <a href="{{ url_for('biz.profile') }}" class="qa-card">
-                    <span class="qa-icon">📝</span>
-                    <span class="qa-label">Update Profile</span>
-                </a>
-                <a href="{{ url_for('biz.profile') }}#hours" class="qa-card">
-                    <span class="qa-icon">🕐</span>
-                    <span class="qa-label">Set Hours</span>
-                </a>
-                <a href="{{ url_for('business_detail', business_id=business.id) }}" class="qa-card" target="_blank">
-                    <span class="qa-icon">🔗</span>
-                    <span class="qa-label">View Listing</span>
-                </a>
+        <section class="db-card" style="margin-top:20px">
+            <h2 class="db-card-title">Quick Actions</h2>
+            <div class="quick-actions">
+                <a href="{{ url_for('biz.bookings') }}" class="qa-btn">Manage Reservations</a>
+                <a href="{{ url_for('biz.tables') }}" class="qa-btn">Table Setup</a>
+                <a href="{{ url_for('biz.profile') }}" class="qa-btn">Update Profile</a>
+                <a href="{{ url_for('business_detail', business_id=business.id) }}" class="qa-btn" target="_blank">View Listing</a>
             </div>
         </section>
-    </main>
+    </div>
 </div>
 {% endblock %}

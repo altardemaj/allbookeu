@@ -1,105 +1,102 @@
 {% extends "base.html" %}
-{% block title %}Bookings — {{ business.name }} — AllBook{% endblock %}
+{% block title %}Reservations — {{ business.name }} — AllBookEU{% endblock %}
 {% block content %}
-<div class="dash-layout">
-    <aside class="dash-sidebar dash-sidebar-biz">
-        <div class="dash-sidebar-user">
-            <div class="dash-avatar dash-avatar-biz">{{ owner.name[0].upper() }}</div>
-            <div>
-                <div class="dash-user-name">{{ business.name }}</div>
-                <div class="dash-user-email">{{ business.category.replace('_',' ').title() }}</div>
-            </div>
-        </div>
-        <nav class="dash-nav">
-            <a href="{{ url_for('biz.dashboard') }}" class="dash-nav-item"><span>📊</span> Dashboard</a>
-            <a href="{{ url_for('biz.bookings') }}" class="dash-nav-item dash-nav-active"><span>📅</span> Bookings</a>
-            <a href="{{ url_for('biz.services') }}" class="dash-nav-item"><span>✂️</span> Services & Pricing</a>
-            <a href="{{ url_for('biz.profile') }}" class="dash-nav-item"><span>⚙️</span> Business Profile</a>
-            <div class="dash-nav-divider"></div>
-            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="dash-nav-item" target="_blank"><span>🔗</span> View Public Page</a>
+<div class="dash-page">
+    <div class="dash-sidebar">
+        <div class="ds-biz-name">{{ business.name }}</div>
+        <nav class="ds-nav">
+            <a href="{{ url_for('biz.dashboard') }}" class="ds-link">Dashboard</a>
+            <a href="{{ url_for('biz.bookings') }}" class="ds-link active">Reservations</a>
+            <a href="{{ url_for('biz.tables') }}" class="ds-link">Tables</a>
+            <a href="{{ url_for('biz.services') }}" class="ds-link">Menu Items</a>
+            <a href="{{ url_for('biz.profile') }}" class="ds-link">Profile</a>
+            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="ds-link" target="_blank">View Listing ↗</a>
         </nav>
-        <form action="{{ url_for('auth.logout') }}" method="post" style="margin-top:auto;padding:20px">
-            <button type="submit" class="dash-logout-btn">🚪 Sign Out</button>
-        </form>
-    </aside>
 
-    <main class="dash-main">
+        <div class="ds-pause-box {% if business.reservations_paused %}is-paused{% endif %}">
+            {% if business.reservations_paused %}
+            <div class="dpb-status paused">⏸ Reservations paused</div>
+            <p class="dpb-msg">{{ business.pause_message }}</p>
+            <form method="post" action="{{ url_for('biz.toggle_pause') }}">
+                <input type="hidden" name="action" value="resume">
+                <button type="submit" class="btn-resume">Resume reservations</button>
+            </form>
+            {% else %}
+            <div class="dpb-status open">● Accepting reservations</div>
+            <form method="post" action="{{ url_for('biz.toggle_pause') }}">
+                <input type="hidden" name="action" value="pause">
+                <input type="text" name="pause_message" placeholder="Reason (optional)" class="dpb-reason-input">
+                <button type="submit" class="btn-pause">Pause reservations</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="dash-main">
         <div class="dash-header">
-            <div>
-                <h1>Bookings</h1>
-                <p>All bookings for {{ business.name }}.</p>
-            </div>
+            <h1>Reservations</h1>
+            <p>All reservations for {{ business.name }}.</p>
         </div>
 
-        <!-- FILTERS -->
-        <form class="bookings-filters" method="get" action="{{ url_for('biz.bookings') }}">
-            <div class="filter-group">
-                <label>Status</label>
-                <select name="status" class="filter-select" onchange="this.form.submit()">
-                    <option value="all" {% if status_filter=='all' %}selected{% endif %}>All</option>
-                    <option value="confirmed" {% if status_filter=='confirmed' %}selected{% endif %}>Confirmed</option>
-                    <option value="completed" {% if status_filter=='completed' %}selected{% endif %}>Completed</option>
-                    <option value="cancelled" {% if status_filter=='cancelled' %}selected{% endif %}>Cancelled</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>Date</label>
-                <input type="date" name="date" value="{{ date_filter }}" class="filter-input" onchange="this.form.submit()">
-            </div>
+        <form class="bk-filters" method="get" action="{{ url_for('biz.bookings') }}">
+            <select name="status" class="atf-input" onchange="this.form.submit()">
+                <option value="all" {% if status_filter=='all' %}selected{% endif %}>All statuses</option>
+                <option value="confirmed" {% if status_filter=='confirmed' %}selected{% endif %}>Confirmed</option>
+                <option value="completed" {% if status_filter=='completed' %}selected{% endif %}>Completed</option>
+                <option value="cancelled" {% if status_filter=='cancelled' %}selected{% endif %}>Cancelled</option>
+            </select>
+            <input type="date" name="date" value="{{ date_filter }}" class="atf-input" onchange="this.form.submit()">
             {% if date_filter %}
-            <a href="{{ url_for('biz.bookings') }}" class="filter-clear">Clear ✕</a>
+            <a href="{{ url_for('biz.bookings') }}" class="btn-outline">Clear</a>
             {% endif %}
         </form>
 
-        <!-- BOOKINGS TABLE -->
         {% if bookings %}
-        <div class="data-table-wrap">
-            <table class="data-table">
+        <div class="bk-table-wrap">
+            <table class="bk-table">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Customer</th>
-                        <th>Date & Time</th>
+                        <th>Guest</th>
+                        <th>Date &amp; Time</th>
                         <th>Party</th>
                         <th>Notes</th>
                         <th>Status</th>
-                        <th>Actions</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for b in bookings %}
-                    <tr class="{% if b.status == 'cancelled' %}row-cancelled{% endif %}">
-                        <td class="td-id">#{{ b.id }}</td>
+                    <tr class="{% if b.status == 'cancelled' %}bk-row-cancelled{% endif %}">
                         <td>
-                            <div class="td-customer-name">{{ b.customer_name }}</div>
-                            <div class="td-customer-email">{{ b.customer_email }}</div>
-                            {% if b.customer_phone %}<div class="td-customer-phone">{{ b.customer_phone }}</div>{% endif %}
+                            <div class="bk-guest-name">{{ b.customer_name }}</div>
+                            <div class="bk-guest-sub">{{ b.customer_email }}</div>
+                            {% if b.customer_phone %}<div class="bk-guest-sub">{{ b.customer_phone }}</div>{% endif %}
                         </td>
                         <td>
-                            <div class="td-date">{{ b.date_display() }}</div>
-                            <div class="td-time">{{ b.booking_time }}</div>
+                            <div class="bk-date">{{ b.date_display() }}</div>
+                            <div class="bk-guest-sub">{{ b.booking_time }}</div>
                         </td>
-                        <td class="td-center">{{ b.party_size }}</td>
-                        <td class="td-notes">{{ b.notes or '—' }}</td>
+                        <td class="bk-center">{{ b.party_size }}</td>
+                        <td class="bk-notes">{{ b.notes or '—' }}</td>
                         <td>
-                            <span class="status-pill status-{{ b.status }}">{{ b.status.title() }}</span>
+                            <span class="bk-status bk-status-{{ b.status }}">{{ b.status.title() }}</span>
                         </td>
                         <td>
-                            <div class="td-actions">
+                            <div class="bk-actions">
                                 {% if b.status == 'confirmed' %}
-                                <form action="{{ url_for('biz.update_booking_status', booking_id=b.id) }}" method="post">
+                                <form action="{{ url_for('biz.update_booking_status', booking_id=b.id) }}" method="post" style="display:inline">
                                     <input type="hidden" name="status" value="completed">
-                                    <button type="submit" class="td-btn td-btn-done" title="Mark completed">✓</button>
+                                    <button type="submit" class="tc-btn">Done</button>
                                 </form>
-                                <form action="{{ url_for('biz.update_booking_status', booking_id=b.id) }}" method="post"
-                                      onsubmit="return confirm('Cancel booking #{{ b.id }}?')">
+                                <form action="{{ url_for('biz.update_booking_status', booking_id=b.id) }}" method="post" style="display:inline"
+                                      onsubmit="return confirm('Cancel reservation #{{ b.id }}?')">
                                     <input type="hidden" name="status" value="cancelled">
-                                    <button type="submit" class="td-btn td-btn-cancel" title="Cancel">✕</button>
+                                    <button type="submit" class="tc-btn tc-delete">Cancel</button>
                                 </form>
                                 {% elif b.status == 'cancelled' %}
-                                <form action="{{ url_for('biz.update_booking_status', booking_id=b.id) }}" method="post">
+                                <form action="{{ url_for('biz.update_booking_status', booking_id=b.id) }}" method="post" style="display:inline">
                                     <input type="hidden" name="status" value="confirmed">
-                                    <button type="submit" class="td-btn td-btn-restore" title="Restore">↩</button>
+                                    <button type="submit" class="tc-btn">Restore</button>
                                 </form>
                                 {% endif %}
                             </div>
@@ -110,12 +107,12 @@
             </table>
         </div>
         {% else %}
-        <div class="dash-empty">
-            <div class="dash-empty-icon">📭</div>
-            <h3>No bookings found</h3>
-            <p>{% if status_filter != 'all' or date_filter %}Try adjusting your filters.{% else %}Bookings will appear here when customers reserve with you.{% endif %}</p>
+        <div class="no-tables-empty">
+            <div class="nte-icon">📭</div>
+            <h3>No reservations found</h3>
+            <p>{% if status_filter != 'all' or date_filter %}Try adjusting your filters.{% else %}Reservations will appear here when guests book with you.{% endif %}</p>
         </div>
         {% endif %}
-    </main>
+    </div>
 </div>
 {% endblock %}

@@ -1,117 +1,137 @@
 {% extends "base.html" %}
-{% block title %}Business Profile — {{ business.name }} — AllBook{% endblock %}
+{% block title %}Profile — {{ business.name }} — AllBookEU{% endblock %}
 {% block content %}
-<div class="dash-layout">
-    <aside class="dash-sidebar dash-sidebar-biz">
-        <div class="dash-sidebar-user">
-            <div class="dash-avatar dash-avatar-biz">{{ owner.name[0].upper() }}</div>
-            <div>
-                <div class="dash-user-name">{{ business.name }}</div>
-                <div class="dash-user-email">{{ business.category.replace('_',' ').title() }}</div>
-            </div>
-        </div>
-        <nav class="dash-nav">
-            <a href="{{ url_for('biz.dashboard') }}" class="dash-nav-item"><span>📊</span> Dashboard</a>
-            <a href="{{ url_for('biz.bookings') }}" class="dash-nav-item"><span>📅</span> Bookings</a>
-            <a href="{{ url_for('biz.services') }}" class="dash-nav-item"><span>✂️</span> Services & Pricing</a>
-            <a href="{{ url_for('biz.profile') }}" class="dash-nav-item dash-nav-active"><span>⚙️</span> Business Profile</a>
-            <div class="dash-nav-divider"></div>
-            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="dash-nav-item" target="_blank"><span>🔗</span> View Public Page</a>
+<div class="dash-page">
+    <div class="dash-sidebar">
+        <div class="ds-biz-name">{{ business.name }}</div>
+        <nav class="ds-nav">
+            <a href="{{ url_for('biz.dashboard') }}" class="ds-link">Dashboard</a>
+            <a href="{{ url_for('biz.bookings') }}" class="ds-link">Reservations</a>
+            <a href="{{ url_for('biz.tables') }}" class="ds-link">Tables</a>
+            <a href="{{ url_for('biz.services') }}" class="ds-link">Menu Items</a>
+            <a href="{{ url_for('biz.profile') }}" class="ds-link active">Profile</a>
+            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="ds-link" target="_blank">View Listing ↗</a>
         </nav>
-        <form action="{{ url_for('auth.logout') }}" method="post" style="margin-top:auto;padding:20px">
-            <button type="submit" class="dash-logout-btn">🚪 Sign Out</button>
-        </form>
-    </aside>
 
-    <main class="dash-main">
+        <div class="ds-pause-box {% if business.reservations_paused %}is-paused{% endif %}">
+            {% if business.reservations_paused %}
+            <div class="dpb-status paused">⏸ Reservations paused</div>
+            <p class="dpb-msg">{{ business.pause_message }}</p>
+            <form method="post" action="{{ url_for('biz.toggle_pause') }}">
+                <input type="hidden" name="action" value="resume">
+                <button type="submit" class="btn-resume">Resume reservations</button>
+            </form>
+            {% else %}
+            <div class="dpb-status open">● Accepting reservations</div>
+            <form method="post" action="{{ url_for('biz.toggle_pause') }}">
+                <input type="hidden" name="action" value="pause">
+                <input type="text" name="pause_message" placeholder="Reason (optional)" class="dpb-reason-input">
+                <button type="submit" class="btn-pause">Pause reservations</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="dash-main">
         <div class="dash-header">
             <div>
-                <h1>Business Profile</h1>
-                <p>Update your listing information, hours, and photo.</p>
+                <h1>Restaurant Profile</h1>
+                <p>Update your listing, hours, and contact info.</p>
             </div>
-            <a href="{{ url_for('business_detail', business_id=business.id) }}" target="_blank" class="btn-dash-ghost">View Listing →</a>
+            <a href="{{ url_for('business_detail', business_id=business.id) }}" target="_blank" class="btn-outline">View Listing →</a>
         </div>
 
-        <!-- PHOTO PREVIEW -->
         {% if business.image_url %}
-        <div class="biz-photo-preview">
-            <img src="{{ business.image_url }}" alt="{{ business.name }}">
-            <div class="biz-photo-overlay">
-                <span>Current Photo</span>
-            </div>
+        <div class="profile-photo-wrap">
+            <img src="{{ business.image_url }}" alt="{{ business.name }}" class="profile-photo">
         </div>
         {% endif %}
 
-        <!-- BUSINESS INFO -->
-        <div class="dash-card">
-            <h2 class="dash-card-title">Business Information</h2>
-            <form method="post" action="{{ url_for('biz.profile') }}" class="dash-form">
+        <div class="profile-card">
+            <h2 class="profile-section-title">Restaurant Info</h2>
+            <form method="post" action="{{ url_for('biz.profile') }}">
                 <input type="hidden" name="action" value="update_info">
-                <div class="form-row-2">
-                    <div class="form-group">
-                        <label>Business Name <span class="req">*</span></label>
-                        <input type="text" name="name" value="{{ business.name }}" required class="dash-input">
+                <div class="pf-row">
+                    <div class="pf-field">
+                        <label>Restaurant Name *</label>
+                        <input type="text" name="name" value="{{ business.name }}" required class="rw-input">
                     </div>
-                    <div class="form-group">
+                    <div class="pf-field pf-field-sm">
                         <label>Price Range</label>
-                        <select name="price_range" class="dash-input">
-                            {% for pr in ['$', '$$', '$$$', '$$$$'] %}
+                        <select name="price_range" class="rw-input">
+                            {% for pr in ['€', '€€', '€€€', '€€€€'] %}
                             <option value="{{ pr }}" {% if business.price_range == pr %}selected{% endif %}>{{ pr }}</option>
                             {% endfor %}
                         </select>
                     </div>
+                    <div class="pf-field pf-field-sm">
+                        <label>Cuisine</label>
+                        <select name="cuisine" class="rw-input">
+                            {% for c in all_cuisines %}
+                            <option value="{{ c }}" {% if business.cuisine == c %}selected{% endif %}>{{ c }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
+                <div class="pf-field" style="margin-top:12px">
                     <label>Description</label>
-                    <textarea name="description" class="dash-input form-textarea" rows="3" placeholder="Tell customers what makes your business special…">{{ business.description or '' }}</textarea>
+                    <textarea name="description" class="rw-input rw-textarea" rows="3">{{ business.description or '' }}</textarea>
                 </div>
-                <div class="form-group">
+                <div class="pf-field" style="margin-top:12px">
                     <label>Cover Photo URL</label>
-                    <input type="url" name="image_url" value="{{ business.image_url or '' }}" placeholder="https://…" class="dash-input">
-                    <p class="form-hint">Paste a direct image URL (JPG or PNG recommended). We suggest using Unsplash.</p>
+                    <input type="url" name="image_url" value="{{ business.image_url or '' }}" placeholder="https://images.unsplash.com/…" class="rw-input">
                 </div>
-                <div class="form-group">
-                    <label>Street Address</label>
-                    <input type="text" name="address" value="{{ business.address or '' }}" class="dash-input">
+                <div class="pf-row" style="margin-top:12px">
+                    <div class="pf-field">
+                        <label>Street Address</label>
+                        <input type="text" name="address" value="{{ business.address or '' }}" class="rw-input">
+                    </div>
+                    <div class="pf-field pf-field-sm">
+                        <label>City *</label>
+                        <select name="city" class="rw-input">
+                            <optgroup label="Kosovo">
+                                {% for c in kosovo_cities %}
+                                <option value="{{ c }}" {% if business.city == c %}selected{% endif %}>{{ c }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            <optgroup label="Albania">
+                                {% for c in albania_cities %}
+                                <option value="{{ c }}" {% if business.city == c %}selected{% endif %}>{{ c }}</option>
+                                {% endfor %}
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="pf-field pf-field-sm">
+                        <label>Country</label>
+                        <select name="country" class="rw-input">
+                            <option value="Kosovo" {% if business.country == 'Kosovo' %}selected{% endif %}>Kosovo</option>
+                            <option value="Albania" {% if business.country == 'Albania' %}selected{% endif %}>Albania</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-row-3">
-                    <div class="form-group">
-                        <label>City <span class="req">*</span></label>
-                        <input type="text" name="city" value="{{ business.city }}" required class="dash-input">
-                    </div>
-                    <div class="form-group">
-                        <label>State</label>
-                        <input type="text" name="state" value="{{ business.state or '' }}" maxlength="2" class="dash-input">
-                    </div>
-                    <div class="form-group">
-                        <label>ZIP Code</label>
-                        <input type="text" name="zip_code" value="{{ business.zip_code or '' }}" class="dash-input">
-                    </div>
-                </div>
-                <div class="form-row-2">
-                    <div class="form-group">
+                <div class="pf-row" style="margin-top:12px">
+                    <div class="pf-field">
                         <label>Phone</label>
-                        <input type="tel" name="phone" value="{{ business.phone or '' }}" class="dash-input">
+                        <input type="tel" name="phone" value="{{ business.phone or '' }}" class="rw-input">
                     </div>
-                    <div class="form-group">
+                    <div class="pf-field">
                         <label>Business Email</label>
-                        <input type="email" name="biz_email" value="{{ business.email or '' }}" class="dash-input">
+                        <input type="email" name="biz_email" value="{{ business.email or '' }}" class="rw-input">
+                    </div>
+                    <div class="pf-field">
+                        <label>Website</label>
+                        <input type="url" name="website" value="{{ business.website or '' }}" placeholder="https://…" class="rw-input">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>Website</label>
-                    <input type="url" name="website" value="{{ business.website or '' }}" placeholder="https://yourwebsite.com" class="dash-input">
-                </div>
-                <div class="dash-form-footer">
-                    <button type="submit" class="btn-dash-primary">Save Profile</button>
+                <div style="margin-top:16px">
+                    <button type="submit" class="btn-reserve">Save Profile</button>
                 </div>
             </form>
         </div>
 
-        <!-- HOURS -->
-        <div class="dash-card" id="hours" style="margin-top:24px">
-            <h2 class="dash-card-title">Business Hours</h2>
-            <form method="post" action="{{ url_for('biz.profile') }}" class="dash-form">
+        <div class="profile-card" id="hours">
+            <h2 class="profile-section-title">Opening Hours</h2>
+            <form method="post" action="{{ url_for('biz.profile') }}">
                 <input type="hidden" name="action" value="update_hours">
                 <div class="hours-grid">
                     {% for i in range(days|length) %}
@@ -119,11 +139,10 @@
                     {% set day_name = day_names[i] %}
                     {% set current = hours_data.get(day, '9:00 AM – 6:00 PM') %}
                     {% set is_closed = current == 'closed' %}
-                    <div class="hours-row" id="hours-row-{{ day }}">
+                    <div class="hours-row">
                         <div class="hours-day-label">{{ day_name }}</div>
                         <label class="hours-closed-toggle">
-                            <input type="checkbox" name="closed_{{ day }}" id="closed_{{ day }}"
-                                   {% if is_closed %}checked{% endif %}
+                            <input type="checkbox" name="closed_{{ day }}" {% if is_closed %}checked{% endif %}
                                    onchange="toggleDay('{{ day }}', this.checked)">
                             <span>Closed</span>
                         </label>
@@ -145,44 +164,42 @@
                     </div>
                     {% endfor %}
                 </div>
-                <div class="dash-form-footer">
-                    <button type="submit" class="btn-dash-primary">Save Hours</button>
+                <div style="margin-top:16px">
+                    <button type="submit" class="btn-reserve">Save Hours</button>
                 </div>
             </form>
         </div>
 
-        <!-- CHANGE PASSWORD -->
-        <div class="dash-card" style="margin-top:24px">
-            <h2 class="dash-card-title">Change Password</h2>
-            <form method="post" action="{{ url_for('biz.profile') }}" class="dash-form">
+        <div class="profile-card">
+            <h2 class="profile-section-title">Change Password</h2>
+            <form method="post" action="{{ url_for('biz.profile') }}">
                 <input type="hidden" name="action" value="change_password">
-                <div class="form-group">
-                    <label>Current Password</label>
-                    <input type="password" name="current_password" required class="dash-input">
-                </div>
-                <div class="form-row-2">
-                    <div class="form-group">
+                <div class="pf-row">
+                    <div class="pf-field">
+                        <label>Current Password</label>
+                        <input type="password" name="current_password" required class="rw-input">
+                    </div>
+                    <div class="pf-field">
                         <label>New Password</label>
-                        <input type="password" name="new_password" required minlength="6" class="dash-input">
+                        <input type="password" name="new_password" required minlength="6" class="rw-input">
                     </div>
-                    <div class="form-group">
+                    <div class="pf-field">
                         <label>Confirm New Password</label>
-                        <input type="password" name="confirm_password" required class="dash-input">
+                        <input type="password" name="confirm_password" required class="rw-input">
                     </div>
                 </div>
-                <div class="dash-form-footer">
-                    <button type="submit" class="btn-dash-primary">Update Password</button>
+                <div style="margin-top:16px">
+                    <button type="submit" class="btn-reserve">Update Password</button>
                 </div>
             </form>
         </div>
-    </main>
+    </div>
 </div>
-
 <script>
 function toggleDay(day, closed) {
-    const timesEl = document.getElementById('times-' + day);
-    timesEl.style.opacity = closed ? '0.3' : '1';
-    timesEl.style.pointerEvents = closed ? 'none' : 'auto';
+    const el = document.getElementById('times-' + day);
+    el.style.opacity = closed ? '0.3' : '1';
+    el.style.pointerEvents = closed ? 'none' : 'auto';
 }
 </script>
 {% endblock %}
