@@ -222,6 +222,17 @@ def book():
     })
 
 
+@app.route('/setup')
+def setup():
+    try:
+        db.create_all()
+        seed_data()
+        biz_count = Business.query.count()
+        return f'OK — {biz_count} restaurants in DB.'
+    except Exception as e:
+        return f'Error: {e}', 500
+
+
 @app.route('/api/businesses')
 def api_businesses():
     city = request.args.get('city')
