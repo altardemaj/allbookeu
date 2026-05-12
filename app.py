@@ -7,7 +7,7 @@ import os
 load_dotenv()
 
 app = Flask(__name__)
-_db_url = os.environ.get('DATABASE_URL', 'sqlite:///allbook.db')
+_db_url = os.environ.get('NEON_DATABASE_URL') or os.environ.get('DATABASE_URL', 'sqlite:///allbook.db')
 if _db_url.startswith('postgres://'):
     _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = _db_url
