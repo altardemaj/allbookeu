@@ -159,6 +159,8 @@ class RestaurantTable(db.Model):
     section = db.Column(db.String(100), default='Main Floor')
     is_active = db.Column(db.Boolean, default=True)
     notes = db.Column(db.String(200))
+    grid_x = db.Column(db.Integer, nullable=True)
+    grid_y = db.Column(db.Integer, nullable=True)
 
     bookings = db.relationship('Booking', backref='table', lazy=True, foreign_keys='Booking.table_id')
 

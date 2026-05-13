@@ -466,6 +466,65 @@ def floor_view():
                            **data)
 
 
+@biz.route('/floor-builder')
+@owner_required
+def floor_builder():
+    owner, business = get_owner_business()
+    if not business:
+        return redirect(url_for('biz.dashboard'))
+
+    all_tables = RestaurantTable.query.filter_by(
+        business_id=business.id, is_active=True
+    ).order_by(RestaurantTable.section, RestaurantTable.table_number).all()
+
+    placed = [t for t in all_tables if t.grid_x is not None and t.grid_y is not None]
+    unplaced = [t for t in all_tables if t.grid_x is None or t.grid_y is None]
+
+    # Build grid occupancy map for collision detection
+    occupied = {(t.grid_x, t.grid_y): t for t in placed}
+
+    return render_template('biz/floor_builder.html',
+                           owner=owner, business=business,
+                           placed=placed, unplaced=unplaced,
+                           all_tables=all_tables,
+                           occupied=occupied,
+                           grid_cols=20, grid_rows=14)
+
+
+@biz.route('/table/<int:table_id>/position', methods=['POST'])
+@owner_required
+def save_table_position(table_id):
+    owner, business = get_owner_business()
+    t = RestaurantTable.query.get_or_404(table_id)
+    if t.business_id != business.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    data = request.get_json(force=True)
+    x = data.get('x')
+    y = data.get('y')
+
+    # Clear position
+    if x is None or y is None:
+        t.grid_x = None
+        t.grid_y = None
+        db.session.commit()
+        return jsonify({'ok': True})
+
+    x, y = int(x), int(y)
+
+    # Check for collision with another table
+    conflict = RestaurantTable.query.filter_by(
+        business_id=business.id, grid_x=x, grid_y=y
+    ).filter(RestaurantTable.id != table_id).first()
+    if conflict:
+        return jsonify({'error': 'Cell occupied', 'by': conflict.table_number}), 409
+
+    t.grid_x = x
+    t.grid_y = y
+    db.session.commit()
+    return jsonify({'ok': True, 'x': x, 'y': y})
+
+
 @biz.route('/floor/data')
 @owner_required
 def floor_data():
