@@ -477,47 +477,103 @@
         </div>
       </div>
       <div style="display:flex;gap:10px;align-items:center">
+        <a href="{{ url_for('biz.floor_builder') }}" style="font-size:0.8rem;color:#7070c0;padding:7px 12px;border:1px solid #2e2e3e;border-radius:8px;">✏ Edit Layout</a>
         <a href="{{ url_for('biz.dashboard') }}" style="font-size:0.8rem;color:#5050a0;padding:7px 12px;border:1px solid #2e2e3e;border-radius:8px;">← Dashboard</a>
         <button class="floor-refresh-btn" onclick="location.reload()">↻ Refresh</button>
       </div>
     </div>
 
     <div class="floor-canvas">
-      {% if sections_map %}
+      {% set has_positions = table_data | selectattr('table.grid_x', 'ne', none) | list | length > 0 %}
+      {% if has_positions %}
+        {# ── Positioned grid mode ── #}
+        {% set max_x = namespace(v=0) %}
+        {% set max_y = namespace(v=0) %}
+        {% for td in table_data %}
+          {% if td.table.grid_x is not none and td.table.grid_x > max_x.v %}{% set max_x.v = td.table.grid_x %}{% endif %}
+          {% if td.table.grid_y is not none and td.table.grid_y > max_y.v %}{% set max_y.v = td.table.grid_y %}{% endif %}
+        {% endfor %}
+        <div style="position:relative;width:{{ (max_x.v + 2) * 114 }}px;height:{{ (max_y.v + 2) * 114 }}px;min-width:100%">
+          {% for td in table_data %}
+          {% set t = td.table %}
+          {% set status = td.status %}
+          {% if t.grid_x is not none and t.grid_y is not none %}
+          <div class="floor-table {{ status }}"
+               style="position:absolute;left:{{ t.grid_x * 114 }}px;top:{{ t.grid_y * 114 }}px"
+               title="Table {{ t.table_number }} · {{ t.capacity }} seats{% if td.booking %} · {{ td.booking.customer_name }}{% endif %}">
+            <div class="table-seats-row">
+              {% for _ in range([t.capacity // 2, 4]|min) %}<div class="table-seat"></div>{% endfor %}
+            </div>
+            <div class="table-middle-row">
+              <div class="table-seat side"></div>
+              <div class="table-body">
+                <div class="table-num">{{ t.table_number }}</div>
+                {% if td.booking %}
+                  <div class="table-guest-name">{{ td.booking.customer_name.split()[0] }}</div>
+                  {% if status == 'seated' and td.minutes_seated is not none %}
+                  <div class="table-time-badge">{{ td.minutes_seated }}m</div>
+                  {% elif status == 'upcoming' %}
+                  <div class="table-time-badge">{{ td.booking.booking_time }}</div>
+                  {% endif %}
+                {% else %}
+                  <div class="table-capacity-label">{{ t.capacity }} seats</div>
+                {% endif %}
+              </div>
+              <div class="table-seat side side-right"></div>
+            </div>
+            <div class="table-seats-row">
+              {% for _ in range([t.capacity // 2, 4]|min) %}<div class="table-seat bottom"></div>{% endfor %}
+            </div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% if table_data | selectattr('table.grid_x', 'equalto', none) | list | length > 0 %}
+        <div class="floor-section-label" style="margin-top:32px">Unpositioned Tables</div>
+        <div class="floor-grid" style="margin-top:8px">
+          {% for td in table_data %}{% if td.table.grid_x is none %}
+          {% set t = td.table %}{% set status = td.status %}
+          <div class="floor-table {{ status }}">
+            <div class="table-seats-row">{% for _ in range([t.capacity // 2, 4]|min) %}<div class="table-seat"></div>{% endfor %}</div>
+            <div class="table-middle-row">
+              <div class="table-seat side"></div>
+              <div class="table-body">
+                <div class="table-num">{{ t.table_number }}</div>
+                {% if td.booking %}<div class="table-guest-name">{{ td.booking.customer_name.split()[0] }}</div>{% else %}<div class="table-capacity-label">{{ t.capacity }} seats</div>{% endif %}
+              </div>
+              <div class="table-seat side side-right"></div>
+            </div>
+            <div class="table-seats-row">{% for _ in range([t.capacity // 2, 4]|min) %}<div class="table-seat bottom"></div>{% endfor %}</div>
+          </div>
+          {% endif %}{% endfor %}
+        </div>
+        {% endif %}
+      {% elif sections_map %}
+        {# ── Section grouped mode (no positions set yet) ── #}
+        <div style="margin-bottom:16px;padding:10px 14px;background:#1a1a2a;border:1px solid #2e2e3e;border-radius:8px;font-size:0.8rem;color:#5050a0;">
+          ✏ <a href="{{ url_for('biz.floor_builder') }}" style="color:#7070c0;font-weight:600;">Set up your floor plan</a> to see tables in their actual positions.
+        </div>
         {% for section, table_list in sections_map.items() %}
         <div class="floor-section-block">
           <div class="floor-section-label">{{ section }} ({{ table_list|length }} table{% if table_list|length != 1 %}s{% endif %})</div>
           <div class="floor-grid">
             {% for td in table_list %}
-            {% set t = td.table %}
-            {% set status = td.status %}
+            {% set t = td.table %}{% set status = td.status %}
             <div class="floor-table {{ status }}" title="Table {{ t.table_number }} · {{ t.capacity }} seats{% if td.booking %} · {{ td.booking.customer_name }}{% endif %}">
-              <!-- Top seats -->
-              <div class="table-seats-row">
-                {% for _ in range([t.capacity // 2, 4]|min) %}<div class="table-seat"></div>{% endfor %}
-              </div>
-              <!-- Middle row: side seat + body + side seat -->
+              <div class="table-seats-row">{% for _ in range([t.capacity // 2, 4]|min) %}<div class="table-seat"></div>{% endfor %}</div>
               <div class="table-middle-row">
                 <div class="table-seat side"></div>
                 <div class="table-body">
                   <div class="table-num">{{ t.table_number }}</div>
                   {% if td.booking %}
                     <div class="table-guest-name">{{ td.booking.customer_name.split()[0] }}</div>
-                    {% if status == 'seated' and td.minutes_seated is not none %}
-                    <div class="table-time-badge">{{ td.minutes_seated }}m</div>
-                    {% elif status == 'upcoming' %}
-                    <div class="table-time-badge">{{ td.booking.booking_time }}</div>
-                    {% endif %}
-                  {% else %}
-                    <div class="table-capacity-label">{{ t.capacity }} seats</div>
-                  {% endif %}
+                    {% if status == 'seated' and td.minutes_seated is not none %}<div class="table-time-badge">{{ td.minutes_seated }}m</div>
+                    {% elif status == 'upcoming' %}<div class="table-time-badge">{{ td.booking.booking_time }}</div>{% endif %}
+                  {% else %}<div class="table-capacity-label">{{ t.capacity }} seats</div>{% endif %}
                 </div>
                 <div class="table-seat side side-right"></div>
               </div>
-              <!-- Bottom seats -->
-              <div class="table-seats-row">
-                {% for _ in range([t.capacity // 2, 4]|min) %}<div class="table-seat bottom"></div>{% endfor %}
-              </div>
+              <div class="table-seats-row">{% for _ in range([t.capacity // 2, 4]|min) %}<div class="table-seat bottom"></div>{% endfor %}</div>
             </div>
             {% endfor %}
           </div>

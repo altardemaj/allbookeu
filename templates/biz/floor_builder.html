@@ -1,0 +1,658 @@
+{% extends "base.html" %}
+{% block title %}Floor Plan Builder — {{ business.name }}{% endblock %}
+{% block head %}
+<style>
+.builder-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px);
+  background: #13131c;
+  overflow: hidden;
+}
+
+/* ── Top bar ── */
+.builder-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: #1e1e2a;
+  border-bottom: 1px solid #2e2e3e;
+  flex-shrink: 0;
+  gap: 16px;
+}
+.builder-topbar h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e0e0f0;
+}
+.builder-topbar p {
+  font-size: 0.78rem;
+  color: #6060a0;
+  margin-top: 1px;
+}
+.builder-topbar-actions { display: flex; gap: 10px; align-items: center; }
+.btn-builder-done {
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.btn-builder-done:hover { background: #4338ca; }
+.btn-builder-clear {
+  background: transparent;
+  color: #7070a0;
+  border: 1px solid #2e2e3e;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.btn-builder-clear:hover { background: #2e2e3e; color: #c0c0e0; }
+
+.builder-status {
+  font-size: 0.8rem;
+  color: #5050a0;
+  padding: 6px 14px;
+  background: #12121a;
+  border: 1px solid #2e2e3e;
+  border-radius: 20px;
+  transition: all 0.3s;
+}
+.builder-status.saving { color: #a78bfa; border-color: #4f46e5; }
+.builder-status.saved { color: #34d399; border-color: #065f46; }
+.builder-status.error { color: #f87171; border-color: #991b1b; }
+
+/* ── Body ── */
+.builder-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Left Dock ── */
+.builder-dock {
+  width: 220px;
+  min-width: 220px;
+  background: #1a1a28;
+  border-right: 1px solid #2e2e3e;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dock-header {
+  padding: 14px 16px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #4040a0;
+}
+.dock-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 12px 12px;
+}
+.dock-list::-webkit-scrollbar { width: 4px; }
+.dock-list::-webkit-scrollbar-thumb { background: #3e3e5e; border-radius: 2px; }
+
+.dock-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #24243a;
+  border: 1.5px solid #3a3a5a;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  cursor: grab;
+  user-select: none;
+  transition: all 0.15s;
+}
+.dock-card:hover { background: #2e2e4e; border-color: #5050a0; }
+.dock-card.dragging { opacity: 0.4; cursor: grabbing; }
+.dock-card-num {
+  width: 36px; height: 36px;
+  background: #3a3a5a;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #c0c0f0;
+  flex-shrink: 0;
+}
+.dock-card-info { min-width: 0; }
+.dock-card-name { font-size: 0.82rem; font-weight: 600; color: #c0c0e0; }
+.dock-card-meta { font-size: 0.72rem; color: #5050a0; margin-top: 1px; }
+
+.dock-empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: #3a3a6a;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.dock-section-label {
+  padding: 8px 12px 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #3a3a6a;
+}
+
+/* ── Grid Canvas ── */
+.builder-canvas-wrap {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+  position: relative;
+}
+.builder-canvas-wrap::-webkit-scrollbar { width: 8px; height: 8px; }
+.builder-canvas-wrap::-webkit-scrollbar-track { background: #13131c; }
+.builder-canvas-wrap::-webkit-scrollbar-thumb { background: #2e2e4e; border-radius: 4px; }
+
+.builder-grid {
+  display: grid;
+  grid-template-columns: repeat({{ grid_cols }}, 90px);
+  grid-template-rows: repeat({{ grid_rows }}, 90px);
+  gap: 4px;
+  width: fit-content;
+  position: relative;
+}
+
+.grid-cell {
+  width: 90px; height: 90px;
+  background: #1a1a24;
+  border: 1px solid #22223a;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  transition: background 0.1s, border-color 0.1s;
+}
+.grid-cell.drag-over {
+  background: #1e2040;
+  border-color: #4f46e5;
+  box-shadow: inset 0 0 0 2px #4f46e540;
+}
+.grid-cell.drag-over.occupied {
+  background: #3a1a1a;
+  border-color: #dc2626;
+}
+
+/* ── Placed Table Card ── */
+.placed-table {
+  width: 78px; height: 78px;
+  border-radius: 8px;
+  background: #2a2a40;
+  border: 2px solid #4a4a70;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 2px;
+  cursor: grab;
+  user-select: none;
+  position: relative;
+  transition: all 0.15s;
+}
+.placed-table:hover { border-color: #7070c0; background: #32324e; }
+.placed-table.dragging { opacity: 0.35; cursor: grabbing; }
+.placed-table .pt-num { font-size: 1.2rem; font-weight: 800; color: #c0c0f0; line-height: 1; }
+.placed-table .pt-section { font-size: 0.6rem; color: #5050a0; text-align: center; max-width: 70px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.placed-table .pt-cap { font-size: 0.62rem; color: #4040a0; }
+.placed-table .pt-remove {
+  position: absolute;
+  top: 2px; right: 2px;
+  width: 16px; height: 16px;
+  background: #3a1a1a;
+  border: none;
+  border-radius: 50%;
+  color: #f87171;
+  font-size: 0.65rem;
+  cursor: pointer;
+  display: none;
+  align-items: center; justify-content: center;
+  line-height: 1;
+  font-family: inherit;
+}
+.placed-table:hover .pt-remove { display: flex; }
+
+/* Grid coordinates hint */
+.grid-coord {
+  position: absolute;
+  bottom: 2px; right: 4px;
+  font-size: 0.55rem;
+  color: #2a2a40;
+  pointer-events: none;
+  font-weight: 500;
+}
+
+/* Section zone labels on grid */
+.grid-section-zone {
+  position: absolute;
+  border: 1px dashed #2a2a50;
+  border-radius: 8px;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  padding: 4px 8px;
+}
+.grid-section-zone span {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #3030a0;
+}
+
+/* Instructions panel */
+.builder-instructions {
+  padding: 12px;
+  border-top: 1px solid #2e2e3e;
+  background: #13131c;
+}
+.builder-instructions p {
+  font-size: 0.72rem;
+  color: #3a3a7a;
+  line-height: 1.6;
+  margin-bottom: 4px;
+}
+.builder-instructions p span { color: #5050a0; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="builder-page">
+
+  <!-- ── Top Bar ── -->
+  <div class="builder-topbar">
+    <div>
+      <h2>Floor Plan Builder — {{ business.name }}</h2>
+      <p>Drag tables from the left onto the grid to set their positions. Changes save instantly.</p>
+    </div>
+    <div class="builder-topbar-actions">
+      <span class="builder-status" id="saveStatus">{{ placed|length }} placed · {{ unplaced|length }} unplaced</span>
+      <button class="btn-builder-clear" onclick="clearAll()" {% if not placed %}disabled{% endif %}>Clear All</button>
+      <a href="{{ url_for('biz.floor_view') }}" class="btn-builder-done">Done → Live View</a>
+    </div>
+  </div>
+
+  <div class="builder-body">
+
+    <!-- ── Left Dock: Unplaced Tables ── -->
+    <div class="builder-dock">
+      <div class="dock-header">Unplaced Tables</div>
+      <div class="dock-list" id="dockList">
+        {% if unplaced %}
+          {% set prev_section = namespace(val='') %}
+          {% for t in unplaced %}
+            {% if t.section != prev_section.val %}
+              <div class="dock-section-label">{{ t.section }}</div>
+              {% set prev_section.val = t.section %}
+            {% endif %}
+            <div class="dock-card"
+                 draggable="true"
+                 id="dock-{{ t.id }}"
+                 data-table-id="{{ t.id }}"
+                 data-table-num="{{ t.table_number }}"
+                 data-capacity="{{ t.capacity }}"
+                 data-section="{{ t.section }}"
+                 ondragstart="onDockDragStart(event)">
+              <div class="dock-card-num">{{ t.table_number }}</div>
+              <div class="dock-card-info">
+                <div class="dock-card-name">Table {{ t.table_number }}</div>
+                <div class="dock-card-meta">{{ t.capacity }} seats · {{ t.section }}</div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="dock-empty">All tables are placed on the floor plan.</div>
+        {% endif %}
+      </div>
+      <div class="builder-instructions">
+        <p><span>Drag</span> a table onto the grid to place it.</p>
+        <p><span>Drag</span> a placed table to reposition it.</p>
+        <p>Click <span>×</span> on a placed table to remove it.</p>
+      </div>
+    </div>
+
+    <!-- ── Grid Canvas ── -->
+    <div class="builder-canvas-wrap">
+      <div class="builder-grid" id="builderGrid">
+        {% for row in range(grid_rows) %}
+          {% for col in range(grid_cols) %}
+          {% set placed_here = namespace(table=none) %}
+          {% for t in placed %}
+            {% if t.grid_x == col and t.grid_y == row %}
+              {% set placed_here.table = t %}
+            {% endif %}
+          {% endfor %}
+          <div class="grid-cell {% if placed_here.table %}has-table{% endif %}"
+               id="cell-{{ col }}-{{ row }}"
+               data-x="{{ col }}"
+               data-y="{{ row }}"
+               ondragover="onDragOver(event)"
+               ondragleave="onDragLeave(event)"
+               ondrop="onDrop(event)">
+            {% if placed_here.table %}
+              {% set t = placed_here.table %}
+              <div class="placed-table"
+                   draggable="true"
+                   id="placed-{{ t.id }}"
+                   data-table-id="{{ t.id }}"
+                   data-table-num="{{ t.table_number }}"
+                   data-capacity="{{ t.capacity }}"
+                   data-section="{{ t.section }}"
+                   data-grid-x="{{ t.grid_x }}"
+                   data-grid-y="{{ t.grid_y }}"
+                   ondragstart="onPlacedDragStart(event)">
+                <button class="pt-remove" onclick="removeTable(event, {{ t.id }}, {{ t.grid_x }}, {{ t.grid_y }})" title="Remove from grid">×</button>
+                <div class="pt-num">{{ t.table_number }}</div>
+                <div class="pt-cap">{{ t.capacity }} seats</div>
+                <div class="pt-section">{{ t.section }}</div>
+              </div>
+            {% else %}
+              <div class="grid-coord">{{ col }},{{ row }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let dragTableId = null;
+let dragFromX = null;
+let dragFromY = null;
+let isDockDrag = false;
+
+function setStatus(msg, type) {
+  const el = document.getElementById('saveStatus');
+  el.textContent = msg;
+  el.className = 'builder-status ' + (type || '');
+}
+
+// ── Drag from dock ──
+function onDockDragStart(e) {
+  const card = e.currentTarget;
+  dragTableId = card.dataset.tableId;
+  dragFromX = null;
+  dragFromY = null;
+  isDockDrag = true;
+  card.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', dragTableId);
+  setTimeout(() => card.classList.remove('dragging'), 0);
+}
+
+// ── Drag a placed table ──
+function onPlacedDragStart(e) {
+  const card = e.currentTarget;
+  dragTableId = card.dataset.tableId;
+  dragFromX = parseInt(card.dataset.gridX);
+  dragFromY = parseInt(card.dataset.gridY);
+  isDockDrag = false;
+  card.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', dragTableId);
+  setTimeout(() => card.classList.remove('dragging'), 0);
+}
+
+// ── Drag over cell ──
+function onDragOver(e) {
+  e.preventDefault();
+  const cell = e.currentTarget;
+  cell.classList.add('drag-over');
+  if (cell.classList.contains('has-table')) {
+    // Check if it's the table being dragged (same cell)
+    const placed = cell.querySelector('.placed-table');
+    if (placed && placed.dataset.tableId === dragTableId) {
+      cell.classList.remove('drag-over');
+    } else {
+      cell.classList.add('occupied');
+    }
+  }
+  e.dataTransfer.dropEffect = 'move';
+}
+
+function onDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over', 'occupied');
+}
+
+// ── Drop on cell ──
+async function onDrop(e) {
+  e.preventDefault();
+  const cell = e.currentTarget;
+  cell.classList.remove('drag-over', 'occupied');
+
+  const x = parseInt(cell.dataset.x);
+  const y = parseInt(cell.dataset.y);
+
+  // Same cell as origin - no-op
+  if (dragFromX === x && dragFromY === y) return;
+
+  // Cell is occupied by another table
+  if (cell.classList.contains('has-table')) {
+    const placed = cell.querySelector('.placed-table');
+    if (placed && placed.dataset.tableId !== dragTableId) {
+      setStatus('That cell is occupied by Table ' + placed.dataset.tableNum, 'error');
+      setTimeout(() => setStatus(getCountMsg()), 3000);
+      return;
+    }
+  }
+
+  setStatus('Saving…', 'saving');
+
+  try {
+    const resp = await fetch(`/biz/table/${dragTableId}/position`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ x, y })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      setStatus('Error: ' + (err.error || 'failed'), 'error');
+      setTimeout(() => setStatus(getCountMsg()), 3000);
+      return;
+    }
+
+    // Move DOM without full reload
+    movePlacedTable(dragTableId, x, y);
+    setStatus('Saved ✓', 'saved');
+    setTimeout(() => setStatus(getCountMsg()), 1500);
+
+  } catch(err) {
+    setStatus('Network error', 'error');
+    setTimeout(() => setStatus(getCountMsg()), 3000);
+  }
+}
+
+function movePlacedTable(tableId, newX, newY) {
+  // Remove from old cell / dock
+  const oldPlaced = document.getElementById('placed-' + tableId);
+  const dockCard = document.getElementById('dock-' + tableId);
+
+  let tableNum, capacity, section;
+
+  if (oldPlaced) {
+    tableNum = oldPlaced.dataset.tableNum;
+    capacity = oldPlaced.dataset.capacity;
+    section = oldPlaced.dataset.section;
+    const oldCell = oldPlaced.closest('.grid-cell');
+    if (oldCell) {
+      oldCell.classList.remove('has-table');
+      oldPlaced.remove();
+      // Restore coord hint
+      const coord = document.createElement('div');
+      coord.className = 'grid-coord';
+      coord.textContent = `${oldCell.dataset.x},${oldCell.dataset.y}`;
+      oldCell.appendChild(coord);
+    }
+  } else if (dockCard) {
+    tableNum = dockCard.dataset.tableNum;
+    capacity = dockCard.dataset.capacity;
+    section = dockCard.dataset.section;
+    dockCard.remove();
+    checkDockEmpty();
+  }
+
+  // Place in new cell
+  const newCell = document.getElementById(`cell-${newX}-${newY}`);
+  if (!newCell) return;
+
+  // Remove coord hint if any
+  const coord = newCell.querySelector('.grid-coord');
+  if (coord) coord.remove();
+
+  newCell.classList.add('has-table');
+
+  const newPlaced = document.createElement('div');
+  newPlaced.className = 'placed-table';
+  newPlaced.draggable = true;
+  newPlaced.id = 'placed-' + tableId;
+  newPlaced.dataset.tableId = tableId;
+  newPlaced.dataset.tableNum = tableNum;
+  newPlaced.dataset.capacity = capacity;
+  newPlaced.dataset.section = section;
+  newPlaced.dataset.gridX = newX;
+  newPlaced.dataset.gridY = newY;
+  newPlaced.setAttribute('ondragstart', 'onPlacedDragStart(event)');
+
+  newPlaced.innerHTML = `
+    <button class="pt-remove" onclick="removeTable(event, ${tableId}, ${newX}, ${newY})" title="Remove from grid">×</button>
+    <div class="pt-num">${tableNum}</div>
+    <div class="pt-cap">${capacity} seats</div>
+    <div class="pt-section">${section}</div>
+  `;
+
+  newCell.appendChild(newPlaced);
+}
+
+async function removeTable(e, tableId, x, y) {
+  e.stopPropagation();
+  setStatus('Removing…', 'saving');
+
+  try {
+    const resp = await fetch(`/biz/table/${tableId}/position`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ x: null, y: null })
+    });
+
+    if (!resp.ok) {
+      setStatus('Error removing', 'error');
+      setTimeout(() => setStatus(getCountMsg()), 3000);
+      return;
+    }
+
+    // Remove from grid cell
+    const placed = document.getElementById('placed-' + tableId);
+    if (placed) {
+      const cell = placed.closest('.grid-cell');
+
+      // Get table info before removing
+      const tableNum = placed.dataset.tableNum;
+      const capacity = placed.dataset.capacity;
+      const section = placed.dataset.section;
+
+      cell.classList.remove('has-table');
+      placed.remove();
+
+      // Restore coord hint
+      const coord = document.createElement('div');
+      coord.className = 'grid-coord';
+      coord.textContent = `${x},${y}`;
+      cell.appendChild(coord);
+
+      // Add back to dock
+      addToDock(tableId, tableNum, capacity, section);
+    }
+
+    setStatus('Removed ✓', 'saved');
+    setTimeout(() => setStatus(getCountMsg()), 1500);
+  } catch(err) {
+    setStatus('Network error', 'error');
+    setTimeout(() => setStatus(getCountMsg()), 3000);
+  }
+}
+
+function addToDock(tableId, tableNum, capacity, section) {
+  const dockList = document.getElementById('dockList');
+  const empty = dockList.querySelector('.dock-empty');
+  if (empty) empty.remove();
+
+  const card = document.createElement('div');
+  card.className = 'dock-card';
+  card.id = 'dock-' + tableId;
+  card.draggable = true;
+  card.dataset.tableId = tableId;
+  card.dataset.tableNum = tableNum;
+  card.dataset.capacity = capacity;
+  card.dataset.section = section;
+  card.setAttribute('ondragstart', 'onDockDragStart(event)');
+  card.innerHTML = `
+    <div class="dock-card-num">${tableNum}</div>
+    <div class="dock-card-info">
+      <div class="dock-card-name">Table ${tableNum}</div>
+      <div class="dock-card-meta">${capacity} seats · ${section}</div>
+    </div>
+  `;
+  dockList.appendChild(card);
+}
+
+function checkDockEmpty() {
+  const dockList = document.getElementById('dockList');
+  const cards = dockList.querySelectorAll('.dock-card');
+  if (cards.length === 0) {
+    dockList.innerHTML = '<div class="dock-empty">All tables are placed on the floor plan.</div>';
+  }
+}
+
+function getCountMsg() {
+  const placed = document.querySelectorAll('.placed-table').length;
+  const unplaced = document.querySelectorAll('.dock-card').length;
+  return `${placed} placed · ${unplaced} unplaced`;
+}
+
+async function clearAll() {
+  if (!confirm('Remove all tables from the floor plan grid?')) return;
+  setStatus('Clearing…', 'saving');
+
+  const placedTables = document.querySelectorAll('.placed-table');
+  for (const pt of placedTables) {
+    const id = pt.dataset.tableId;
+    const cell = pt.closest('.grid-cell');
+    const x = parseInt(cell.dataset.x);
+    const y = parseInt(cell.dataset.y);
+    await fetch(`/biz/table/${id}/position`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ x: null, y: null })
+    });
+    addToDock(id, pt.dataset.tableNum, pt.dataset.capacity, pt.dataset.section);
+    cell.classList.remove('has-table');
+    pt.remove();
+    const coord = document.createElement('div');
+    coord.className = 'grid-coord';
+    coord.textContent = `${x},${y}`;
+    cell.appendChild(coord);
+  }
+
+  setStatus('Cleared ✓', 'saved');
+  setTimeout(() => setStatus(getCountMsg()), 1500);
+}
+</script>
+{% endblock %}
