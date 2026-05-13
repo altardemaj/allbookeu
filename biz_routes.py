@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 from functools import wraps
 from database import db, BusinessOwner, Business, Booking, Service, RestaurantTable
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 import json
 
 biz = Blueprint('biz', __name__, url_prefix='/biz')
@@ -344,3 +344,162 @@ def profile():
                            kosovo_cities=KOSOVO_CITIES,
                            albania_cities=ALBANIA_CITIES,
                            cuisines=CUISINES)
+
+
+def _parse_booking_time(time_str):
+    for fmt in ('%I:%M %p', '%I %p'):
+        try:
+            return datetime.strptime(time_str.strip(), fmt).time()
+        except ValueError:
+            continue
+    return None
+
+
+def _build_floor_data(business, selected_date):
+    now_dt = datetime.now()
+    now_time = now_dt.time()
+    is_today = selected_date == date.today()
+
+    day_bookings = Booking.query.filter_by(
+        business_id=business.id,
+        booking_date=selected_date
+    ).filter(Booking.status != 'cancelled').order_by(Booking.booking_time).all()
+
+    seated, upcoming, finished = [], [], []
+
+    for b in day_bookings:
+        bt = _parse_booking_time(b.booking_time)
+        if b.status == 'completed' or selected_date < date.today():
+            minutes = None
+            if bt:
+                bt_dt = datetime.combine(selected_date, bt)
+                minutes = max(0, int((now_dt - bt_dt).total_seconds() / 60))
+            finished.append({'booking': b, 'minutes': minutes})
+        elif selected_date > date.today() or bt is None:
+            upcoming.append({'booking': b, 'minutes_until': None})
+        else:
+            bt_dt = datetime.combine(date.today(), bt)
+            diff = (now_dt - bt_dt).total_seconds() / 60
+            if diff < 0:
+                upcoming.append({'booking': b, 'minutes_until': int(-diff)})
+            elif diff <= 135:
+                seated.append({'booking': b, 'minutes': int(diff)})
+            else:
+                finished.append({'booking': b, 'minutes': int(diff)})
+
+    table_booking_map = {b.table_id: b for b in day_bookings if b.table_id}
+
+    all_tables = RestaurantTable.query.filter_by(
+        business_id=business.id, is_active=True
+    ).order_by(RestaurantTable.section, RestaurantTable.table_number).all()
+
+    table_data = []
+    for t in all_tables:
+        booking = table_booking_map.get(t.id)
+        status = 'available'
+        minutes_seated = None
+        minutes_until = None
+
+        if booking:
+            bt = _parse_booking_time(booking.booking_time)
+            if booking.status == 'completed' or selected_date < date.today():
+                status = 'finished'
+            elif selected_date > date.today() or bt is None:
+                status = 'upcoming'
+            else:
+                bt_dt = datetime.combine(date.today(), bt)
+                diff = (now_dt - bt_dt).total_seconds() / 60
+                if diff < 0:
+                    status = 'upcoming'
+                    minutes_until = int(-diff)
+                elif diff <= 135:
+                    status = 'seated'
+                    minutes_seated = int(diff)
+                else:
+                    status = 'finished'
+
+        table_data.append({
+            'table': t,
+            'booking': booking,
+            'status': status,
+            'minutes_seated': minutes_seated,
+            'minutes_until': minutes_until,
+        })
+
+    sections_map = {}
+    for td in table_data:
+        sections_map.setdefault(td['table'].section, []).append(td)
+
+    return {
+        'day_bookings': day_bookings,
+        'seated': seated,
+        'upcoming': upcoming,
+        'finished': finished,
+        'sections_map': sections_map,
+        'table_data': table_data,
+    }
+
+
+@biz.route('/floor')
+@owner_required
+def floor_view():
+    owner, business = get_owner_business()
+    if not business:
+        return redirect(url_for('biz.dashboard'))
+
+    date_str = request.args.get('date', '')
+    try:
+        selected_date = date.fromisoformat(date_str) if date_str else date.today()
+    except ValueError:
+        selected_date = date.today()
+
+    data = _build_floor_data(business, selected_date)
+    prev_date = selected_date - timedelta(days=1)
+    next_date = selected_date + timedelta(days=1)
+
+    return render_template('biz/floor.html',
+                           owner=owner, business=business,
+                           selected_date=selected_date,
+                           today=date.today(),
+                           prev_date=prev_date,
+                           next_date=next_date,
+                           **data)
+
+
+@biz.route('/floor/data')
+@owner_required
+def floor_data():
+    owner, business = get_owner_business()
+    if not business:
+        return jsonify({'error': 'not found'}), 404
+
+    date_str = request.args.get('date', '')
+    try:
+        selected_date = date.fromisoformat(date_str) if date_str else date.today()
+    except ValueError:
+        selected_date = date.today()
+
+    data = _build_floor_data(business, selected_date)
+
+    tables_json = []
+    for td in data['table_data']:
+        t = td['table']
+        b = td['booking']
+        tables_json.append({
+            'id': t.id,
+            'number': t.table_number,
+            'capacity': t.capacity,
+            'section': t.section,
+            'status': td['status'],
+            'minutes_seated': td['minutes_seated'],
+            'minutes_until': td['minutes_until'],
+            'guest_name': b.customer_name if b else None,
+            'party_size': b.party_size if b else None,
+            'booking_time': b.booking_time if b else None,
+        })
+
+    return jsonify({
+        'tables': tables_json,
+        'seated_count': len(data['seated']),
+        'upcoming_count': len(data['upcoming']),
+    })
