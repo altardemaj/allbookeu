@@ -1,0 +1,540 @@
+{% extends "base.html" %}
+{% block title %}Schedule — {{ business.name }}{% endblock %}
+{% block head %}
+<style>
+/* ── Schedule page layout ── */
+.schedule-page { display: flex; min-height: calc(100vh - 64px); background: var(--bg-gray); }
+
+/* ── Left panel ── */
+.schedule-panel {
+  width: 340px;
+  min-width: 340px;
+  background: #fff;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.schedule-panel-header {
+  padding: 20px 20px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.schedule-panel-header h2 { font-size: 1rem; font-weight: 700; }
+.schedule-panel-header p { font-size: 0.8rem; color: var(--text-muted); margin-top: 3px; }
+
+.shift-list { padding: 12px; flex: 1; }
+.shift-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  background: #fff;
+  transition: box-shadow 0.15s;
+}
+.shift-card:hover { box-shadow: var(--shadow); }
+.shift-card.inactive { opacity: 0.5; }
+.shift-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.shift-color-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+.shift-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.shift-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: #f0faf4;
+  color: #166534;
+}
+.shift-badge.paused { background: #fef2f2; color: #991b1b; }
+.shift-meta { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px; }
+.shift-days-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+.day-chip {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--bg-gray);
+  color: var(--text-muted);
+}
+.day-chip.active { background: #eff6ff; color: #1d4ed8; }
+.shift-actions { display: flex; gap: 6px; }
+.shift-btn {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.shift-btn:hover { background: var(--bg-gray); color: var(--text); }
+.shift-btn.danger:hover { background: #fef2f2; color: #dc2626; border-color: #fca5a5; }
+
+.no-shifts {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* ── Add form ── */
+.add-shift-form {
+  border-top: 1px solid var(--border);
+  padding: 16px;
+  background: var(--bg-gray);
+}
+.add-shift-form h3 { font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; }
+.sf-field { margin-bottom: 10px; }
+.sf-label { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px; }
+.sf-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  background: #fff;
+}
+.sf-input:focus { border-color: var(--red); }
+.sf-row { display: flex; gap: 8px; }
+.sf-row .sf-field { flex: 1; }
+.days-checkboxes { display: flex; gap: 4px; flex-wrap: wrap; }
+.day-check { display: none; }
+.day-check-label {
+  padding: 4px 9px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.15s;
+  user-select: none;
+}
+.day-check:checked + .day-check-label { background: #eff6ff; color: #1d4ed8; border-color: #93c5fd; }
+.btn-add-shift {
+  width: 100%;
+  background: var(--red);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 9px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  margin-top: 4px;
+  transition: background 0.15s;
+}
+.btn-add-shift:hover { background: var(--red-dark); }
+
+/* ── Right: weekly grid ── */
+.schedule-main {
+  flex: 1;
+  padding: 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.schedule-main h2 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+.schedule-main p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
+
+.schedule-grid-wrap {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: auto;
+  flex: 1;
+}
+
+.schedule-grid {
+  display: flex;
+  min-height: 900px;
+}
+
+.sched-time-col {
+  width: 56px;
+  min-width: 56px;
+  border-right: 1px solid var(--border);
+  position: relative;
+  background: #fafafa;
+}
+.sched-hour-label {
+  position: absolute;
+  right: 6px;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+.sched-days {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  position: relative;
+}
+
+.sched-day-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 2px solid var(--border);
+  background: #fafafa;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.sched-day-name {
+  padding: 10px 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: center;
+  border-left: 1px solid var(--border);
+}
+.sched-day-name.today { color: var(--red); }
+
+.sched-day-col {
+  border-left: 1px solid var(--border);
+  position: relative;
+}
+
+.sched-hour-line {
+  position: absolute;
+  left: 0; right: 0;
+  border-top: 1px solid var(--border);
+  opacity: 0.5;
+}
+
+.sched-shift-block {
+  position: absolute;
+  left: 4px; right: 4px;
+  border-radius: 6px;
+  padding: 5px 7px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: opacity 0.15s, filter 0.15s;
+  border-left: 3px solid rgba(255,255,255,0.3);
+}
+.sched-shift-block:hover { filter: brightness(1.15); }
+.sched-shift-block.inactive { opacity: 0.35; filter: grayscale(0.5); }
+.sched-block-name { font-size: 0.7rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sched-block-time { font-size: 0.62rem; color: rgba(255,255,255,0.75); margin-top: 1px; }
+
+.schedule-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-muted); }
+.legend-swatch { width: 12px; height: 12px; border-radius: 3px; }
+
+/* ── Edit modal ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+  display: none; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 420px;
+  max-width: 95vw;
+  box-shadow: var(--shadow-lg);
+}
+.modal-box h3 { font-size: 1rem; font-weight: 700; margin-bottom: 16px; }
+.modal-box .sf-row { gap: 12px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.btn-modal-cancel {
+  background: var(--bg-gray); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 18px;
+  font-size: 0.875rem; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.btn-modal-save {
+  background: var(--red); color: #fff; border: none;
+  border-radius: var(--radius-sm); padding: 8px 18px;
+  font-size: 0.875rem; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.btn-modal-save:hover { background: var(--red-dark); }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set today_dow = today_dow %}
+
+<!-- Edit modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box">
+    <h3>Edit Shift</h3>
+    <form method="post" action="{{ url_for('biz.shifts') }}" id="editForm">
+      <input type="hidden" name="action" value="edit">
+      <input type="hidden" name="shift_id" id="edit_shift_id">
+      <div class="sf-field">
+        <label class="sf-label">Shift Name</label>
+        <input type="text" name="name" id="edit_name" class="sf-input" required placeholder="e.g. Lunch, Dinner">
+      </div>
+      <div class="sf-field">
+        <label class="sf-label">Days</label>
+        <div class="days-checkboxes">
+          {% for i, label in [(0,'Mon'),(1,'Tue'),(2,'Wed'),(3,'Thu'),(4,'Fri'),(5,'Sat'),(6,'Sun')] %}
+          <input type="checkbox" name="days" value="{{ i }}" id="edit_day_{{ i }}" class="day-check edit-day">
+          <label for="edit_day_{{ i }}" class="day-check-label">{{ label }}</label>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="sf-row">
+        <div class="sf-field">
+          <label class="sf-label">Start Time</label>
+          <input type="time" name="start_time" id="edit_start" class="sf-input" required>
+        </div>
+        <div class="sf-field">
+          <label class="sf-label">End Time</label>
+          <input type="time" name="end_time" id="edit_end" class="sf-input" required>
+        </div>
+      </div>
+      <div class="sf-field">
+        <label class="sf-label">Booking slot interval</label>
+        <select name="slot_minutes" id="edit_slot" class="sf-input">
+          <option value="15">Every 15 min</option>
+          <option value="30">Every 30 min</option>
+          <option value="60">Every 60 min</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-cancel" onclick="closeEdit()">Cancel</button>
+        <button type="submit" class="btn-modal-save">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="schedule-page">
+
+  <!-- ── Left panel ── -->
+  <div class="schedule-panel">
+
+    <!-- Sidebar nav -->
+    <div style="padding:16px 16px 0">
+      <div class="ds-biz-name" style="font-size:0.85rem;font-weight:700;color:var(--text-muted);margin-bottom:10px">{{ business.name }}</div>
+      <nav class="ds-nav" style="margin-bottom:12px">
+        <a href="{{ url_for('biz.dashboard') }}" class="ds-link">Dashboard</a>
+        <a href="{{ url_for('biz.floor_view') }}" class="ds-link">🗺 Floor View</a>
+        <a href="{{ url_for('biz.floor_builder') }}" class="ds-link">✏ Floor Builder</a>
+        <a href="{{ url_for('biz.bookings') }}" class="ds-link">Reservations</a>
+        <a href="{{ url_for('biz.shifts') }}" class="ds-link active">Schedule</a>
+        <a href="{{ url_for('biz.tables') }}" class="ds-link">Tables</a>
+        <a href="{{ url_for('biz.services') }}" class="ds-link">Menu Items</a>
+        <a href="{{ url_for('biz.profile') }}" class="ds-link">Profile</a>
+      </nav>
+    </div>
+
+    <div class="schedule-panel-header">
+      <h2>Service Shifts</h2>
+      <p>Shifts control which time slots customers can book. If no shifts are set, default times are used.</p>
+    </div>
+
+    <div class="shift-list">
+      {% if all_shifts %}
+        {% for item in shifts_with_color %}
+        {% set s = item.shift %}
+        <div class="shift-card {% if not s.is_active %}inactive{% endif %}">
+          <div class="shift-card-top">
+            <div class="shift-name">
+              <div class="shift-color-dot" style="background:{{ item.color }}"></div>
+              {{ s.name }}
+              <span class="shift-badge {% if not s.is_active %}paused{% endif %}">
+                {% if s.is_active %}Active{% else %}Paused{% endif %}
+              </span>
+            </div>
+          </div>
+          <div class="shift-meta">
+            {{ s.start_display() }} – {{ s.end_display() }} &nbsp;·&nbsp; Every {{ s.slot_minutes }}min
+          </div>
+          <div class="shift-days-row">
+            {% for i, label in [(0,'Mon'),(1,'Tue'),(2,'Wed'),(3,'Thu'),(4,'Fri'),(5,'Sat'),(6,'Sun')] %}
+            <span class="day-chip {% if i in s.get_days_list() %}active{% endif %}">{{ label }}</span>
+            {% endfor %}
+          </div>
+          <div class="shift-actions">
+            <button class="shift-btn" onclick="openEdit({{ s.id }}, '{{ s.name|e }}', '{{ s.days }}', '{{ s.start_time }}', '{{ s.end_time }}', {{ s.slot_minutes }})">Edit</button>
+            <form method="post" style="display:inline">
+              <input type="hidden" name="action" value="toggle">
+              <input type="hidden" name="shift_id" value="{{ s.id }}">
+              <button type="submit" class="shift-btn">{% if s.is_active %}Pause{% else %}Resume{% endif %}</button>
+            </form>
+            <form method="post" style="display:inline" onsubmit="return confirm('Delete this shift?')">
+              <input type="hidden" name="action" value="delete">
+              <input type="hidden" name="shift_id" value="{{ s.id }}">
+              <button type="submit" class="shift-btn danger">Delete</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="no-shifts">No shifts yet. Add one below to control your booking time slots.</div>
+      {% endif %}
+    </div>
+
+    <!-- Add shift form -->
+    <form method="post" action="{{ url_for('biz.shifts') }}" class="add-shift-form">
+      <input type="hidden" name="action" value="add">
+      <h3>+ Add New Shift</h3>
+      <div class="sf-field">
+        <label class="sf-label">Shift Name *</label>
+        <input type="text" name="name" class="sf-input" required placeholder="e.g. Lunch, Dinner, Brunch">
+      </div>
+      <div class="sf-field">
+        <label class="sf-label">Days *</label>
+        <div class="days-checkboxes">
+          {% for i, label in [(0,'Mon'),(1,'Tue'),(2,'Wed'),(3,'Thu'),(4,'Fri'),(5,'Sat'),(6,'Sun')] %}
+          <input type="checkbox" name="days" value="{{ i }}" id="day_{{ i }}" class="day-check" {% if i < 5 %}checked{% endif %}>
+          <label for="day_{{ i }}" class="day-check-label">{{ label }}</label>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="sf-row">
+        <div class="sf-field">
+          <label class="sf-label">Start *</label>
+          <input type="time" name="start_time" class="sf-input" value="12:00" required>
+        </div>
+        <div class="sf-field">
+          <label class="sf-label">End *</label>
+          <input type="time" name="end_time" class="sf-input" value="22:00" required>
+        </div>
+      </div>
+      <div class="sf-field">
+        <label class="sf-label">Slot interval</label>
+        <select name="slot_minutes" class="sf-input">
+          <option value="15">Every 15 min</option>
+          <option value="30" selected>Every 30 min</option>
+          <option value="60">Every 60 min</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-add-shift">Add Shift</button>
+    </form>
+
+  </div>
+
+  <!-- ── Right: weekly schedule grid ── -->
+  <div class="schedule-main">
+    <h2>Weekly Schedule</h2>
+    <p>How your booking slots appear to customers each day of the week.</p>
+
+    {% if shifts_with_color %}
+    <div class="schedule-legend">
+      {% for item in shifts_with_color %}
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:{{ item.color }}"></div>
+        {{ item.shift.name }}{% if not item.shift.is_active %} (paused){% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="schedule-grid-wrap">
+      {% set grid_start = 6 %}
+      {% set grid_end = 24 %}
+      {% set px_per_hour = 54 %}
+      {% set total_height = (grid_end - grid_start) * px_per_hour %}
+
+      <!-- Day headers -->
+      <div style="display:flex;position:sticky;top:0;z-index:10;background:#fafafa;border-bottom:2px solid var(--border)">
+        <div style="width:56px;min-width:56px;border-right:1px solid var(--border)"></div>
+        {% set today_dow = today_dow %}
+        {% for i, label in [(0,'Mon'),(1,'Tue'),(2,'Wed'),(3,'Thu'),(4,'Fri'),(5,'Sat'),(6,'Sun')] %}
+        <div style="flex:1;padding:10px 8px;font-size:0.78rem;font-weight:700;color:{% if i == current_dow %}var(--red){% else %}var(--text-muted){% endif %};text-align:center;border-left:1px solid var(--border)">
+          {{ label }}{% if i == current_dow %} ·{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="schedule-grid" style="min-height:{{ total_height }}px">
+        <!-- Time column -->
+        <div class="sched-time-col" style="height:{{ total_height }}px">
+          {% for h in range(grid_start, grid_end) %}
+          <div class="sched-hour-label" style="top:{{ (h - grid_start) * px_per_hour }}px">
+            {% if h == 12 %}12pm{% elif h < 12 %}{{ h }}am{% else %}{{ h - 12 }}pm{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Day columns -->
+        {% for d in range(7) %}
+        <div class="sched-day-col" style="height:{{ total_height }}px">
+          <!-- Hour lines -->
+          {% for h in range(grid_start, grid_end) %}
+          <div class="sched-hour-line" style="top:{{ (h - grid_start) * px_per_hour }}px"></div>
+          {% endfor %}
+
+          <!-- Shift blocks -->
+          {% for item in grid[d] %}
+          {% set s = item.shift %}
+          {% set top_px = (s.start_minutes() / 60 - grid_start) * px_per_hour %}
+          {% set height_px = [s.duration_minutes() * px_per_hour // 60, 22]|max %}
+          <div class="sched-shift-block {% if not s.is_active %}inactive{% endif %}"
+               style="top:{{ top_px }}px;height:{{ height_px }}px;background:{{ item.color }}"
+               onclick="openEdit({{ s.id }}, '{{ s.name|e }}', '{{ s.days }}', '{{ s.start_time }}', '{{ s.end_time }}', {{ s.slot_minutes }})"
+               title="{{ s.name }}: {{ s.start_display() }} – {{ s.end_display() }}">
+            <div class="sched-block-name">{{ s.name }}</div>
+            {% if height_px > 36 %}
+            <div class="sched-block-time">{{ s.start_display() }} – {{ s.end_display() }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function openEdit(id, name, days, start, end, slot) {
+  document.getElementById('edit_shift_id').value = id;
+  document.getElementById('edit_name').value = name;
+  document.getElementById('edit_start').value = start;
+  document.getElementById('edit_end').value = end;
+  document.getElementById('edit_slot').value = slot;
+
+  const dayList = days.split(',').map(d => d.trim());
+  document.querySelectorAll('.edit-day').forEach(cb => {
+    cb.checked = dayList.includes(cb.value);
+  });
+
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeEdit() {
+  document.getElementById('editModal').classList.remove('open');
+}
+
+document.getElementById('editModal').addEventListener('click', function(e) {
+  if (e.target === this) closeEdit();
+});
+</script>
+{% endblock %}

@@ -99,11 +99,24 @@ class Business(db.Model):
     services = db.relationship('Service', backref='business', lazy=True)
     tables = db.relationship('RestaurantTable', backref='business', lazy=True,
                              order_by='RestaurantTable.section, RestaurantTable.table_number')
+    shifts = db.relationship('Shift', backref='business', lazy=True,
+                             order_by='Shift.start_time')
 
     def get_available_times(self, for_date):
         if self.reservations_paused:
             return []
-        times = RESTAURANT_TIMES if self.category == 'restaurant' else DEFAULT_TIMES
+        day_of_week = for_date.weekday()  # 0=Mon 6=Sun
+        active_shifts = [s for s in self.shifts if s.is_active and day_of_week in s.get_days_list()]
+        if active_shifts:
+            seen = set()
+            times = []
+            for s in sorted(active_shifts, key=lambda x: x.start_time):
+                for t in s.get_time_slots():
+                    if t not in seen:
+                        seen.add(t)
+                        times.append(t)
+        else:
+            times = RESTAURANT_TIMES if self.category == 'restaurant' else DEFAULT_TIMES
         booked = {b.booking_time for b in self.bookings
                   if b.booking_date == for_date and b.status == 'confirmed'}
         return [t for t in times if t not in booked]
@@ -217,6 +230,75 @@ class Booking(db.Model):
 
     def date_display(self):
         return self.booking_date.strftime('%a, %b %d, %Y')
+
+
+class Shift(db.Model):
+    __tablename__ = 'shifts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    business_id = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    days = db.Column(db.String(20), nullable=False, default='0,1,2,3,4,5,6')
+    start_time = db.Column(db.String(5), nullable=False, default='09:00')
+    end_time = db.Column(db.String(5), nullable=False, default='22:00')
+    slot_minutes = db.Column(db.Integer, default=30)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def get_days_list(self):
+        return [int(d) for d in self.days.split(',') if d.strip().isdigit()]
+
+    def get_time_slots(self):
+        from datetime import timedelta as td
+        slots = []
+        try:
+            sh, sm = map(int, self.start_time.split(':'))
+            eh, em = map(int, self.end_time.split(':'))
+        except Exception:
+            return slots
+        start_min = sh * 60 + sm
+        end_min = eh * 60 + em
+        cur = start_min
+        while cur < end_min:
+            h, m = divmod(cur, 60)
+            ampm = 'AM' if h < 12 else 'PM'
+            h12 = h % 12 or 12
+            slots.append(f"{h12}:{m:02d} {ampm}")
+            cur += self.slot_minutes
+        return slots
+
+    def start_display(self):
+        try:
+            h, m = map(int, self.start_time.split(':'))
+            ampm = 'AM' if h < 12 else 'PM'
+            h12 = h % 12 or 12
+            return f"{h12}:{m:02d} {ampm}"
+        except Exception:
+            return self.start_time
+
+    def end_display(self):
+        try:
+            h, m = map(int, self.end_time.split(':'))
+            ampm = 'AM' if h < 12 else 'PM'
+            h12 = h % 12 or 12
+            return f"{h12}:{m:02d} {ampm}"
+        except Exception:
+            return self.end_time
+
+    def start_minutes(self):
+        try:
+            h, m = map(int, self.start_time.split(':'))
+            return h * 60 + m
+        except Exception:
+            return 0
+
+    def duration_minutes(self):
+        try:
+            sh, sm = map(int, self.start_time.split(':'))
+            eh, em = map(int, self.end_time.split(':'))
+            return (eh * 60 + em) - (sh * 60 + sm)
+        except Exception:
+            return 0
 
 
 class Review(db.Model):
