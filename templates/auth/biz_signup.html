@@ -39,6 +39,16 @@
                     <input type="text" name="biz_name" placeholder="e.g. Soma, Mullixhiu…" required class="rw-input">
                 </div>
                 <div class="auth-field">
+                    <label>Business Type *</label>
+                    <select name="category" required class="rw-input">
+                        {% for val, label in categories %}
+                        <option value="{{ val }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="auth-row">
+                <div class="auth-field">
                     <label>{{ t('cuisine_type') }}</label>
                     <select name="cuisine" class="rw-input">
                         <option value="">{{ t('select_cuisine') }}</option>
