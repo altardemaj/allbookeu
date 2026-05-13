@@ -216,6 +216,8 @@
 .sched-day-name.today { color: var(--red); }
 
 .sched-day-col {
+  flex: 1;
+  min-width: 0;
   border-left: 1px solid var(--border);
   position: relative;
 }
@@ -229,18 +231,18 @@
 
 .sched-shift-block {
   position: absolute;
-  left: 4px; right: 4px;
-  border-radius: 6px;
-  padding: 5px 7px;
+  left: 3px; right: 3px;
+  border-radius: 5px;
+  padding: 4px 8px;
   overflow: hidden;
   cursor: pointer;
   transition: opacity 0.15s, filter 0.15s;
-  border-left: 3px solid rgba(255,255,255,0.3);
+  border-left: 4px solid rgba(0,0,0,0.15);
 }
-.sched-shift-block:hover { filter: brightness(1.15); }
+.sched-shift-block:hover { filter: brightness(1.1); }
 .sched-shift-block.inactive { opacity: 0.35; filter: grayscale(0.5); }
-.sched-block-name { font-size: 0.7rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sched-block-time { font-size: 0.62rem; color: rgba(255,255,255,0.75); margin-top: 1px; }
+.sched-block-name { font-size: 0.72rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sched-block-time { font-size: 0.65rem; color: rgba(255,255,255,0.85); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .schedule-legend {
   display: flex;
@@ -458,7 +460,7 @@
     <div class="schedule-grid-wrap">
       {% set grid_start = 6 %}
       {% set grid_end = 24 %}
-      {% set px_per_hour = 54 %}
+      {% set px_per_hour = 64 %}
       {% set total_height = (grid_end - grid_start) * px_per_hour %}
 
       <!-- Day headers -->
@@ -500,7 +502,7 @@
                onclick="openEdit({{ s.id }}, '{{ s.name|e }}', '{{ s.days }}', '{{ s.start_time }}', '{{ s.end_time }}', {{ s.slot_minutes }})"
                title="{{ s.name }}: {{ s.start_display() }} – {{ s.end_display() }}">
             <div class="sched-block-name">{{ s.name }}</div>
-            {% if height_px > 36 %}
+            {% if height_px > 28 %}
             <div class="sched-block-time">{{ s.start_display() }} – {{ s.end_display() }}</div>
             {% endif %}
           </div>
