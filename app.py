@@ -19,19 +19,19 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dev-fallback-secret')
 db.init_app(app)
 
 def _migrate_columns():
-    from sqlalchemy import text
+    from sqlalchemy import text, inspect
     new_cols = [
         ("restaurant_tables", "grid_x", "INTEGER"),
         ("restaurant_tables", "grid_y", "INTEGER"),
     ]
     with app.app_context():
-        with db.engine.connect() as conn:
-            for table, col, dtype in new_cols:
-                try:
+        inspector = inspect(db.engine)
+        for table, col, dtype in new_cols:
+            existing = [c['name'] for c in inspector.get_columns(table)]
+            if col not in existing:
+                with db.engine.connect() as conn:
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {dtype}"))
                     conn.commit()
-                except Exception:
-                    conn.rollback()
 
 try:
     _migrate_columns()

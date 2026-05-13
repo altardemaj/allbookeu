@@ -382,7 +382,7 @@
     <div class="floor-date-nav">
       <a href="{{ url_for('biz.floor_view', date=prev_date.isoformat()) }}">‹</a>
       <div class="floor-date-label">
-        {% if selected_date == today %}Today{% elif selected_date == today + timedelta(1) %}Tomorrow{% else %}{{ selected_date.strftime('%a, %b %d') }}{% endif %}
+        {% if selected_date == today %}Today{% elif selected_date == next_date %}Tomorrow{% else %}{{ selected_date.strftime('%a, %b %d') }}{% endif %}
         <small>{{ selected_date.strftime('%B %d, %Y') }}</small>
       </div>
       <a href="{{ url_for('biz.floor_view', date=next_date.isoformat()) }}">›</a>
