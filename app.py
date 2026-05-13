@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
-from database import db, Business, Booking, Review, User, BusinessOwner, Service, RestaurantTable
+from database import db, Business, Booking, Review, User, BusinessOwner, Service, RestaurantTable, Shift
 from datetime import datetime, date, timedelta
 from dotenv import load_dotenv
 import os
@@ -18,15 +18,19 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dev-fallback-secret')
 
 db.init_app(app)
 
-def _migrate_columns():
+def _migrate_db():
     from sqlalchemy import text, inspect
     new_cols = [
         ("restaurant_tables", "grid_x", "INTEGER"),
         ("restaurant_tables", "grid_y", "INTEGER"),
     ]
     with app.app_context():
+        db.create_all()  # creates any missing tables (shifts, etc.)
         inspector = inspect(db.engine)
+        existing_tables = inspector.get_table_names()
         for table, col, dtype in new_cols:
+            if table not in existing_tables:
+                continue
             existing = [c['name'] for c in inspector.get_columns(table)]
             if col not in existing:
                 with db.engine.connect() as conn:
@@ -34,7 +38,7 @@ def _migrate_columns():
                     conn.commit()
 
 try:
-    _migrate_columns()
+    _migrate_db()
 except Exception:
     pass
 

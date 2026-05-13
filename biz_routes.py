@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 from functools import wraps
-from database import db, BusinessOwner, Business, Booking, Service, RestaurantTable
+from database import db, BusinessOwner, Business, Booking, Service, RestaurantTable, Shift
 from datetime import date, timedelta, datetime
 import json
 
@@ -464,6 +464,95 @@ def floor_view():
                            prev_date=prev_date,
                            next_date=next_date,
                            **data)
+
+
+DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+SHIFT_COLORS = ['#1d4ed8', '#7c3aed', '#065f46', '#92400e', '#1e3a5f', '#3b0764', '#134e4a']
+
+
+@biz.route('/shifts', methods=['GET', 'POST'])
+@owner_required
+def shifts():
+    owner, business = get_owner_business()
+    if not business:
+        return redirect(url_for('biz.dashboard'))
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        if action == 'add':
+            name = request.form.get('name', '').strip()
+            days = ','.join(request.form.getlist('days'))
+            start_time = request.form.get('start_time', '12:00')
+            end_time = request.form.get('end_time', '22:00')
+            slot_min = int(request.form.get('slot_minutes', 30))
+            if not name or not days:
+                flash('Shift name and at least one day are required.', 'error')
+            elif start_time >= end_time:
+                flash('End time must be after start time.', 'error')
+            else:
+                s = Shift(business_id=business.id, name=name, days=days,
+                          start_time=start_time, end_time=end_time, slot_minutes=slot_min)
+                db.session.add(s)
+                db.session.commit()
+                flash(f'Shift "{name}" added.', 'success')
+
+        elif action == 'edit':
+            shift_id = int(request.form.get('shift_id', 0))
+            s = Shift.query.get(shift_id)
+            if s and s.business_id == business.id:
+                s.name = request.form.get('name', s.name).strip()
+                days = ','.join(request.form.getlist('days'))
+                s.days = days if days else s.days
+                s.start_time = request.form.get('start_time', s.start_time)
+                s.end_time = request.form.get('end_time', s.end_time)
+                s.slot_minutes = int(request.form.get('slot_minutes', s.slot_minutes))
+                if s.start_time >= s.end_time:
+                    flash('End time must be after start time.', 'error')
+                else:
+                    db.session.commit()
+                    flash(f'Shift "{s.name}" updated.', 'success')
+
+        elif action == 'toggle':
+            shift_id = int(request.form.get('shift_id', 0))
+            s = Shift.query.get(shift_id)
+            if s and s.business_id == business.id:
+                s.is_active = not s.is_active
+                db.session.commit()
+                flash(f'Shift "{s.name}" {"activated" if s.is_active else "paused"}.', 'success')
+
+        elif action == 'delete':
+            shift_id = int(request.form.get('shift_id', 0))
+            s = Shift.query.get(shift_id)
+            if s and s.business_id == business.id:
+                db.session.delete(s)
+                db.session.commit()
+                flash('Shift removed.', 'success')
+
+        return redirect(url_for('biz.shifts'))
+
+    all_shifts = Shift.query.filter_by(business_id=business.id).order_by(Shift.start_time).all()
+
+    # Assign a color to each shift
+    shifts_with_color = []
+    for i, s in enumerate(all_shifts):
+        shifts_with_color.append({'shift': s, 'color': SHIFT_COLORS[i % len(SHIFT_COLORS)]})
+
+    # Build weekly grid: 7 days × list of shifts active that day
+    grid = {d: [] for d in range(7)}
+    for item in shifts_with_color:
+        s = item['shift']
+        for d in s.get_days_list():
+            grid[d].append(item)
+
+    return render_template('biz/shifts.html',
+                           owner=owner, business=business,
+                           all_shifts=all_shifts,
+                           shifts_with_color=shifts_with_color,
+                           grid=grid,
+                           day_labels=DAY_LABELS,
+                           current_dow=date.today().weekday(),
+                           today=date.today())
 
 
 @biz.route('/floor-builder')
