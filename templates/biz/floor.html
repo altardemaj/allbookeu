@@ -1,0 +1,549 @@
+{% extends "base.html" %}
+{% block title %}Floor View — {{ business.name }}{% endblock %}
+{% block head %}
+<style>
+/* ── Floor View Page ── */
+.floor-page {
+  display: flex;
+  height: calc(100vh - 64px);
+  background: #16161e;
+  overflow: hidden;
+}
+
+/* ── Sidebar ── */
+.floor-sidebar {
+  width: 300px;
+  min-width: 300px;
+  background: #1e1e2a;
+  border-right: 1px solid #2e2e3e;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.floor-date-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #2e2e3e;
+}
+.floor-date-nav a {
+  color: #9090b0;
+  font-size: 1.2rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.floor-date-nav a:hover { background: #2e2e3e; color: #fff; }
+.floor-date-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e0e0f0;
+  text-align: center;
+}
+.floor-date-label small {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #6060a0;
+  margin-top: 1px;
+}
+
+.floor-search-wrap {
+  padding: 12px 16px;
+  border-bottom: 1px solid #2e2e3e;
+}
+.floor-search {
+  width: 100%;
+  background: #12121a;
+  border: 1px solid #2e2e3e;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #e0e0f0;
+  font-size: 0.875rem;
+  outline: none;
+  font-family: inherit;
+}
+.floor-search::placeholder { color: #5050a0; }
+.floor-search:focus { border-color: #5050c0; }
+
+.floor-booking-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.floor-booking-list::-webkit-scrollbar { width: 4px; }
+.floor-booking-list::-webkit-scrollbar-track { background: transparent; }
+.floor-booking-list::-webkit-scrollbar-thumb { background: #3e3e5e; border-radius: 2px; }
+
+.floor-group-label {
+  padding: 8px 16px 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5050a0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.floor-group-label .count-badge {
+  background: #2e2e4e;
+  color: #9090c0;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 0.7rem;
+}
+
+.floor-booking-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background 0.1s;
+}
+.floor-booking-card:hover { background: #24243a; }
+.floor-booking-card.seated-card { border-left-color: #a855f7; }
+.floor-booking-card.upcoming-card { border-left-color: #3b82f6; }
+.floor-booking-card.finished-card { border-left-color: #374151; opacity: 0.6; }
+
+.fbc-table-badge {
+  min-width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+}
+.seated-card .fbc-table-badge { background: #7c3aed; }
+.upcoming-card .fbc-table-badge { background: #1d4ed8; }
+.finished-card .fbc-table-badge { background: #374151; }
+.no-table-badge { background: #2e2e3e !important; }
+
+.fbc-info { flex: 1; min-width: 0; }
+.fbc-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #e0e0f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fbc-meta {
+  font-size: 0.75rem;
+  color: #7070a0;
+  margin-top: 1px;
+}
+
+.fbc-duration {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #a855f7;
+  white-space: nowrap;
+}
+.upcoming-card .fbc-duration { color: #60a5fa; }
+.finished-card .fbc-duration { color: #4b5563; }
+
+/* ── Main Floor Area ── */
+.floor-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.floor-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid #2e2e3e;
+  background: #1e1e2a;
+}
+.floor-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.floor-topbar h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e0e0f0;
+}
+.floor-stat {
+  font-size: 0.8rem;
+  color: #7070a0;
+  background: #12121a;
+  border: 1px solid #2e2e3e;
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+.floor-stat strong { color: #e0e0f0; }
+
+.floor-refresh-btn {
+  background: #2e2e4e;
+  border: 1px solid #3e3e5e;
+  color: #9090c0;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.floor-refresh-btn:hover { background: #3e3e6e; color: #fff; }
+
+.floor-canvas {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+.floor-canvas::-webkit-scrollbar { width: 6px; }
+.floor-canvas::-webkit-scrollbar-track { background: transparent; }
+.floor-canvas::-webkit-scrollbar-thumb { background: #3e3e5e; border-radius: 3px; }
+
+.floor-section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5050a0;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.floor-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #2e2e3e;
+}
+
+.floor-section-block { margin-bottom: 32px; }
+
+.floor-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* ── Table Card ── */
+.floor-table {
+  width: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: default;
+}
+
+.table-seats-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.table-seat {
+  width: 14px;
+  height: 8px;
+  border-radius: 4px 4px 0 0;
+  background: #3a3a50;
+  transition: background 0.2s;
+}
+.table-seat.bottom {
+  border-radius: 0 0 4px 4px;
+}
+.table-seat.side {
+  width: 8px;
+  height: 14px;
+  border-radius: 4px 0 0 4px;
+}
+.table-seat.side-right {
+  border-radius: 0 4px 4px 0;
+}
+
+.floor-table.seated .table-seat { background: #7c3aed; }
+.floor-table.upcoming .table-seat { background: #1d4ed8; }
+.floor-table.finished .table-seat { background: #2e3748; }
+
+.table-middle-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.table-body {
+  width: 84px;
+  height: 84px;
+  border-radius: 10px;
+  background: #2a2a3a;
+  border: 2px solid #3a3a50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  transition: all 0.2s;
+  position: relative;
+}
+.floor-table.seated .table-body {
+  background: #4c1d95;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 1px #7c3aed40, 0 4px 16px #7c3aed30;
+}
+.floor-table.upcoming .table-body {
+  background: #1e3a5f;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f640;
+}
+.floor-table.finished .table-body {
+  background: #1f2937;
+  border-color: #374151;
+  opacity: 0.55;
+}
+
+.table-num {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #e0e0f0;
+  line-height: 1;
+}
+.floor-table.available .table-num { color: #5060a0; }
+
+.table-guest-name {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #c0c0e0;
+  text-align: center;
+  max-width: 76px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.table-time-badge {
+  font-size: 0.6rem;
+  color: #a78bfa;
+  font-weight: 500;
+}
+.floor-table.upcoming .table-time-badge { color: #60a5fa; }
+
+.table-capacity-label {
+  font-size: 0.62rem;
+  color: #4050a0;
+  margin-top: 2px;
+}
+
+.floor-empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: #3040a0;
+}
+.floor-empty-icon { font-size: 3rem; margin-bottom: 16px; }
+.floor-empty p { font-size: 0.95rem; }
+
+/* Legend */
+.floor-legend {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #7070a0;
+}
+.legend-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+}
+.legend-dot.available { background: #2a2a3a; border: 2px solid #3a3a50; }
+.legend-dot.seated { background: #7c3aed; }
+.legend-dot.upcoming { background: #3b82f6; }
+.legend-dot.finished { background: #374151; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="floor-page">
+
+  <!-- ── Sidebar ── -->
+  <div class="floor-sidebar">
+    <div class="floor-date-nav">
+      <a href="{{ url_for('biz.floor_view', date=prev_date.isoformat()) }}">‹</a>
+      <div class="floor-date-label">
+        {% if selected_date == today %}Today{% elif selected_date == today + timedelta(1) %}Tomorrow{% else %}{{ selected_date.strftime('%a, %b %d') }}{% endif %}
+        <small>{{ selected_date.strftime('%B %d, %Y') }}</small>
+      </div>
+      <a href="{{ url_for('biz.floor_view', date=next_date.isoformat()) }}">›</a>
+    </div>
+
+    <div class="floor-search-wrap">
+      <input type="text" class="floor-search" id="guestSearch" placeholder="Search guest name…" oninput="filterGuests(this.value)">
+    </div>
+
+    <div class="floor-booking-list" id="bookingList">
+
+      {% if upcoming %}
+      <div class="floor-group-label">
+        Upcoming <span class="count-badge">{{ upcoming|length }}</span>
+      </div>
+      {% for item in upcoming %}
+      {% set b = item.booking %}
+      <div class="floor-booking-card upcoming-card guest-card" data-name="{{ b.customer_name|lower }}">
+        <div class="fbc-table-badge {% if not b.table_id %}no-table-badge{% endif %}">
+          {% if b.table_id and b.table %}{{ b.table.table_number }}{% else %}—{% endif %}
+        </div>
+        <div class="fbc-info">
+          <div class="fbc-name">{{ b.customer_name }}</div>
+          <div class="fbc-meta">{{ b.booking_time }} · {{ b.party_size }} guest{% if b.party_size != 1 %}s{% endif %}</div>
+        </div>
+        <div class="fbc-duration">
+          {% if item.minutes_until %}in {{ item.minutes_until }}m{% else %}soon{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      {% if seated %}
+      <div class="floor-group-label" style="margin-top:8px">
+        Seated <span class="count-badge">{{ seated|length }}</span>
+      </div>
+      {% for item in seated %}
+      {% set b = item.booking %}
+      <div class="floor-booking-card seated-card guest-card" data-name="{{ b.customer_name|lower }}">
+        <div class="fbc-table-badge {% if not b.table_id %}no-table-badge{% endif %}">
+          {% if b.table_id and b.table %}{{ b.table.table_number }}{% else %}—{% endif %}
+        </div>
+        <div class="fbc-info">
+          <div class="fbc-name">{{ b.customer_name }}</div>
+          <div class="fbc-meta">{{ b.booking_time }} · {{ b.party_size }} guest{% if b.party_size != 1 %}s{% endif %}</div>
+        </div>
+        <div class="fbc-duration">{{ item.minutes }}m</div>
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      {% if finished %}
+      <div class="floor-group-label" style="margin-top:8px">
+        Finished <span class="count-badge">{{ finished|length }}</span>
+      </div>
+      {% for item in finished %}
+      {% set b = item.booking %}
+      <div class="floor-booking-card finished-card guest-card" data-name="{{ b.customer_name|lower }}">
+        <div class="fbc-table-badge {% if not b.table_id %}no-table-badge{% endif %}">
+          {% if b.table_id and b.table %}{{ b.table.table_number }}{% else %}—{% endif %}
+        </div>
+        <div class="fbc-info">
+          <div class="fbc-name">{{ b.customer_name }}</div>
+          <div class="fbc-meta">{{ b.booking_time }} · {{ b.party_size }} guest{% if b.party_size != 1 %}s{% endif %}</div>
+        </div>
+        <div class="fbc-duration">done</div>
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      {% if not upcoming and not seated and not finished %}
+      <div style="padding: 40px 16px; text-align:center; color:#3a3a6a; font-size:0.875rem;">
+        No reservations for this day.
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <!-- ── Main Floor ── -->
+  <div class="floor-main">
+    <div class="floor-topbar">
+      <div class="floor-topbar-left">
+        <h2>Floor View — {{ business.name }}</h2>
+        <span class="floor-stat"><strong>{{ seated|length }}</strong> seated</span>
+        <span class="floor-stat"><strong>{{ upcoming|length }}</strong> upcoming</span>
+        <div class="floor-legend">
+          <div class="legend-item"><div class="legend-dot available"></div> Available</div>
+          <div class="legend-item"><div class="legend-dot upcoming"></div> Upcoming</div>
+          <div class="legend-item"><div class="legend-dot seated"></div> Seated</div>
+          <div class="legend-item"><div class="legend-dot finished"></div> Finished</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <a href="{{ url_for('biz.dashboard') }}" style="font-size:0.8rem;color:#5050a0;padding:7px 12px;border:1px solid #2e2e3e;border-radius:8px;">← Dashboard</a>
+        <button class="floor-refresh-btn" onclick="location.reload()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div class="floor-canvas">
+      {% if sections_map %}
+        {% for section, table_list in sections_map.items() %}
+        <div class="floor-section-block">
+          <div class="floor-section-label">{{ section }} ({{ table_list|length }} table{% if table_list|length != 1 %}s{% endif %})</div>
+          <div class="floor-grid">
+            {% for td in table_list %}
+            {% set t = td.table %}
+            {% set status = td.status %}
+            <div class="floor-table {{ status }}" title="Table {{ t.table_number }} · {{ t.capacity }} seats{% if td.booking %} · {{ td.booking.customer_name }}{% endif %}">
+              <!-- Top seats -->
+              <div class="table-seats-row">
+                {% for _ in range([t.capacity // 2, 4]|min) %}<div class="table-seat"></div>{% endfor %}
+              </div>
+              <!-- Middle row: side seat + body + side seat -->
+              <div class="table-middle-row">
+                <div class="table-seat side"></div>
+                <div class="table-body">
+                  <div class="table-num">{{ t.table_number }}</div>
+                  {% if td.booking %}
+                    <div class="table-guest-name">{{ td.booking.customer_name.split()[0] }}</div>
+                    {% if status == 'seated' and td.minutes_seated is not none %}
+                    <div class="table-time-badge">{{ td.minutes_seated }}m</div>
+                    {% elif status == 'upcoming' %}
+                    <div class="table-time-badge">{{ td.booking.booking_time }}</div>
+                    {% endif %}
+                  {% else %}
+                    <div class="table-capacity-label">{{ t.capacity }} seats</div>
+                  {% endif %}
+                </div>
+                <div class="table-seat side side-right"></div>
+              </div>
+              <!-- Bottom seats -->
+              <div class="table-seats-row">
+                {% for _ in range([t.capacity // 2, 4]|min) %}<div class="table-seat bottom"></div>{% endfor %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="floor-empty">
+          <div class="floor-empty-icon">🪑</div>
+          <p>No tables set up yet.<br>Go to <a href="{{ url_for('biz.tables') }}" style="color:#5060c0">Table Setup</a> to add tables.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+function filterGuests(q) {
+  q = q.toLowerCase().trim();
+  document.querySelectorAll('.guest-card').forEach(card => {
+    const name = card.dataset.name || '';
+    card.style.display = (!q || name.includes(q)) ? '' : 'none';
+  });
+}
+
+// Auto-refresh every 45 seconds
+setTimeout(() => location.reload(), 45000);
+</script>
+{% endblock %}

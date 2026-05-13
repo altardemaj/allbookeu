@@ -6,6 +6,7 @@
         <div class="ds-biz-name">{{ business.name }}</div>
         <nav class="ds-nav">
             <a href="{{ url_for('biz.dashboard') }}" class="ds-link">Dashboard</a>
+            <a href="{{ url_for('biz.floor_view') }}" class="ds-link">🗺 Floor View</a>
             <a href="{{ url_for('biz.bookings') }}" class="ds-link active">Reservations</a>
             <a href="{{ url_for('biz.tables') }}" class="ds-link">Tables</a>
             <a href="{{ url_for('biz.services') }}" class="ds-link">Menu Items</a>
