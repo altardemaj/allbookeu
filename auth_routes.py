@@ -99,7 +99,7 @@ def biz_signup():
         biz_email = request.form.get('biz_email', '').strip()
         description = request.form.get('description', '').strip()
 
-        if not all([owner_name, email, password, biz_name, category, city, state]):
+        if not all([owner_name, email, password, biz_name, city]):
             flash('Please fill in all required fields.', 'error')
             return render_template('auth/biz_signup.html', categories=categories)
         if password != confirm:
