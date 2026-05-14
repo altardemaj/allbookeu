@@ -2,8 +2,20 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from functools import wraps
 from database import db, Admin, BusinessOwner, Business, Booking, User, Review
 from datetime import date, timedelta
+import json
 
 admin = Blueprint('admin', __name__, url_prefix='/admin')
+
+DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+TIME_OPTIONS = [
+    '6:00 AM','6:30 AM','7:00 AM','7:30 AM','8:00 AM','8:30 AM',
+    '9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM',
+    '12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM',
+    '3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM',
+    '6:00 PM','6:30 PM','7:00 PM','7:30 PM','8:00 PM','8:30 PM',
+    '9:00 PM','9:30 PM','10:00 PM',
+]
 
 
 def admin_required(f):
@@ -57,13 +69,11 @@ def dashboard():
 
     pending = BusinessOwner.query.filter_by(status='pending').order_by(BusinessOwner.created_at.desc()).all()
 
-    # Recent bookings (last 7 days)
     recent = Booking.query.filter(
         Booking.booking_date >= today - timedelta(days=7),
         Booking.status != 'cancelled'
     ).order_by(Booking.created_at.desc()).limit(10).all()
 
-    # Chart: bookings per day last 14 days
     chart = []
     for i in range(13, -1, -1):
         d = today - timedelta(days=i)
@@ -82,16 +92,129 @@ def restaurants():
     status_filter = request.args.get('status', 'all')
     q = request.args.get('q', '').strip()
 
-    owners = BusinessOwner.query
-    if status_filter != 'all':
-        owners = owners.filter_by(status=status_filter)
-    owners = owners.order_by(BusinessOwner.created_at.desc()).all()
+    businesses = Business.query.order_by(Business.created_at.desc()).all()
 
     if q:
-        owners = [o for o in owners if q.lower() in o.name.lower() or q.lower() in o.email.lower()
-                  or (o.business and q.lower() in o.business.name.lower())]
+        businesses = [b for b in businesses if
+                      q.lower() in b.name.lower() or
+                      q.lower() in (b.city or '').lower() or
+                      (b.owner and (q.lower() in b.owner.name.lower() or
+                                    q.lower() in b.owner.email.lower()))]
 
-    return render_template('admin/restaurants.html', owners=owners, status_filter=status_filter, q=q)
+    if status_filter == 'pending':
+        businesses = [b for b in businesses if b.owner and b.owner.status == 'pending']
+    elif status_filter == 'active':
+        businesses = [b for b in businesses if not b.owner or b.owner.status == 'active']
+    elif status_filter == 'suspended':
+        businesses = [b for b in businesses if b.owner and b.owner.status == 'suspended']
+
+    return render_template('admin/restaurants.html', businesses=businesses,
+                           status_filter=status_filter, q=q)
+
+
+@admin.route('/restaurants/add', methods=['GET', 'POST'])
+@admin_required
+def add_restaurant():
+    from app import KOSOVO_CITIES, ALBANIA_CITIES, CUISINES
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        cuisine = request.form.get('cuisine', '').strip()
+        city = request.form.get('city', '').strip()
+        country = request.form.get('country', 'Kosovo').strip()
+        address = request.form.get('address', '').strip()
+        phone = request.form.get('phone', '').strip()
+        biz_email = request.form.get('biz_email', '').strip()
+        image_url = request.form.get('image_url', '').strip()
+        price_range = request.form.get('price_range', '€€')
+        description = request.form.get('description', '').strip()
+        is_featured = bool(request.form.get('is_featured'))
+
+        if not name or not city:
+            flash('Name and city are required.', 'error')
+            return render_template('admin/add_restaurant.html',
+                                   kosovo_cities=KOSOVO_CITIES,
+                                   albania_cities=ALBANIA_CITIES,
+                                   cuisines=CUISINES)
+
+        biz = Business(
+            name=name, category='restaurant', cuisine=cuisine,
+            city=city, country=country, address=address,
+            phone=phone, email=biz_email,
+            image_url=image_url or None,
+            price_range=price_range, description=description,
+            is_featured=is_featured
+        )
+        db.session.add(biz)
+        db.session.commit()
+        flash(f'Restaurant "{name}" added successfully.', 'success')
+        return redirect(url_for('admin.restaurants'))
+
+    return render_template('admin/add_restaurant.html',
+                           kosovo_cities=KOSOVO_CITIES,
+                           albania_cities=ALBANIA_CITIES,
+                           cuisines=CUISINES)
+
+
+@admin.route('/restaurants/<int:biz_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def edit_restaurant(biz_id):
+    from app import KOSOVO_CITIES, ALBANIA_CITIES, CUISINES
+    biz = Business.query.get_or_404(biz_id)
+
+    if request.method == 'POST':
+        biz.name = request.form.get('name', biz.name).strip()
+        biz.cuisine = request.form.get('cuisine', '').strip()
+        biz.city = request.form.get('city', biz.city).strip()
+        biz.country = request.form.get('country', 'Kosovo').strip()
+        biz.address = request.form.get('address', '').strip()
+        biz.phone = request.form.get('phone', '').strip()
+        biz.email = request.form.get('biz_email', '').strip()
+        img = request.form.get('image_url', '').strip()
+        if img:
+            biz.image_url = img
+        biz.price_range = request.form.get('price_range', '€€')
+        biz.description = request.form.get('description', '').strip()
+        biz.is_featured = bool(request.form.get('is_featured'))
+
+        # Hours
+        hours = {}
+        for day in DAYS:
+            if request.form.get(f'closed_{day}'):
+                hours[day] = 'closed'
+            else:
+                open_t = request.form.get(f'open_{day}', '9:00 AM')
+                close_t = request.form.get(f'close_{day}', '10:00 PM')
+                hours[day] = f"{open_t} – {close_t}"
+        biz.hours = json.dumps(hours)
+
+        db.session.commit()
+        flash('Restaurant updated.', 'success')
+        return redirect(url_for('admin.restaurants'))
+
+    hours_data = biz.get_hours_display()
+    return render_template('admin/edit_restaurant.html',
+                           biz=biz,
+                           hours_data=hours_data,
+                           days=DAYS,
+                           day_names=DAY_NAMES,
+                           time_options=TIME_OPTIONS,
+                           kosovo_cities=KOSOVO_CITIES,
+                           albania_cities=ALBANIA_CITIES,
+                           cuisines=CUISINES)
+
+
+@admin.route('/restaurants/<int:biz_id>/delete', methods=['POST'])
+@admin_required
+def delete_business(biz_id):
+    biz = Business.query.get_or_404(biz_id)
+    name = biz.name
+    # Delete owner if exists
+    if biz.owner:
+        db.session.delete(biz.owner)
+    db.session.delete(biz)
+    db.session.commit()
+    flash(f'"{name}" deleted.', 'success')
+    return redirect(url_for('admin.restaurants'))
 
 
 @admin.route('/restaurants/<int:owner_id>/action', methods=['POST'])
@@ -144,38 +267,31 @@ def owner_action(owner_id):
     return redirect(url_for('admin.restaurants'))
 
 
-@admin.route('/bookings')
+@admin.route('/reviews')
 @admin_required
-def bookings():
-    today = date.today()
-    date_filter = request.args.get('date', '')
-    restaurant_filter = request.args.get('restaurant', '')
-    status_filter = request.args.get('status', 'all')
-    q = request.args.get('q', '').strip()
+def reviews():
+    all_reviews = Review.query.order_by(Review.created_at.desc()).all()
+    return render_template('admin/reviews.html', reviews=all_reviews)
 
-    bookings_q = Booking.query
-    if status_filter != 'all':
-        bookings_q = bookings_q.filter_by(status=status_filter)
-    if date_filter:
-        try:
-            from datetime import datetime
-            bookings_q = bookings_q.filter_by(booking_date=datetime.strptime(date_filter, '%Y-%m-%d').date())
-        except ValueError:
-            pass
-    if restaurant_filter:
-        bookings_q = bookings_q.filter_by(business_id=int(restaurant_filter))
-    if q:
-        bookings_q = bookings_q.filter(
-            Booking.customer_name.ilike(f'%{q}%') | Booking.customer_email.ilike(f'%{q}%')
-        )
 
-    all_bookings = bookings_q.order_by(Booking.booking_date.desc(), Booking.booking_time.desc()).limit(200).all()
-    all_restaurants = Business.query.order_by(Business.name).all()
-
-    return render_template('admin/bookings.html',
-                           bookings=all_bookings, restaurants=all_restaurants,
-                           date_filter=date_filter, restaurant_filter=restaurant_filter,
-                           status_filter=status_filter, q=q, today=today)
+@admin.route('/reviews/<int:review_id>/delete', methods=['POST'])
+@admin_required
+def delete_review(review_id):
+    r = Review.query.get_or_404(review_id)
+    biz_id = r.business_id
+    db.session.delete(r)
+    db.session.flush()
+    biz = Business.query.get(biz_id)
+    remaining = Review.query.filter_by(business_id=biz_id).all()
+    if remaining:
+        biz.rating = round(sum(rv.rating for rv in remaining) / len(remaining), 1)
+        biz.review_count = len(remaining)
+    else:
+        biz.rating = 0.0
+        biz.review_count = 0
+    db.session.commit()
+    flash('Review deleted.', 'success')
+    return redirect(url_for('admin.reviews'))
 
 
 @admin.route('/featured/<int:business_id>', methods=['POST'])

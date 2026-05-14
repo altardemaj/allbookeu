@@ -110,6 +110,9 @@ a { text-decoration: none; color: inherit; }
 .filter-tab { padding: 7px 16px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; border: 1px solid #e5e7eb; background: #fff; color: #6b7280; cursor: pointer; font-family: inherit; transition: all .15s; }
 .filter-tab.active, .filter-tab:hover { background: #111827; color: #fff; border-color: #111827; }
 
+.btn-add { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:#e63946; color:#fff; border-radius:6px; font-size:0.8rem; font-weight:700; border:none; cursor:pointer; text-decoration:none; transition:background .15s; }
+.btn-add:hover { background:#c1121f; }
+
 /* Empty */
 .admin-empty { padding: 48px; text-align: center; color: #9ca3af; font-size: 0.875rem; }
 </style>
@@ -132,6 +135,9 @@ a { text-decoration: none; color: inherit; }
       </a>
       <a href="{{ url_for('admin.bookings') }}" class="admin-nav-link {% if request.endpoint == 'admin.bookings' %}active{% endif %}">
         <span class="nav-icon">📅</span> Bookings
+      </a>
+      <a href="{{ url_for('admin.reviews') }}" class="admin-nav-link {% if request.endpoint in ('admin.reviews','admin.delete_review') %}active{% endif %}">
+        <span class="nav-icon">⭐</span> Reviews
       </a>
     </nav>
     <div class="admin-user">

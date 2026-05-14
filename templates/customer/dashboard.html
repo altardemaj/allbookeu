@@ -147,6 +147,9 @@
                     </div>
                     <div class="bc-actions">
                         <a href="{{ url_for('business_detail', business_id=b.business.id) }}" class="bc-btn-view">{{ t('book_again') }}</a>
+                        {% if b.status != 'cancelled' %}
+                        <button class="bc-btn-review" onclick="openReview({{ b.business.id }}, '{{ b.business.name|replace("'","\\'")|e }}')">⭐ Review</button>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -155,4 +158,60 @@
         {% endif %}
     </main>
 </div>
+
+<!-- Review Modal -->
+<div id="review-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:28px;width:100%;max-width:420px;margin:16px">
+    <h3 style="font-size:1.1rem;font-weight:800;margin-bottom:4px" id="modal-biz-name"></h3>
+    <p style="font-size:0.85rem;color:#6b7280;margin-bottom:20px">Share your experience</p>
+    <form method="post" action="{{ url_for('customer.submit_review') }}">
+      <input type="hidden" name="business_id" id="modal-biz-id">
+      <div style="margin-bottom:16px">
+        <div style="font-size:0.78rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Rating</div>
+        <div class="star-row" style="display:flex;gap:4px">
+          {% for i in range(1,6) %}
+          <label class="star-label" style="cursor:pointer;font-size:2.2rem;color:#e5e7eb;transition:color .1s">
+            <input type="radio" name="rating" value="{{ i }}" required style="display:none" onchange="highlightStars({{ i }})">★
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div style="margin-bottom:20px">
+        <div style="font-size:0.78rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Your Review</div>
+        <textarea name="comment" rows="3" placeholder="Tell others about your experience…"
+          style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:6px;font-size:0.875rem;font-family:inherit;resize:vertical;outline:none"></textarea>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button type="submit" style="flex:1;padding:11px;background:#e63946;color:#fff;border:none;border-radius:6px;font-size:0.9rem;font-weight:700;cursor:pointer">Submit Review</button>
+        <button type="button" onclick="closeReview()" style="padding:11px 18px;background:#f3f4f6;border:none;border-radius:6px;font-size:0.9rem;font-weight:600;cursor:pointer">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+.bc-btn-review { padding:8px 16px; border-radius:6px; font-size:0.8rem; font-weight:600; border:1px solid #e5e7eb; background:#fff; color:#374151; cursor:pointer; transition:all .15s; }
+.bc-btn-review:hover { background:#fef3c7; border-color:#f59e0b; color:#92400e; }
+</style>
+<script>
+function openReview(bizId, bizName) {
+  document.getElementById('modal-biz-id').value = bizId;
+  document.getElementById('modal-biz-name').textContent = bizName;
+  const modal = document.getElementById('review-modal');
+  modal.style.display = 'flex';
+  document.querySelectorAll('.star-label').forEach(l => l.style.color = '#e5e7eb');
+  document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
+}
+function closeReview() {
+  document.getElementById('review-modal').style.display = 'none';
+}
+function highlightStars(n) {
+  document.querySelectorAll('.star-label').forEach((l, i) => {
+    l.style.color = i < n ? '#f59e0b' : '#e5e7eb';
+  });
+}
+document.getElementById('review-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeReview();
+});
+</script>
 {% endblock %}
