@@ -267,6 +267,45 @@ def owner_action(owner_id):
     return redirect(url_for('admin.restaurants'))
 
 
+@admin.route('/bookings')
+@admin_required
+def bookings():
+    q = request.args.get('q', '').strip()
+    date_filter = request.args.get('date', '').strip()
+    restaurant_filter = request.args.get('restaurant', '').strip()
+    status_filter = request.args.get('status', 'all')
+
+    query = Booking.query.order_by(Booking.booking_date.desc(), Booking.booking_time.desc())
+
+    if status_filter != 'all':
+        query = query.filter(Booking.status == status_filter)
+    if restaurant_filter:
+        query = query.filter(Booking.business_id == int(restaurant_filter))
+    if date_filter:
+        try:
+            from datetime import datetime as _dt
+            d = _dt.strptime(date_filter, '%Y-%m-%d').date()
+            query = query.filter(Booking.booking_date == d)
+        except ValueError:
+            pass
+
+    all_bookings = query.all()
+
+    if q:
+        all_bookings = [b for b in all_bookings if
+                        q.lower() in b.customer_name.lower() or
+                        q.lower() in b.customer_email.lower()]
+
+    restaurants = Business.query.order_by(Business.name).all()
+    return render_template('admin/bookings.html',
+                           bookings=all_bookings,
+                           q=q,
+                           date_filter=date_filter,
+                           restaurant_filter=restaurant_filter,
+                           status_filter=status_filter,
+                           restaurants=restaurants)
+
+
 @admin.route('/reviews')
 @admin_required
 def reviews():
