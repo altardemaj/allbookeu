@@ -78,6 +78,56 @@ def dashboard():
             'is_occupied': len(booked_times) > 0
         })
 
+    # Covers (party size totals)
+    today_covers = sum(b.party_size for b in today_bookings)
+    week_covers = sum(b.party_size for b in week_bookings)
+
+    # Last week comparison
+    last_week_start = today - timedelta(days=today.weekday() + 7)
+    last_week_end = last_week_start + timedelta(days=7)
+    last_week_bookings_q = Booking.query.filter(
+        Booking.business_id == business.id,
+        Booking.booking_date >= last_week_start,
+        Booking.booking_date < last_week_end,
+        Booking.status != 'cancelled'
+    ).all()
+    last_week_covers = sum(b.party_size for b in last_week_bookings_q)
+
+    # Same day last week
+    same_day_last_week = Booking.query.filter(
+        Booking.business_id == business.id,
+        Booking.booking_date == today - timedelta(days=7),
+        Booking.status != 'cancelled'
+    ).all()
+    same_day_covers = sum(b.party_size for b in same_day_last_week)
+
+    def _pct_change(new, old):
+        if old == 0:
+            return None
+        return round((new - old) / old * 100)
+
+    today_covers_change = _pct_change(today_covers, same_day_covers)
+    week_covers_change = _pct_change(week_covers, last_week_covers)
+
+    # 14-day bar chart data (today and 13 days back)
+    chart_days = []
+    for i in range(13, -1, -1):
+        d = today - timedelta(days=i)
+        day_bs = Booking.query.filter(
+            Booking.business_id == business.id,
+            Booking.booking_date == d,
+            Booking.status != 'cancelled'
+        ).all()
+        chart_days.append({
+            'label': d.strftime('%a') if i % 7 == 0 or i == 0 else d.strftime('%d'),
+            'date': d.strftime('%b %d'),
+            'covers': sum(b.party_size for b in day_bs),
+            'bookings': len(day_bs),
+            'is_today': d == today,
+            'is_this_week': i < 7,
+        })
+    max_covers = max((d['covers'] for d in chart_days), default=1) or 1
+
     return render_template('biz/dashboard.html',
                            owner=owner, business=business,
                            today_bookings=today_bookings,
@@ -86,7 +136,14 @@ def dashboard():
                            total_bookings=total_bookings,
                            total_customers=total_customers,
                            table_status=table_status,
-                           today=today)
+                           today=today,
+                           today_covers=today_covers,
+                           week_covers=week_covers,
+                           last_week_covers=last_week_covers,
+                           today_covers_change=today_covers_change,
+                           week_covers_change=week_covers_change,
+                           chart_days=chart_days,
+                           max_covers=max_covers)
 
 
 @biz.route('/bookings')
