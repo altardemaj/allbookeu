@@ -2,14 +2,15 @@
 {% block title %}Restaurants{% endblock %}
 {% block topbar %}
 <div class="admin-topbar">
-  <div><h1>Restaurants</h1><p>Manage restaurant owner accounts and approvals</p></div>
+  <div><h1>Restaurants</h1><p>All restaurants on the platform</p></div>
+  <a href="{{ url_for('admin.add_restaurant') }}" class="btn-add">+ Add Restaurant</a>
 </div>
 {% endblock %}
 {% block content %}
 
 <div class="filter-bar">
   <form method="get" style="display:contents">
-    <input type="text" name="q" value="{{ q }}" placeholder="Search name or email…" class="filter-input" style="width:220px">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search name, city, owner…" class="filter-input" style="width:240px">
     <button type="submit" name="status" value="{{ status_filter }}" class="filter-tab active">Search</button>
   </form>
   <a href="?status=all" class="filter-tab {% if status_filter == 'all' %}active{% endif %}">All</a>
@@ -20,57 +21,77 @@
 
 <div class="admin-card">
   <div class="admin-card-body">
-    {% if owners %}
+    {% if businesses %}
     <table class="admin-table">
       <thead><tr>
-        <th>Restaurant</th><th>Owner</th><th>City</th><th>Bookings</th><th>Status</th><th>Joined</th><th>Actions</th>
+        <th>Restaurant</th><th>Owner</th><th>City</th><th>Bookings</th><th>Status</th><th>Added</th><th>Actions</th>
       </tr></thead>
       <tbody>
-        {% for o in owners %}
+        {% for b in businesses %}
         <tr>
           <td>
-            <div style="font-weight:700">{{ o.business.name if o.business else '(no business)' }}</div>
-            <div style="font-size:0.75rem;color:#6b7280">{{ o.business.category if o.business else '' }}</div>
+            <div style="font-weight:700">{{ b.name }}</div>
+            <div style="font-size:0.75rem;color:#6b7280">{{ b.cuisine or b.category }}</div>
           </td>
           <td>
-            <div style="font-weight:600">{{ o.name }}</div>
-            <div style="font-size:0.75rem;color:#6b7280">{{ o.email }}</div>
+            {% if b.owner %}
+            <div style="font-weight:600">{{ b.owner.name }}</div>
+            <div style="font-size:0.75rem;color:#6b7280">{{ b.owner.email }}</div>
+            {% else %}
+            <div style="color:#9ca3af;font-size:0.8rem;font-style:italic">Platform</div>
+            {% endif %}
           </td>
-          <td style="color:#6b7280">{{ o.business.city if o.business else '—' }}</td>
-          <td style="font-weight:700">
-            {% if o.business %}{{ o.business.bookings|length }}{% else %}—{% endif %}
-          </td>
-          <td><span class="badge badge-{{ o.status }}">{{ o.status }}</span></td>
-          <td style="color:#6b7280;font-size:0.8rem">{{ o.created_at.strftime('%b %d, %Y') }}</td>
+          <td style="color:#6b7280">{{ b.city or '—' }}</td>
+          <td style="font-weight:700">{{ b.bookings|length }}</td>
           <td>
-            <div style="display:flex;gap:5px;flex-wrap:wrap">
-              {% if o.status == 'pending' %}
-              <form method="post" action="{{ url_for('admin.owner_action', owner_id=o.id) }}" style="display:inline">
-                <input type="hidden" name="action" value="approve">
-                <button type="submit" class="btn-sm btn-approve">✓ Approve</button>
-              </form>
-              <form method="post" action="{{ url_for('admin.owner_action', owner_id=o.id) }}" style="display:inline" onsubmit="return confirm('Reject and delete this account?')">
-                <input type="hidden" name="action" value="delete">
-                <button type="submit" class="btn-sm btn-delete">✕ Reject</button>
-              </form>
-              {% elif o.status == 'active' %}
-              <form method="post" action="{{ url_for('admin.owner_action', owner_id=o.id) }}" style="display:inline">
-                <input type="hidden" name="action" value="suspend">
-                <button type="submit" class="btn-sm btn-suspend">⏸ Suspend</button>
-              </form>
-              {% if o.business %}
-              <button class="btn-sm btn-primary" onclick="toggleFeatured({{ o.business.id }}, this)"
-                style="background:{% if o.business.is_featured %}#4f46e5{% else %}#374151{% endif %}">
-                {% if o.business.is_featured %}★ Featured{% else %}☆ Feature{% endif %}
+            {% if b.owner %}
+              <span class="badge badge-{{ b.owner.status }}">{{ b.owner.status }}</span>
+            {% else %}
+              <span class="badge badge-active">active</span>
+            {% endif %}
+          </td>
+          <td style="color:#6b7280;font-size:0.8rem">{{ b.created_at.strftime('%b %d, %Y') }}</td>
+          <td>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+              <!-- Featured toggle -->
+              <button class="btn-sm btn-primary" onclick="toggleFeatured({{ b.id }}, this)"
+                style="background:{% if b.is_featured %}#4f46e5{% else %}#374151{% endif %}">
+                {% if b.is_featured %}★ Featured{% else %}☆ Feature{% endif %}
               </button>
-              {% endif %}
-              {% elif o.status == 'suspended' %}
-              <form method="post" action="{{ url_for('admin.owner_action', owner_id=o.id) }}" style="display:inline">
-                <input type="hidden" name="action" value="reactivate">
-                <button type="submit" class="btn-sm btn-reactivate">↩ Reactivate</button>
-              </form>
-              <form method="post" action="{{ url_for('admin.owner_action', owner_id=o.id) }}" style="display:inline" onsubmit="return confirm('Permanently delete this account and restaurant?')">
-                <input type="hidden" name="action" value="delete">
+              <!-- Edit -->
+              <a href="{{ url_for('admin.edit_restaurant', biz_id=b.id) }}" class="btn-sm btn-primary">✎ Edit</a>
+              <!-- Owner actions -->
+              {% if b.owner %}
+                {% if b.owner.status == 'pending' %}
+                <form method="post" action="{{ url_for('admin.owner_action', owner_id=b.owner.id) }}" style="display:inline">
+                  <input type="hidden" name="action" value="approve">
+                  <button type="submit" class="btn-sm btn-approve">✓ Approve</button>
+                </form>
+                <form method="post" action="{{ url_for('admin.owner_action', owner_id=b.owner.id) }}" style="display:inline"
+                      onsubmit="return confirm('Reject and delete this account?')">
+                  <input type="hidden" name="action" value="delete">
+                  <button type="submit" class="btn-sm btn-delete">✕ Reject</button>
+                </form>
+                {% elif b.owner.status == 'active' %}
+                <form method="post" action="{{ url_for('admin.owner_action', owner_id=b.owner.id) }}" style="display:inline">
+                  <input type="hidden" name="action" value="suspend">
+                  <button type="submit" class="btn-sm btn-suspend">⏸ Suspend</button>
+                </form>
+                {% elif b.owner.status == 'suspended' %}
+                <form method="post" action="{{ url_for('admin.owner_action', owner_id=b.owner.id) }}" style="display:inline">
+                  <input type="hidden" name="action" value="reactivate">
+                  <button type="submit" class="btn-sm btn-reactivate">↩ Reactivate</button>
+                </form>
+                <form method="post" action="{{ url_for('admin.owner_action', owner_id=b.owner.id) }}" style="display:inline"
+                      onsubmit="return confirm('Permanently delete this restaurant and owner?')">
+                  <input type="hidden" name="action" value="delete">
+                  <button type="submit" class="btn-sm btn-delete">🗑 Delete</button>
+                </form>
+                {% endif %}
+              {% else %}
+              <!-- Platform restaurant: just delete -->
+              <form method="post" action="{{ url_for('admin.delete_business', biz_id=b.id) }}" style="display:inline"
+                    onsubmit="return confirm('Delete {{ b.name }}?')">
                 <button type="submit" class="btn-sm btn-delete">🗑 Delete</button>
               </form>
               {% endif %}

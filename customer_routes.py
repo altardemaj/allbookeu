@@ -49,6 +49,43 @@ def cancel_booking(booking_id):
     return redirect(url_for('customer.dashboard'))
 
 
+@customer.route('/review', methods=['POST'])
+@customer_required
+def submit_review():
+    from database import Review, Business
+    user = User.query.get(session['user_id'])
+    business_id = request.form.get('business_id', type=int)
+    rating = request.form.get('rating', type=int)
+    comment = request.form.get('comment', '').strip()
+
+    if not business_id or not rating or not (1 <= rating <= 5):
+        flash('Invalid review data.', 'error')
+        return redirect(url_for('customer.dashboard'))
+
+    existing = Review.query.filter_by(business_id=business_id, user_id=user.id).first()
+    if existing:
+        flash('You have already reviewed this restaurant.', 'warning')
+        return redirect(url_for('customer.dashboard'))
+
+    review = Review(
+        business_id=business_id,
+        reviewer_name=user.name,
+        rating=rating,
+        comment=comment,
+        user_id=user.id
+    )
+    db.session.add(review)
+    db.session.flush()
+
+    biz = Business.query.get(business_id)
+    all_reviews = Review.query.filter_by(business_id=business_id).all()
+    biz.rating = round(sum(rv.rating for rv in all_reviews) / len(all_reviews), 1)
+    biz.review_count = len(all_reviews)
+    db.session.commit()
+    flash('Review submitted — thank you!', 'success')
+    return redirect(url_for('customer.dashboard'))
+
+
 @customer.route('/profile', methods=['GET', 'POST'])
 @customer_required
 def profile():

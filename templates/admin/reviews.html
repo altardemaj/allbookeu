@@ -1,0 +1,43 @@
+{% extends "admin/base.html" %}
+{% block title %}Reviews{% endblock %}
+{% block topbar %}
+<div class="admin-topbar">
+  <div><h1>Reviews</h1><p>All customer reviews across the platform</p></div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="admin-card">
+  <div class="admin-card-body">
+    {% if reviews %}
+    <table class="admin-table">
+      <thead><tr>
+        <th>Restaurant</th><th>Reviewer</th><th>Rating</th><th>Comment</th><th>Date</th><th>Action</th>
+      </tr></thead>
+      <tbody>
+        {% for r in reviews %}
+        <tr>
+          <td style="font-weight:600">{{ r.business.name if r.business else '—' }}</td>
+          <td style="color:#6b7280">{{ r.reviewer_name or 'Anonymous' }}</td>
+          <td>
+            <span style="color:#f59e0b;letter-spacing:1px">
+              {% for i in range(r.rating) %}★{% endfor %}<span style="color:#e5e7eb">{% for i in range(5 - r.rating) %}★{% endfor %}</span>
+            </span>
+          </td>
+          <td style="max-width:320px;color:#374151;font-size:0.85rem">{{ r.comment or '—' }}</td>
+          <td style="color:#9ca3af;font-size:0.8rem;white-space:nowrap">{{ r.created_at.strftime('%b %d, %Y') }}</td>
+          <td>
+            <form method="post" action="{{ url_for('admin.delete_review', review_id=r.id) }}"
+                  onsubmit="return confirm('Delete this review?')">
+              <button type="submit" class="btn-sm btn-delete">🗑 Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="admin-empty">No reviews yet.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

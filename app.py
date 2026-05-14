@@ -28,6 +28,7 @@ def _migrate_db():
         ("business_owners", "reset_token", "VARCHAR(100)"),
         ("business_owners", "reset_token_expires", "TIMESTAMP"),
         ("business_owners", "status", "VARCHAR(20) DEFAULT 'active'"),
+        ("reviews", "user_id", "INTEGER"),
     ]
     with app.app_context():
         db.create_all()

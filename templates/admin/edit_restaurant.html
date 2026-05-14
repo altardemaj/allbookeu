@@ -1,0 +1,135 @@
+{% extends "admin/base.html" %}
+{% block title %}Edit {{ biz.name }}{% endblock %}
+{% block topbar %}
+<div class="admin-topbar">
+  <div><h1>Edit Restaurant</h1><p>{{ biz.name }}</p></div>
+  <a href="{{ url_for('admin.restaurants') }}" style="font-size:0.85rem;color:#6b7280">← Back to Restaurants</a>
+</div>
+{% endblock %}
+{% block content %}
+<div style="max-width:800px">
+
+<div class="admin-card">
+  <div class="admin-card-header"><span class="admin-card-title">Restaurant Details</span></div>
+  <div class="admin-card-body" style="padding:24px">
+    <form method="post">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="grid-column:1/-1">
+          <label class="form-label">Restaurant Name *</label>
+          <input type="text" name="name" value="{{ biz.name }}" required class="form-input">
+        </div>
+        <div>
+          <label class="form-label">Cuisine</label>
+          <select name="cuisine" class="form-input">
+            {% for c in cuisines %}<option value="{{ c }}" {% if biz.cuisine == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Price Range</label>
+          <select name="price_range" class="form-input">
+            {% for pr in ['€', '€€', '€€€', '€€€€'] %}<option value="{{ pr }}" {% if biz.price_range == pr %}selected{% endif %}>{{ pr }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">City *</label>
+          <select name="city" class="form-input" required>
+            <optgroup label="Kosovo">
+              {% for c in kosovo_cities %}<option value="{{ c }}" {% if biz.city == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+            </optgroup>
+            <optgroup label="Albania">
+              {% for c in albania_cities %}<option value="{{ c }}" {% if biz.city == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+            </optgroup>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Country</label>
+          <select name="country" class="form-input">
+            <option value="Kosovo" {% if biz.country == 'Kosovo' %}selected{% endif %}>Kosovo</option>
+            <option value="Albania" {% if biz.country == 'Albania' %}selected{% endif %}>Albania</option>
+          </select>
+        </div>
+        <div style="grid-column:1/-1">
+          <label class="form-label">Street Address</label>
+          <input type="text" name="address" value="{{ biz.address or '' }}" class="form-input">
+        </div>
+        <div>
+          <label class="form-label">Phone</label>
+          <input type="tel" name="phone" value="{{ biz.phone or '' }}" class="form-input">
+        </div>
+        <div>
+          <label class="form-label">Business Email</label>
+          <input type="email" name="biz_email" value="{{ biz.email or '' }}" class="form-input">
+        </div>
+        <div style="grid-column:1/-1">
+          <label class="form-label">Cover Photo URL</label>
+          <input type="url" name="image_url" value="{{ biz.image_url or '' }}" class="form-input" placeholder="https://images.unsplash.com/…">
+          {% if biz.image_url %}
+          <img src="{{ biz.image_url }}" alt="" style="margin-top:8px;height:80px;border-radius:6px;object-fit:cover;width:100%">
+          {% endif %}
+        </div>
+        <div style="grid-column:1/-1">
+          <label class="form-label">Description</label>
+          <textarea name="description" class="form-input" rows="3">{{ biz.description or '' }}</textarea>
+        </div>
+        <div style="grid-column:1/-1;display:flex;align-items:center;gap:8px">
+          <input type="checkbox" name="is_featured" id="featured" {% if biz.is_featured %}checked{% endif %} style="width:16px;height:16px">
+          <label for="featured" style="font-size:0.875rem;font-weight:500;cursor:pointer">Feature on homepage</label>
+        </div>
+      </div>
+
+      <h3 style="font-size:0.875rem;font-weight:700;margin:24px 0 12px;text-transform:uppercase;letter-spacing:.04em;color:#374151">Opening Hours</h3>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        {% for i in range(days|length) %}
+        {% set day = days[i] %}
+        {% set day_name = day_names[i] %}
+        {% set current = hours_data.get(day, '9:00 AM – 10:00 PM') %}
+        {% set is_closed = current == 'closed' %}
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:90px;font-size:0.8rem;font-weight:600;color:#374151">{{ day_name }}</div>
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;cursor:pointer;white-space:nowrap">
+            <input type="checkbox" name="closed_{{ day }}" {% if is_closed %}checked{% endif %}
+                   onchange="toggleDay('{{ day }}',this.checked)"> Closed
+          </label>
+          <div id="times-{{ day }}" style="display:flex;align-items:center;gap:6px;{% if is_closed %}opacity:0.3;pointer-events:none{% endif %}">
+            <select name="open_{{ day }}" class="form-input" style="width:auto;padding:6px 8px">
+              {% for t in time_options %}
+              {% set parts = current.split(' – ') %}
+              <option value="{{ t }}" {% if parts[0].strip() == t %}selected{% endif %}>{{ t }}</option>
+              {% endfor %}
+            </select>
+            <span style="font-size:0.8rem;color:#6b7280">to</span>
+            <select name="close_{{ day }}" class="form-input" style="width:auto;padding:6px 8px">
+              {% for t in time_options %}
+              {% set parts = current.split(' – ') %}
+              <option value="{{ t }}" {% if parts|length > 1 and parts[1].strip() == t %}selected{% endif %}>{{ t }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div style="margin-top:24px;display:flex;gap:12px">
+        <button type="submit" class="btn-add">Save Changes</button>
+        <a href="{{ url_for('admin.restaurants') }}" class="btn-sm btn-primary" style="padding:8px 16px;font-size:0.8rem">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+</div>
+
+<style>
+.form-label { display:block; font-size:0.78rem; font-weight:700; color:#374151; margin-bottom:5px; text-transform:uppercase; letter-spacing:.04em; }
+.form-input { width:100%; padding:9px 12px; border:1px solid #e5e7eb; border-radius:6px; font-size:0.875rem; font-family:inherit; outline:none; background:#fff; }
+.form-input:focus { border-color:#e63946; }
+textarea.form-input { resize:vertical; }
+</style>
+<script>
+function toggleDay(day, closed) {
+  const el = document.getElementById('times-' + day);
+  el.style.opacity = closed ? '0.3' : '1';
+  el.style.pointerEvents = closed ? 'none' : 'auto';
+}
+</script>
+{% endblock %}
