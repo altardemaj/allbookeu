@@ -67,11 +67,6 @@
                   <input type="hidden" name="action" value="approve">
                   <button type="submit" class="btn-sm btn-approve">✓ Approve</button>
                 </form>
-                <form method="post" action="{{ url_for('admin.owner_action', owner_id=b.owner.id) }}" style="display:inline"
-                      onsubmit="return confirm('Reject and delete this account?')">
-                  <input type="hidden" name="action" value="delete">
-                  <button type="submit" class="btn-sm btn-delete">✕ Reject</button>
-                </form>
                 {% elif b.owner.status == 'active' %}
                 <form method="post" action="{{ url_for('admin.owner_action', owner_id=b.owner.id) }}" style="display:inline">
                   <input type="hidden" name="action" value="suspend">
@@ -82,12 +77,11 @@
                   <input type="hidden" name="action" value="reactivate">
                   <button type="submit" class="btn-sm btn-reactivate">↩ Reactivate</button>
                 </form>
-                <form method="post" action="{{ url_for('admin.owner_action', owner_id=b.owner.id) }}" style="display:inline"
-                      onsubmit="return confirm('Permanently delete this restaurant and owner?')">
-                  <input type="hidden" name="action" value="delete">
+                {% endif %}
+                <form method="post" action="{{ url_for('admin.delete_business', biz_id=b.id) }}" style="display:inline"
+                      onsubmit="return confirm('Permanently delete {{ b.name }} and its owner account?')">
                   <button type="submit" class="btn-sm btn-delete">🗑 Delete</button>
                 </form>
-                {% endif %}
               {% else %}
               <!-- Platform restaurant: just delete -->
               <form method="post" action="{{ url_for('admin.delete_business', biz_id=b.id) }}" style="display:inline"
