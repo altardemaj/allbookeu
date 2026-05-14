@@ -1,5 +1,123 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — {{ business.name }} — AllBookEU{% endblock %}
+{% block head %}
+<style>
+/* ── Enhanced stats ── */
+.db-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}
+.db-stat {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+}
+.db-stat-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+.db-stat-num { font-size: 1.9rem; font-weight: 800; color: var(--text); line-height: 1; }
+.db-stat-sub { font-size: 0.72rem; margin-top: 6px; display: flex; align-items: center; gap: 4px; }
+.db-stat-sub.up { color: #16a34a; }
+.db-stat-sub.down { color: #dc2626; }
+.db-stat-sub.neutral { color: var(--text-muted); }
+
+/* ── 14-day chart ── */
+.db-chart-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+}
+.db-chart-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+.db-chart-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+}
+.chart-legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+.chart-legend-swatch {
+    width: 10px; height: 10px; border-radius: 2px;
+}
+.chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 100px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+}
+.chart-bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+    gap: 0;
+    position: relative;
+    cursor: default;
+}
+.chart-bar {
+    width: 100%;
+    border-radius: 3px 3px 0 0;
+    min-height: 2px;
+    transition: filter 0.15s;
+}
+.chart-bar-wrap:hover .chart-bar { filter: brightness(0.85); }
+.chart-bar-wrap.this-week .chart-bar { background: var(--red); }
+.chart-bar-wrap.last-week .chart-bar { background: #e5e7eb; }
+.chart-bar-wrap.today .chart-bar { background: var(--red); outline: 2px solid #991b1b; }
+.chart-labels {
+    display: flex;
+    gap: 3px;
+    margin-top: 5px;
+}
+.chart-label {
+    flex: 1;
+    text-align: center;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+}
+.chart-label.today { color: var(--red); font-weight: 700; }
+
+/* tooltip on hover */
+.chart-bar-wrap .chart-tip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f2937;
+    color: #fff;
+    font-size: 0.65rem;
+    padding: 3px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 10;
+}
+.chart-bar-wrap:hover .chart-tip { display: block; }
+</style>
+{% endblock %}
 {% block content %}
 <div class="dash-page">
     <div class="dash-sidebar">
@@ -39,27 +157,79 @@
         <div class="dash-header">
             <div>
                 <h1>{% set h = today.strftime('%H')|int %}{% if h < 12 %}Good morning{% elif h < 17 %}Good afternoon{% else %}Good evening{% endif %}, {{ owner.name.split()[0] }}</h1>
-                <p>Here's what's happening at {{ business.name }} today.</p>
+                <p>{{ today.strftime('%A, %B %d, %Y') }} · {{ business.name }}</p>
             </div>
             <a href="{{ url_for('biz.bookings') }}" class="btn-reserve">View All Reservations</a>
         </div>
 
+        <!-- Stats row -->
         <div class="db-stats">
             <div class="db-stat">
+                <div class="db-stat-label">Today's covers</div>
+                <div class="db-stat-num">{{ today_covers }}</div>
+                <div class="db-stat-sub {% if today_covers_change is none %}neutral{% elif today_covers_change >= 0 %}up{% else %}down{% endif %}">
+                    {% if today_covers_change is none %}
+                        No data last week
+                    {% elif today_covers_change >= 0 %}
+                        ↑ {{ today_covers_change }}% vs last {{ today.strftime('%a') }}
+                    {% else %}
+                        ↓ {{ today_covers_change|abs }}% vs last {{ today.strftime('%a') }}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="db-stat">
+                <div class="db-stat-label">This week's covers</div>
+                <div class="db-stat-num">{{ week_covers }}</div>
+                <div class="db-stat-sub {% if week_covers_change is none %}neutral{% elif week_covers_change >= 0 %}up{% else %}down{% endif %}">
+                    {% if week_covers_change is none %}
+                        No data last week
+                    {% elif week_covers_change >= 0 %}
+                        ↑ {{ week_covers_change }}% vs last week
+                    {% else %}
+                        ↓ {{ week_covers_change|abs }}% vs last week
+                    {% endif %}
+                </div>
+            </div>
+            <div class="db-stat">
+                <div class="db-stat-label">Today's reservations</div>
                 <div class="db-stat-num">{{ today_bookings|length }}</div>
-                <div class="db-stat-label">Today</div>
+                <div class="db-stat-sub neutral">{{ week_bookings|length }} this week</div>
             </div>
             <div class="db-stat">
-                <div class="db-stat-num">{{ week_bookings|length }}</div>
-                <div class="db-stat-label">This week</div>
-            </div>
-            <div class="db-stat">
+                <div class="db-stat-label">Unique guests</div>
                 <div class="db-stat-num">{{ total_customers }}</div>
-                <div class="db-stat-label">Total guests</div>
+                <div class="db-stat-sub neutral {% if business.rating > 0 %}{% endif %}">
+                    {% if business.rating > 0 %}★ {{ "%.1f"|format(business.rating) }} avg rating{% else %}No ratings yet{% endif %}
+                </div>
             </div>
-            <div class="db-stat">
-                <div class="db-stat-num">{{ "%.1f"|format(business.rating) }}</div>
-                <div class="db-stat-label">Rating</div>
+        </div>
+
+        <!-- 14-day covers chart -->
+        <div class="db-chart-card">
+            <div class="db-chart-title">Covers — last 14 days</div>
+            <div class="db-chart-sub">Daily guest count (party sizes). Last week shown in grey.</div>
+            <div class="chart-legend">
+                <div class="chart-legend-item">
+                    <div class="chart-legend-swatch" style="background:var(--red)"></div>
+                    This week
+                </div>
+                <div class="chart-legend-item">
+                    <div class="chart-legend-swatch" style="background:#e5e7eb"></div>
+                    Last week
+                </div>
+            </div>
+            <div class="chart-bars">
+                {% for d in chart_days %}
+                <div class="chart-bar-wrap {% if d.is_today %}today{% elif d.is_this_week %}this-week{% else %}last-week{% endif %}">
+                    <div class="chart-tip">{{ d.date }}: {{ d.covers }} covers ({{ d.bookings }} res.)</div>
+                    <div class="chart-bar" style="height:{% if max_covers > 0 %}{{ [d.covers * 100 // max_covers, 2]|max }}{% else %}2{% endif %}%"></div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="chart-labels">
+                {% for d in chart_days %}
+                <div class="chart-label {% if d.is_today %}today{% endif %}">{{ d.label }}</div>
+                {% endfor %}
             </div>
         </div>
 
