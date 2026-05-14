@@ -182,7 +182,7 @@ def update_booking_status(booking_id):
         return jsonify({'error': 'Unauthorized'}), 403
 
     new_status = request.form.get('status')
-    if new_status in ('confirmed', 'cancelled', 'completed'):
+    if new_status in ('confirmed', 'cancelled', 'completed', 'seated'):
         booking.status = new_status
         db.session.commit()
         flash(f'Reservation #{booking.id} marked as {new_status}.', 'success')
@@ -432,6 +432,12 @@ def _build_floor_data(business, selected_date):
                 bt_dt = datetime.combine(selected_date, bt)
                 minutes = max(0, int((now_dt - bt_dt).total_seconds() / 60))
             finished.append({'booking': b, 'minutes': minutes})
+        elif b.status == 'seated':
+            minutes = 0
+            if bt:
+                bt_dt = datetime.combine(selected_date, bt)
+                minutes = max(0, int((now_dt - bt_dt).total_seconds() / 60))
+            seated.append({'booking': b, 'minutes': minutes})
         elif selected_date > date.today() or bt is None:
             upcoming.append({'booking': b, 'minutes_until': None})
         else:
@@ -461,6 +467,11 @@ def _build_floor_data(business, selected_date):
             bt = _parse_booking_time(booking.booking_time)
             if booking.status == 'completed' or selected_date < date.today():
                 status = 'finished'
+            elif booking.status == 'seated':
+                status = 'seated'
+                if bt:
+                    bt_dt = datetime.combine(selected_date, bt)
+                    minutes_seated = max(0, int((now_dt - bt_dt).total_seconds() / 60))
             elif selected_date > date.today() or bt is None:
                 status = 'upcoming'
             else:
@@ -669,6 +680,33 @@ def save_table_position(table_id):
     t.grid_y = y
     db.session.commit()
     return jsonify({'ok': True, 'x': x, 'y': y})
+
+
+
+@biz.route('/floor/assign', methods=['POST'])
+@owner_required
+def floor_assign():
+    owner, business = get_owner_business()
+    data = request.get_json()
+    booking_id = data.get('booking_id')
+    table_id = data.get('table_id')
+    action = data.get('action', 'seat')  # seat | unassign | finish
+
+    booking = Booking.query.get_or_404(booking_id)
+    if booking.business_id != business.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    if action == 'seat':
+        booking.table_id = table_id
+        booking.status = 'seated'
+    elif action == 'unassign':
+        booking.table_id = None
+        booking.status = 'confirmed'
+    elif action == 'finish':
+        booking.status = 'completed'
+
+    db.session.commit()
+    return jsonify({'ok': True, 'booking_id': booking_id, 'status': booking.status})
 
 
 @biz.route('/floor/data')
