@@ -1,5 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from database import db, User, BusinessOwner, Business, Service
+import secrets
+from datetime import datetime, timedelta
 
 auth = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -140,6 +142,73 @@ def biz_signup():
         return redirect(url_for('biz.dashboard'))
 
     return render_template('auth/biz_signup.html', categories=categories)
+
+
+@auth.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        account_type = request.form.get('account_type', 'customer')
+        import os
+        base_url = os.environ.get('BASE_URL', 'https://allbookeu.vercel.app')
+
+        if account_type == 'owner':
+            user = BusinessOwner.query.filter_by(email=email).first()
+            reset_route = 'auth.reset_password'
+        else:
+            user = User.query.filter_by(email=email).first()
+            reset_route = 'auth.reset_password'
+
+        if user:
+            token = secrets.token_urlsafe(48)
+            user.reset_token = token
+            user.reset_token_expires = datetime.utcnow() + timedelta(hours=1)
+            db.session.commit()
+            reset_url = f"{base_url}/auth/reset-password/{token}?type={account_type}"
+            try:
+                from email_utils import send_password_reset
+                send_password_reset(email, user.name, reset_url, is_owner=(account_type == 'owner'))
+            except Exception:
+                pass
+
+        flash('If that email exists, a reset link has been sent.', 'info')
+        return redirect(url_for('auth.forgot_password'))
+
+    account_type = request.args.get('type', 'customer')
+    return render_template('auth/forgot_password.html', account_type=account_type)
+
+
+@auth.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    account_type = request.args.get('type', 'customer')
+
+    if account_type == 'owner':
+        user = BusinessOwner.query.filter_by(reset_token=token).first()
+    else:
+        user = User.query.filter_by(reset_token=token).first()
+
+    if not user or not user.reset_token_expires or user.reset_token_expires < datetime.utcnow():
+        flash('This reset link is invalid or has expired.', 'error')
+        return redirect(url_for('auth.forgot_password'))
+
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        confirm = request.form.get('confirm_password', '')
+        if len(password) < 6:
+            flash('Password must be at least 6 characters.', 'error')
+            return render_template('auth/reset_password.html', token=token, account_type=account_type)
+        if password != confirm:
+            flash('Passwords do not match.', 'error')
+            return render_template('auth/reset_password.html', token=token, account_type=account_type)
+
+        user.set_password(password)
+        user.reset_token = None
+        user.reset_token_expires = None
+        db.session.commit()
+        flash('Password updated. Please log in.', 'success')
+        return redirect(url_for('auth.login', tab=account_type))
+
+    return render_template('auth/reset_password.html', token=token, account_type=account_type)
 
 
 @auth.route('/logout', methods=['POST'])

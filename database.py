@@ -27,6 +27,8 @@ class User(db.Model):
     email = db.Column(db.String(200), unique=True, nullable=False)
     password_hash = db.Column(db.String(300), nullable=False)
     phone = db.Column(db.String(30))
+    reset_token = db.Column(db.String(100), nullable=True)
+    reset_token_expires = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     bookings = db.relationship('Booking', backref='user', lazy=True, foreign_keys='Booking.user_id')
 
@@ -58,6 +60,8 @@ class BusinessOwner(db.Model):
     email = db.Column(db.String(200), unique=True, nullable=False)
     password_hash = db.Column(db.String(300), nullable=False)
     business_id = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=True)
+    reset_token = db.Column(db.String(100), nullable=True)
+    reset_token_expires = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     business = db.relationship('Business', backref='owner', uselist=False)
 

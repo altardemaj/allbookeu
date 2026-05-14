@@ -23,9 +23,13 @@ def _migrate_db():
     new_cols = [
         ("restaurant_tables", "grid_x", "INTEGER"),
         ("restaurant_tables", "grid_y", "INTEGER"),
+        ("users", "reset_token", "VARCHAR(100)"),
+        ("users", "reset_token_expires", "TIMESTAMP"),
+        ("business_owners", "reset_token", "VARCHAR(100)"),
+        ("business_owners", "reset_token_expires", "TIMESTAMP"),
     ]
     with app.app_context():
-        db.create_all()  # creates any missing tables (shifts, etc.)
+        db.create_all()
         inspector = inspect(db.engine)
         existing_tables = inspector.get_table_names()
         for table, col, dtype in new_cols:
@@ -243,6 +247,15 @@ def book():
     if table_id:
         t = RestaurantTable.query.get(table_id)
         table_info = f'{t.section} – Table {t.table_number}'
+
+    try:
+        from email_utils import send_booking_confirmation, send_new_booking_alert
+        send_booking_confirmation(booking, business)
+        owner = BusinessOwner.query.filter_by(business_id=business.id).first()
+        if owner:
+            send_new_booking_alert(booking, business, owner.email)
+    except Exception:
+        pass
 
     return jsonify({
         'success': True,
