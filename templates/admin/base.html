@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Admin{% endblock %} — AllBookEU</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f4f4f5; color: #111; }
+a { text-decoration: none; color: inherit; }
+
+.admin-layout { display: flex; min-height: 100vh; }
+
+/* Sidebar */
+.admin-sidebar {
+  width: 220px; min-width: 220px; background: #111827; display: flex;
+  flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+.admin-logo { padding: 20px 20px 16px; border-bottom: 1px solid #1f2937; }
+.admin-logo span { font-size: 1.1rem; font-weight: 800; color: #fff; }
+.admin-logo span em { color: #e63946; font-style: normal; }
+.admin-logo small { display: block; font-size: 0.65rem; color: #6b7280; margin-top: 2px; letter-spacing: .08em; text-transform: uppercase; }
+
+.admin-nav { padding: 12px 0; flex: 1; }
+.admin-nav-link {
+  display: flex; align-items: center; gap: 10px; padding: 10px 20px;
+  font-size: 0.875rem; font-weight: 500; color: #9ca3af;
+  transition: all .15s; border-left: 3px solid transparent;
+}
+.admin-nav-link:hover { background: #1f2937; color: #fff; }
+.admin-nav-link.active { background: #1f2937; color: #fff; border-left-color: #e63946; }
+.admin-nav-link .nav-icon { font-size: 1rem; }
+.admin-nav-section { padding: 14px 20px 4px; font-size: 0.65rem; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: .08em; }
+
+.admin-user { padding: 14px 20px; border-top: 1px solid #1f2937; }
+.admin-user-name { font-size: 0.8rem; font-weight: 600; color: #d1d5db; }
+.admin-user-role { font-size: 0.7rem; color: #6b7280; }
+.admin-logout-btn {
+  margin-top: 8px; width: 100%; background: #1f2937; border: none; color: #9ca3af;
+  border-radius: 5px; padding: 7px; font-size: 0.78rem; cursor: pointer; font-family: inherit;
+  transition: background .15s;
+}
+.admin-logout-btn:hover { background: #374151; color: #fff; }
+
+/* Main */
+.admin-main { flex: 1; min-width: 0; }
+.admin-topbar {
+  background: #fff; border-bottom: 1px solid #e5e7eb; padding: 16px 28px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.admin-topbar h1 { font-size: 1.1rem; font-weight: 700; }
+.admin-topbar p { font-size: 0.8rem; color: #6b7280; margin-top: 2px; }
+
+.admin-content { padding: 24px 28px; }
+
+/* Cards */
+.admin-stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; }
+.admin-stat { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 18px 20px; }
+.admin-stat-num { font-size: 2rem; font-weight: 800; color: #111; line-height: 1; }
+.admin-stat-label { font-size: 0.72rem; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-top: 5px; }
+.admin-stat-num.red { color: #e63946; }
+.admin-stat-num.amber { color: #d97706; }
+.admin-stat-num.green { color: #16a34a; }
+
+.admin-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; margin-bottom: 20px; }
+.admin-card-header { padding: 16px 20px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; }
+.admin-card-title { font-size: 0.875rem; font-weight: 700; }
+.admin-card-body { padding: 0; }
+
+/* Table */
+.admin-table { width: 100%; border-collapse: collapse; }
+.admin-table th { padding: 10px 16px; font-size: 0.72rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .05em; text-align: left; border-bottom: 1px solid #f3f4f6; background: #fafafa; }
+.admin-table td { padding: 12px 16px; font-size: 0.875rem; border-bottom: 1px solid #f9fafb; vertical-align: middle; }
+.admin-table tr:last-child td { border-bottom: none; }
+.admin-table tr:hover td { background: #fafafa; }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; }
+.badge-pending { background: #fef3c7; color: #92400e; }
+.badge-active { background: #d1fae5; color: #065f46; }
+.badge-suspended { background: #fee2e2; color: #991b1b; }
+.badge-confirmed { background: #dbeafe; color: #1e40af; }
+.badge-seated { background: #ede9fe; color: #5b21b6; }
+.badge-completed { background: #d1fae5; color: #065f46; }
+.badge-cancelled { background: #f3f4f6; color: #6b7280; }
+
+/* Buttons */
+.btn-sm { padding: 5px 12px; border-radius: 5px; font-size: 0.75rem; font-weight: 600; border: none; cursor: pointer; font-family: inherit; transition: all .15s; }
+.btn-approve { background: #d1fae5; color: #065f46; }
+.btn-approve:hover { background: #a7f3d0; }
+.btn-suspend { background: #fef3c7; color: #92400e; }
+.btn-suspend:hover { background: #fde68a; }
+.btn-delete { background: #fee2e2; color: #991b1b; }
+.btn-delete:hover { background: #fecaca; }
+.btn-reactivate { background: #dbeafe; color: #1e40af; }
+.btn-reactivate:hover { background: #bfdbfe; }
+.btn-primary { background: #111827; color: #fff; }
+.btn-primary:hover { background: #374151; }
+
+/* Flash */
+.flash-msg { padding: 10px 16px; border-radius: 6px; font-size: 0.875rem; font-weight: 500; margin-bottom: 16px; }
+.flash-success { background: #d1fae5; color: #065f46; }
+.flash-warning { background: #fef3c7; color: #92400e; }
+.flash-error { background: #fee2e2; color: #991b1b; }
+
+/* Filters */
+.filter-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+.filter-input { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 0.875rem; font-family: inherit; outline: none; }
+.filter-input:focus { border-color: #e63946; }
+.filter-tab { padding: 7px 16px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; border: 1px solid #e5e7eb; background: #fff; color: #6b7280; cursor: pointer; font-family: inherit; transition: all .15s; }
+.filter-tab.active, .filter-tab:hover { background: #111827; color: #fff; border-color: #111827; }
+
+/* Empty */
+.admin-empty { padding: 48px; text-align: center; color: #9ca3af; font-size: 0.875rem; }
+</style>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="admin-logo">
+      <span>All<em>Book</em>EU</span>
+      <small>Admin Panel</small>
+    </div>
+    <nav class="admin-nav">
+      <div class="admin-nav-section">Overview</div>
+      <a href="{{ url_for('admin.dashboard') }}" class="admin-nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+        <span class="nav-icon">📊</span> Dashboard
+      </a>
+      <div class="admin-nav-section">Manage</div>
+      <a href="{{ url_for('admin.restaurants') }}" class="admin-nav-link {% if request.endpoint in ('admin.restaurants','admin.owner_action') %}active{% endif %}">
+        <span class="nav-icon">🍽</span> Restaurants
+      </a>
+      <a href="{{ url_for('admin.bookings') }}" class="admin-nav-link {% if request.endpoint == 'admin.bookings' %}active{% endif %}">
+        <span class="nav-icon">📅</span> Bookings
+      </a>
+    </nav>
+    <div class="admin-user">
+      <div class="admin-user-name">{{ session.get('user_name', 'Admin') }}</div>
+      <div class="admin-user-role">Administrator</div>
+      <form method="post" action="{{ url_for('admin.logout') }}">
+        <button type="submit" class="admin-logout-btn">Sign out</button>
+      </form>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    {% block topbar %}{% endblock %}
+    <div class="admin-content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+      <div class="flash-msg flash-{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+</body>
+</html>

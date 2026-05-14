@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
-from database import db, Business, Booking, Review, User, BusinessOwner, Service, RestaurantTable, Shift
+from database import db, Business, Booking, Review, User, BusinessOwner, Service, RestaurantTable, Shift, Admin
 from datetime import datetime, date, timedelta
 from dotenv import load_dotenv
 import os
@@ -27,6 +27,7 @@ def _migrate_db():
         ("users", "reset_token_expires", "TIMESTAMP"),
         ("business_owners", "reset_token", "VARCHAR(100)"),
         ("business_owners", "reset_token_expires", "TIMESTAMP"),
+        ("business_owners", "status", "VARCHAR(20) DEFAULT 'active'"),
     ]
     with app.app_context():
         db.create_all()
@@ -49,9 +50,11 @@ except Exception:
 from auth_routes import auth
 from customer_routes import customer
 from biz_routes import biz
+from admin_routes import admin as admin_bp
 app.register_blueprint(auth)
 app.register_blueprint(customer)
 app.register_blueprint(biz)
+app.register_blueprint(admin_bp)
 
 KOSOVO_CITIES = ['Prishtina', 'Prizren', 'Peja', 'Gjakova', 'Ferizaj', 'Gjilan', 'Mitrovica', 'Vushtrri', 'Podujeva', 'Suhareka']
 ALBANIA_CITIES = ['Tirana', 'Durrës', 'Shkodër', 'Vlorë', 'Elbasan', 'Fier', 'Korçë', 'Berat', 'Sarandë', 'Lushnja']

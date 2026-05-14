@@ -1,0 +1,130 @@
+{% extends "admin/base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block topbar %}
+<div class="admin-topbar">
+  <div>
+    <h1>Dashboard</h1>
+    <p>{{ today.strftime('%A, %B %d, %Y') }} · Platform overview</p>
+  </div>
+  {% if stats.pending_owners > 0 %}
+  <a href="{{ url_for('admin.restaurants') }}?status=pending" style="background:#fef3c7;color:#92400e;padding:8px 16px;border-radius:6px;font-size:0.8rem;font-weight:700">
+    ⚠ {{ stats.pending_owners }} pending approval
+  </a>
+  {% endif %}
+</div>
+{% endblock %}
+{% block content %}
+
+<div class="admin-stat-grid">
+  <div class="admin-stat">
+    <div class="admin-stat-num">{{ stats.total_restaurants }}</div>
+    <div class="admin-stat-label">Restaurants</div>
+  </div>
+  <div class="admin-stat">
+    <div class="admin-stat-num green">{{ stats.active_owners }}</div>
+    <div class="admin-stat-label">Active owners</div>
+  </div>
+  <div class="admin-stat">
+    <div class="admin-stat-num {% if stats.pending_owners > 0 %}amber{% endif %}">{{ stats.pending_owners }}</div>
+    <div class="admin-stat-label">Pending approval</div>
+  </div>
+  <div class="admin-stat">
+    <div class="admin-stat-num">{{ stats.total_bookings }}</div>
+    <div class="admin-stat-label">Total bookings</div>
+  </div>
+  <div class="admin-stat">
+    <div class="admin-stat-num red">{{ stats.today_bookings }}</div>
+    <div class="admin-stat-label">Today's bookings</div>
+  </div>
+  <div class="admin-stat">
+    <div class="admin-stat-num">{{ stats.total_customers }}</div>
+    <div class="admin-stat-label">Unique guests</div>
+  </div>
+</div>
+
+{% if pending %}
+<div class="admin-card" style="border-left:4px solid #d97706">
+  <div class="admin-card-header">
+    <div class="admin-card-title">⚠ Pending Approval ({{ pending|length }})</div>
+    <a href="{{ url_for('admin.restaurants') }}?status=pending" style="font-size:0.78rem;color:#6b7280">View all →</a>
+  </div>
+  <div class="admin-card-body">
+    <table class="admin-table">
+      <thead><tr>
+        <th>Owner</th><th>Restaurant</th><th>City</th><th>Signed up</th><th>Action</th>
+      </tr></thead>
+      <tbody>
+        {% for o in pending %}
+        <tr>
+          <td><div style="font-weight:600">{{ o.name }}</div><div style="font-size:0.78rem;color:#6b7280">{{ o.email }}</div></td>
+          <td>{{ o.business.name if o.business else '—' }}</td>
+          <td>{{ o.business.city if o.business else '—' }}</td>
+          <td style="color:#6b7280;font-size:0.8rem">{{ o.created_at.strftime('%b %d, %Y') }}</td>
+          <td>
+            <form method="post" action="{{ url_for('admin.owner_action', owner_id=o.id) }}" style="display:inline">
+              <input type="hidden" name="action" value="approve">
+              <button type="submit" class="btn-sm btn-approve">✓ Approve</button>
+            </form>
+            <form method="post" action="{{ url_for('admin.owner_action', owner_id=o.id) }}" style="display:inline"
+                  onsubmit="return confirm('Delete this account?')">
+              <input type="hidden" name="action" value="delete">
+              <button type="submit" class="btn-sm btn-delete" style="margin-left:4px">✕ Reject</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- 14-day chart -->
+<div class="admin-card">
+  <div class="admin-card-header">
+    <div class="admin-card-title">Bookings — last 14 days</div>
+  </div>
+  <div style="padding:20px 24px">
+    <div style="display:flex;align-items:flex-end;gap:4px;height:80px;border-bottom:1px solid #f3f4f6">
+      {% for d in chart %}
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative;cursor:default" title="{{ d.label }}: {{ d.count }} bookings">
+        <div style="width:100%;border-radius:3px 3px 0 0;min-height:2px;background:{% if d.is_today %}#e63946{% else %}#e5e7eb{% endif %};height:{% if max_count > 0 %}{{ [d.count * 100 // max_count, 2]|max }}{% else %}2{% endif %}%"></div>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="display:flex;gap:4px;margin-top:4px">
+      {% for d in chart %}
+      <div style="flex:1;text-align:center;font-size:0.58rem;color:{% if d.is_today %}#e63946{% else %}#9ca3af{% endif %}">{{ d.short }}</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Recent bookings -->
+<div class="admin-card">
+  <div class="admin-card-header">
+    <div class="admin-card-title">Recent Bookings</div>
+    <a href="{{ url_for('admin.bookings') }}" style="font-size:0.78rem;color:#6b7280">View all →</a>
+  </div>
+  <div class="admin-card-body">
+    {% if recent %}
+    <table class="admin-table">
+      <thead><tr><th>Guest</th><th>Restaurant</th><th>Date & Time</th><th>Party</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for b in recent %}
+        <tr>
+          <td><div style="font-weight:600">{{ b.customer_name }}</div><div style="font-size:0.78rem;color:#6b7280">{{ b.customer_email }}</div></td>
+          <td>{{ b.business.name if b.business else '—' }}</td>
+          <td>{{ b.booking_date.strftime('%b %d') }} · {{ b.booking_time }}</td>
+          <td>{{ b.party_size }}p</td>
+          <td><span class="badge badge-{{ b.status }}">{{ b.status }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="admin-empty">No bookings yet.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

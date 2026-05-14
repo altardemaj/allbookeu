@@ -16,6 +16,12 @@ def login():
         if account_type == 'owner':
             owner = BusinessOwner.query.filter_by(email=email).first()
             if owner and owner.check_password(password):
+                if owner.status == 'pending':
+                    flash('Your account is pending approval. We\'ll email you once it\'s approved.', 'info')
+                    return render_template('auth/login.html', tab='owner')
+                if owner.status == 'suspended':
+                    flash('Your account has been suspended. Please contact support.', 'error')
+                    return render_template('auth/login.html', tab='owner')
                 session.clear()
                 session['user_id'] = owner.id
                 session['user_type'] = 'owner'
@@ -130,16 +136,13 @@ def biz_signup():
         db.session.add(business)
         db.session.flush()
 
-        owner = BusinessOwner(name=owner_name, email=email, business_id=business.id)
+        owner = BusinessOwner(name=owner_name, email=email, business_id=business.id, status='pending')
         owner.set_password(password)
         db.session.add(owner)
         db.session.commit()
 
-        session.clear()
-        session['user_id'] = owner.id
-        session['user_type'] = 'owner'
-        session['user_name'] = owner.name
-        return redirect(url_for('biz.dashboard'))
+        flash('Application submitted! We\'ll review it and email you within 24 hours.', 'info')
+        return redirect(url_for('auth.login', tab='owner'))
 
     return render_template('auth/biz_signup.html', categories=categories)
 

@@ -1,0 +1,99 @@
+{% extends "admin/base.html" %}
+{% block title %}Restaurants{% endblock %}
+{% block topbar %}
+<div class="admin-topbar">
+  <div><h1>Restaurants</h1><p>Manage restaurant owner accounts and approvals</p></div>
+</div>
+{% endblock %}
+{% block content %}
+
+<div class="filter-bar">
+  <form method="get" style="display:contents">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search name or email…" class="filter-input" style="width:220px">
+    <button type="submit" name="status" value="{{ status_filter }}" class="filter-tab active">Search</button>
+  </form>
+  <a href="?status=all" class="filter-tab {% if status_filter == 'all' %}active{% endif %}">All</a>
+  <a href="?status=pending" class="filter-tab {% if status_filter == 'pending' %}active{% endif %}">Pending</a>
+  <a href="?status=active" class="filter-tab {% if status_filter == 'active' %}active{% endif %}">Active</a>
+  <a href="?status=suspended" class="filter-tab {% if status_filter == 'suspended' %}active{% endif %}">Suspended</a>
+</div>
+
+<div class="admin-card">
+  <div class="admin-card-body">
+    {% if owners %}
+    <table class="admin-table">
+      <thead><tr>
+        <th>Restaurant</th><th>Owner</th><th>City</th><th>Bookings</th><th>Status</th><th>Joined</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        {% for o in owners %}
+        <tr>
+          <td>
+            <div style="font-weight:700">{{ o.business.name if o.business else '(no business)' }}</div>
+            <div style="font-size:0.75rem;color:#6b7280">{{ o.business.category if o.business else '' }}</div>
+          </td>
+          <td>
+            <div style="font-weight:600">{{ o.name }}</div>
+            <div style="font-size:0.75rem;color:#6b7280">{{ o.email }}</div>
+          </td>
+          <td style="color:#6b7280">{{ o.business.city if o.business else '—' }}</td>
+          <td style="font-weight:700">
+            {% if o.business %}{{ o.business.bookings|length }}{% else %}—{% endif %}
+          </td>
+          <td><span class="badge badge-{{ o.status }}">{{ o.status }}</span></td>
+          <td style="color:#6b7280;font-size:0.8rem">{{ o.created_at.strftime('%b %d, %Y') }}</td>
+          <td>
+            <div style="display:flex;gap:5px;flex-wrap:wrap">
+              {% if o.status == 'pending' %}
+              <form method="post" action="{{ url_for('admin.owner_action', owner_id=o.id) }}" style="display:inline">
+                <input type="hidden" name="action" value="approve">
+                <button type="submit" class="btn-sm btn-approve">✓ Approve</button>
+              </form>
+              <form method="post" action="{{ url_for('admin.owner_action', owner_id=o.id) }}" style="display:inline" onsubmit="return confirm('Reject and delete this account?')">
+                <input type="hidden" name="action" value="delete">
+                <button type="submit" class="btn-sm btn-delete">✕ Reject</button>
+              </form>
+              {% elif o.status == 'active' %}
+              <form method="post" action="{{ url_for('admin.owner_action', owner_id=o.id) }}" style="display:inline">
+                <input type="hidden" name="action" value="suspend">
+                <button type="submit" class="btn-sm btn-suspend">⏸ Suspend</button>
+              </form>
+              {% if o.business %}
+              <button class="btn-sm btn-primary" onclick="toggleFeatured({{ o.business.id }}, this)"
+                style="background:{% if o.business.is_featured %}#4f46e5{% else %}#374151{% endif %}">
+                {% if o.business.is_featured %}★ Featured{% else %}☆ Feature{% endif %}
+              </button>
+              {% endif %}
+              {% elif o.status == 'suspended' %}
+              <form method="post" action="{{ url_for('admin.owner_action', owner_id=o.id) }}" style="display:inline">
+                <input type="hidden" name="action" value="reactivate">
+                <button type="submit" class="btn-sm btn-reactivate">↩ Reactivate</button>
+              </form>
+              <form method="post" action="{{ url_for('admin.owner_action', owner_id=o.id) }}" style="display:inline" onsubmit="return confirm('Permanently delete this account and restaurant?')">
+                <input type="hidden" name="action" value="delete">
+                <button type="submit" class="btn-sm btn-delete">🗑 Delete</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="admin-empty">No restaurants found.</div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function toggleFeatured(bizId, btn) {
+  fetch(`/admin/featured/${bizId}`, {method:'POST'})
+    .then(r => r.json())
+    .then(d => {
+      btn.textContent = d.featured ? '★ Featured' : '☆ Feature';
+      btn.style.background = d.featured ? '#4f46e5' : '#374151';
+    });
+}
+</script>
+{% endblock %}
