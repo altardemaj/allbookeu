@@ -187,6 +187,22 @@ def toggle_featured(business_id):
     return jsonify({'featured': b.is_featured})
 
 
+@admin.route('/reset-admin')
+def reset_admin():
+    """Temporary: reset admin password. Remove after use."""
+    email = request.args.get('email')
+    password = request.args.get('password')
+    if not email or not password:
+        return 'Pass ?email=&password= in URL.', 400
+    a = Admin.query.filter_by(email=email).first()
+    if not a:
+        a = Admin(name='Admin', email=email)
+        db.session.add(a)
+    a.set_password(password)
+    db.session.commit()
+    return f'Admin password updated for {email}. Delete this route now.'
+
+
 @admin.route('/setup')
 def setup():
     """One-time setup: create first admin. Disabled once any admin exists."""
