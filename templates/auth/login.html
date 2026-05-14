@@ -24,6 +24,7 @@
                 <input type="password" name="password" placeholder="••••••••" required class="rw-input">
             </div>
             <button type="submit" class="btn-reserve" style="width:100%;margin-top:8px">{{ t('sign_in_btn') }}</button>
+            <p style="text-align:center;margin:10px 0 0;font-size:0.8rem"><a href="{{ url_for('auth.forgot_password') }}?type=customer" style="color:var(--text-muted)">Forgot password?</a></p>
         </form>
 
         <form method="post" action="{{ url_for('auth.login') }}?tab=owner"
@@ -38,6 +39,7 @@
                 <input type="password" name="password" placeholder="••••••••" required class="rw-input">
             </div>
             <button type="submit" class="btn-reserve" style="width:100%;margin-top:8px">{{ t('sign_in_dashboard') }}</button>
+            <p style="text-align:center;margin:10px 0 0;font-size:0.8rem"><a href="{{ url_for('auth.forgot_password') }}?type=owner" style="color:var(--text-muted)">Forgot password?</a></p>
         </form>
 
         <div class="auth-footer">
