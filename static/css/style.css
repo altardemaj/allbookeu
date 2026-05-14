@@ -572,10 +572,31 @@ img { max-width: 100%; display: block; }
 .menu-item-desc { font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
 .menu-item-price { font-size: 0.88rem; font-weight: 700; color: var(--red); margin-top: 4px; }
 
+/* ---- MOBILE STICKY BOOKING BAR ---- */
+.mobile-book-bar { display: none; }
+
 /* ---- RESPONSIVE ---- */
 @media (max-width: 900px) {
     .rp-layout { flex-direction: column; }
     .rp-sidebar { width: 100%; position: static; }
+    .mobile-book-bar {
+        display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+        background: #fff; border-top: 1px solid var(--border);
+        padding: 12px 16px env(safe-area-inset-bottom, 0);
+        align-items: center; gap: 12px; z-index: 200;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+    }
+    .mbb-info { flex: 1; min-width: 0; }
+    .mbb-name { font-size: 0.88rem; font-weight: 700; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mbb-sub { font-size: 0.75rem; color: var(--text-muted); }
+    .mbb-btn { background: var(--red); color: #fff; border: none; border-radius: var(--radius-sm); padding: 12px 20px; font-size: 0.9rem; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+    .restaurant-page { padding-bottom: 80px; }
+    .date-btn { min-height: 62px; width: 62px; }
+    .time-btn { min-height: 44px; font-size: 0.85rem; }
+    .party-btn { width: 40px; height: 40px; font-size: 1.2rem; }
+    .time-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .rw-input { font-size: 16px; } /* prevents iOS zoom on focus */
+    .btn-reserve, .btn-continue { min-height: 50px; font-size: 1rem; }
     .search-layout { flex-direction: column; }
     .search-filters { width: 100%; }
     .cta-box { flex-direction: column; gap: 28px; }

@@ -159,7 +159,7 @@
                         <div class="rws-row"><span class="rws-label">{{ t('date') }}</span><span id="summaryDate">–</span></div>
                         <div class="rws-row"><span class="rws-label">{{ t('time') }}</span><span id="summaryTime">–</span></div>
                         <div class="rws-row"><span class="rws-label">{{ t('party_size') }}</span><span id="summaryParty">–</span></div>
-                        <button class="btn-continue" id="btnContinue">{{ t('confirm_booking') }} →</button>
+                        <button class="btn-continue" id="btnContinue">Next: Enter details →</button>
                     </div>
 
                     <div class="rw-form" id="rwForm" style="display:none;">
@@ -202,6 +202,17 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Mobile sticky booking bar -->
+<div class="mobile-book-bar" id="mobileBookBar">
+    <div class="mbb-info">
+        <span class="mbb-name">{{ business.name }}</span>
+        <span class="mbb-sub" id="mbbSub">Select date &amp; time above</span>
+    </div>
+    <button class="mbb-btn" onclick="document.querySelector('.rp-sidebar').scrollIntoView({behavior:'smooth',block:'start'})">
+        Book a Table
+    </button>
 </div>
 
 <script>
@@ -264,10 +275,13 @@ if (selectedDate && selectedTime) showSummary();
 
 function showSummary() {
     const activeDate = document.querySelector('.date-btn.date-active');
-    document.getElementById('summaryDate').textContent = activeDate ? activeDate.querySelector('.db-date').textContent : selectedDate;
+    const dateLabel = activeDate ? activeDate.querySelector('.db-date').textContent : selectedDate;
+    document.getElementById('summaryDate').textContent = dateLabel;
     document.getElementById('summaryTime').textContent = selectedTime;
     document.getElementById('summaryParty').textContent = partySize + ' people';
     document.getElementById('rwSummary').style.display = 'block';
+    const mbbSub = document.getElementById('mbbSub');
+    if (mbbSub) mbbSub.textContent = dateLabel + ' · ' + selectedTime + ' · ' + partySize + ' people';
 }
 
 function hideSummary() {
