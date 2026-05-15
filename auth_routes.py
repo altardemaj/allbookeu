@@ -153,7 +153,9 @@ def forgot_password():
         email = request.form.get('email', '').strip().lower()
         account_type = request.form.get('account_type', 'customer')
         import os
-        base_url = os.environ.get('BASE_URL', 'https://allbookeu.vercel.app')
+        base_url = os.environ.get('BASE_URL', 'https://allbookeu.com').rstrip('/')
+        if 'allbookeu.vercel.app' in base_url:
+            base_url = 'https://allbookeu.com'
 
         if account_type == 'owner':
             user = BusinessOwner.query.filter_by(email=email).first()

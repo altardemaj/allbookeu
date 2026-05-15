@@ -173,6 +173,12 @@ def bookings():
                            date_filter=date_filter)
 
 
+@biz.route('/reservations')
+@owner_required
+def reservations_redirect():
+    return redirect(url_for('biz.bookings'))
+
+
 @biz.route('/booking/<int:booking_id>/status', methods=['POST'])
 @owner_required
 def update_booking_status(booking_id):

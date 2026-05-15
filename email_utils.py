@@ -3,7 +3,9 @@ import resend
 
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
 SENDER = os.environ.get('EMAIL_FROM', 'AllBookEU <noreply@allbookeu.com>')
-BASE_URL = os.environ.get('BASE_URL', 'https://allbookeu.vercel.app')
+BASE_URL = os.environ.get('BASE_URL', 'https://allbookeu.com').rstrip('/')
+if 'allbookeu.vercel.app' in BASE_URL:
+    BASE_URL = 'https://allbookeu.com'
 
 _RED = '#e63946'
 _DARK = '#1a1a2e'
@@ -143,7 +145,7 @@ def send_new_booking_alert(booking, business, owner_email):
 
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
       <td align="center">
-        <a href="{BASE_URL}/biz/reservations" style="display:inline-block;background:{_RED};color:#fff;font-size:14px;font-weight:700;padding:12px 28px;border-radius:6px;text-decoration:none">
+        <a href="{BASE_URL}/biz/bookings" style="display:inline-block;background:{_RED};color:#fff;font-size:14px;font-weight:700;padding:12px 28px;border-radius:6px;text-decoration:none">
           View in Dashboard →
         </a>
       </td>
