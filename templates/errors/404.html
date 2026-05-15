@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Page Not Found - AllBookEU{% endblock %}
+{% block content %}
+<main class="error-page">
+    <div class="container error-container">
+        <p class="error-code">404</p>
+        <h1>We could not find that page.</h1>
+        <p>The link may be old, or the page may have moved. You can search restaurants or return home.</p>
+        <div class="error-actions">
+            <a href="{{ url_for('search') }}" class="btn-cta">Find restaurants</a>
+            <a href="{{ url_for('index') }}" class="btn-outline">Go home</a>
+        </div>
+    </div>
+</main>
+{% endblock %}

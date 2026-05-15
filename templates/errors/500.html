@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Something Went Wrong - AllBookEU{% endblock %}
+{% block content %}
+<main class="error-page">
+    <div class="container error-container">
+        <p class="error-code">500</p>
+        <h1>Something went wrong on our side.</h1>
+        <p>Please try again in a moment. If this keeps happening, contact support and we will take a look.</p>
+        <div class="error-actions">
+            <a href="{{ url_for('index') }}" class="btn-cta">Go home</a>
+            <a href="mailto:support@allbookeu.com" class="btn-outline">Contact support</a>
+        </div>
+    </div>
+</main>
+{% endblock %}

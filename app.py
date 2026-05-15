@@ -322,6 +322,26 @@ def set_language(code):
     return redirect(request.referrer or url_for('index'))
 
 
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
+
+@app.route('/terms')
+def terms():
+    return render_template('terms.html')
+
+
+@app.errorhandler(404)
+def not_found(error):
+    return render_template('errors/404.html'), 404
+
+
+@app.errorhandler(500)
+def server_error(error):
+    return render_template('errors/500.html'), 500
+
+
 @app.route('/setup', methods=['POST'])
 def setup():
     setup_token = os.environ.get('ADMIN_SETUP_TOKEN')
