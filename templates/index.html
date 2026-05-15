@@ -7,8 +7,13 @@
 <section class="hero">
     <div class="hero-overlay"></div>
     <div class="hero-content">
+        {% if lang == 'sq' %}
+        <h1>Gjej tavolinën<br class="mobile-only-break">tënde</h1>
+        <p class="hero-sub">Zbulo dhe rezervo restorantet më të mira<br class="mobile-only-break">në Kosovë & Shqipëri.</p>
+        {% else %}
         <h1>{{ t('hero_title') }}</h1>
         <p class="hero-sub">{{ t('hero_sub') }}</p>
+        {% endif %}
 
         <form class="hero-search-form" action="{{ url_for('search') }}" method="get">
             <div class="hsf-inner">

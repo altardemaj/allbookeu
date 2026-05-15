@@ -21,6 +21,9 @@ instance/
 *.db
 *.sqlite3
 flask-bg*.log
+flask-bg*.err
+qa-pages/
+qa-screenshots/
 
 # Secrets / env
 .env

@@ -22,10 +22,11 @@
   --radius-sm: 6px;
 }
 
-body { font-family: 'Inter', sans-serif; color: var(--text); background: var(--bg); line-height: 1.5; }
+body { font-family: 'Inter', sans-serif; color: var(--text); background: var(--bg); line-height: 1.5; overflow-x: hidden; }
 a { color: inherit; text-decoration: none; }
 img { max-width: 100%; display: block; }
 .container { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+.mobile-only-break { display: none; }
 
 /* ---- FLASH MESSAGES ---- */
 .flash-container { position: fixed; top: 72px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
@@ -625,6 +626,9 @@ img { max-width: 100%; display: block; }
     .footer-top { flex-direction: column; gap: 32px; }
     .rp-info-grid { flex-direction: column; }
     .dash-page, .dash-layout { flex-direction: column; }
+    .dash-page,
+    .dash-main,
+    .dash-sidebar { min-width: 0; max-width: 100%; }
     .dash-sidebar {
         width: 100%;
         min-height: auto;
@@ -636,16 +640,17 @@ img { max-width: 100%; display: block; }
         border-bottom: 1px solid rgba(255,255,255,0.08);
     }
     .ds-nav {
-        flex-direction: row;
+        display: grid;
+        grid-template-columns: 1fr;
         gap: 6px;
-        overflow-x: auto;
+        overflow-x: visible;
         padding: 12px 16px;
         scrollbar-width: none;
     }
     .ds-nav::-webkit-scrollbar { display: none; }
     .ds-link {
-        flex: 0 0 auto;
-        white-space: nowrap;
+        white-space: normal;
+        text-align: center;
         padding: 9px 12px;
     }
     .ds-pause-box { margin: 0 16px 16px; }
@@ -654,6 +659,7 @@ img { max-width: 100%; display: block; }
     .dash-header .btn-reserve,
     .dash-header .btn-outline { width: 100%; text-align: center; }
     .db-grid { grid-template-columns: 1fr; }
+    .bk-table-wrap { width: 100%; max-width: 100%; }
     .bk-table { min-width: 760px; }
     .profile-card,
     .tables-add-box,
@@ -683,12 +689,39 @@ img { max-width: 100%; display: block; }
     .navbar-inner {
         min-height: 64px;
         flex-wrap: wrap;
-        gap: 12px;
+        gap: 8px;
         padding: 10px 16px;
     }
-    .nav-links { width: 100%; justify-content: flex-start; overflow-x: auto; padding-bottom: 4px; }
+    .nav-links { width: 100%; justify-content: flex-start; gap: 6px; flex-wrap: wrap; overflow-x: visible; padding-bottom: 4px; scrollbar-width: none; }
+    .nav-links::-webkit-scrollbar { display: none; }
+    .nav-link { padding: 6px 8px; font-size: 0.85rem; }
+    .btn-nav-signup { padding: 7px 10px; font-size: 0.86rem; }
+    .btn-nav-biz { padding: 8px 12px; font-size: 0.86rem; }
+    .nav-avatar-btn { gap: 6px; padding: 4px 8px 4px 4px; }
+    .nav-avatar { width: 28px; height: 28px; }
+    .nav-user-name { display: none; }
+    .lang-switcher { margin-left: 0; flex-shrink: 0; }
+    .hero-content { padding: 48px 16px; overflow: hidden; }
+    .hero-content h1 {
+        max-width: 330px;
+        margin-left: auto;
+        margin-right: auto;
+        font-size: clamp(1.55rem, 7vw, 2rem);
+        line-height: 1.12;
+        overflow-wrap: anywhere;
+    }
+    .hero-sub { max-width: 300px; margin-left: auto; margin-right: auto; font-size: 0.9rem; }
+    .mobile-only-break { display: block; }
     .dash-main { padding: 16px; }
+    .dash-header { flex-direction: column; align-items: stretch; }
     .dash-header h1 { font-size: 1.35rem; }
+    .dash-header p { width: 100%; }
+    .ds-nav {
+        display: grid;
+        grid-template-columns: 1fr;
+        overflow-x: visible;
+    }
+    .ds-link { white-space: normal; text-align: center; }
     .dash-stats-row { grid-template-columns: 1fr 1fr; }
     .res-row { align-items: flex-start; flex-wrap: wrap; gap: 8px 12px; }
     .res-time { width: 100%; min-width: 0; }
@@ -714,6 +747,8 @@ img { max-width: 100%; display: block; }
     .hours-times { grid-template-columns: 1fr; }
     .hours-to { text-align: center; }
     .auth-card { padding: 24px; }
+    .auth-tabs { flex-direction: column; }
+    .auth-tab { min-height: 42px; }
     .auth-row { flex-direction: column; gap: 0; }
     .auth-field-sm { flex: 1; }
     .footer-cols { flex-direction: column; gap: 20px; }
