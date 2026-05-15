@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Too Many Attempts - AllBookEU{% endblock %}
+{% block content %}
+<main class="error-page">
+    <div class="container error-container">
+        <p class="error-code">429</p>
+        <h1>Please slow down for a moment.</h1>
+        <p>We temporarily limited this action to protect AllBookEU from spam and abuse. Try again in a few minutes.</p>
+        <div class="error-actions">
+            <a href="{{ url_for('index') }}" class="btn-cta">Go home</a>
+            <a href="{{ url_for('search') }}" class="btn-outline">Find restaurants</a>
+        </div>
+    </div>
+</main>
+{% endblock %}

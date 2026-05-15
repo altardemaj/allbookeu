@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import hmac
 import os
 import secrets
+import time
 from translations import get_translation
 
 load_dotenv()
@@ -19,6 +20,35 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-fallback-secret')
 
 db.init_app(app)
+
+_RATE_LIMITS = {
+    'auth.login': (10, 15 * 60),
+    'admin.login': (8, 15 * 60),
+    'auth.signup': (5, 60 * 60),
+    'auth.biz_signup': (4, 60 * 60),
+    'auth.forgot_password': (3, 60 * 60),
+    'book': (8, 10 * 60),
+}
+_RATE_LIMIT_BUCKETS = {}
+
+
+def _client_ip():
+    forwarded_for = request.headers.get('X-Forwarded-For', '')
+    if forwarded_for:
+        return forwarded_for.split(',')[0].strip()
+    return request.remote_addr or 'unknown'
+
+
+def _rate_limit_response(retry_after):
+    if request.is_json or request.endpoint == 'book':
+        response = jsonify({
+            'success': False,
+            'error': 'Too many attempts. Please wait a few minutes and try again.'
+        })
+        response.status_code = 429
+        response.headers['Retry-After'] = str(retry_after)
+        return response
+    return render_template('errors/429.html', retry_after=retry_after), 429, {'Retry-After': str(retry_after)}
 
 
 def get_csrf_token():
@@ -43,6 +73,31 @@ def protect_post_requests():
     )
     if not expected or not provided or not hmac.compare_digest(expected, provided):
         abort(400)
+
+
+@app.before_request
+def rate_limit_sensitive_posts():
+    if request.method != 'POST':
+        return
+    limit_config = _RATE_LIMITS.get(request.endpoint)
+    if not limit_config:
+        return
+
+    max_attempts, window_seconds = limit_config
+    now = time.time()
+    key = (request.endpoint, _client_ip())
+    attempts = [
+        attempt for attempt in _RATE_LIMIT_BUCKETS.get(key, [])
+        if now - attempt < window_seconds
+    ]
+
+    if len(attempts) >= max_attempts:
+        retry_after = max(1, int(window_seconds - (now - attempts[0])))
+        _RATE_LIMIT_BUCKETS[key] = attempts
+        return _rate_limit_response(retry_after)
+
+    attempts.append(now)
+    _RATE_LIMIT_BUCKETS[key] = attempts
 
 def _migrate_db():
     from sqlalchemy import text, inspect
@@ -340,6 +395,11 @@ def not_found(error):
 @app.errorhandler(500)
 def server_error(error):
     return render_template('errors/500.html'), 500
+
+
+@app.errorhandler(429)
+def too_many_requests(error):
+    return render_template('errors/429.html'), 429
 
 
 @app.route('/setup', methods=['POST'])
