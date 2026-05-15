@@ -2,7 +2,9 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from functools import wraps
 from database import db, Admin, BusinessOwner, Business, Booking, User, Review
 from datetime import date, timedelta
+import hmac
 import json
+import os
 
 admin = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -342,34 +344,22 @@ def toggle_featured(business_id):
     return jsonify({'featured': b.is_featured})
 
 
-@admin.route('/reset-admin')
-def reset_admin():
-    """Temporary: reset admin password. Remove after use."""
-    email = request.args.get('email')
-    password = request.args.get('password')
-    if not email or not password:
-        return 'Pass ?email=&password= in URL.', 400
-    a = Admin.query.filter_by(email=email).first()
-    if not a:
-        a = Admin(name='Admin', email=email)
-        db.session.add(a)
-    a.set_password(password)
-    db.session.commit()
-    return f'Admin password updated for {email}. Delete this route now.'
-
-
-@admin.route('/setup')
+@admin.route('/setup', methods=['POST'])
 def setup():
-    """One-time setup: create first admin. Disabled once any admin exists."""
+    """Create the first admin account when protected by ADMIN_SETUP_TOKEN."""
+    setup_token = os.environ.get('ADMIN_SETUP_TOKEN')
+    provided_token = request.headers.get('X-Setup-Token') or request.form.get('token')
+    if not setup_token or not provided_token or not hmac.compare_digest(setup_token, provided_token):
+        return 'Not found', 404
     if Admin.query.count() > 0:
         return 'Admin already exists.', 403
-    name = request.args.get('name', 'Admin')
-    email = request.args.get('email')
-    password = request.args.get('password')
+    name = request.form.get('name', 'Admin')
+    email = request.form.get('email', '').strip().lower()
+    password = request.form.get('password', '')
     if not email or not password:
-        return 'Pass ?email=&password= in the URL (one time only).', 400
+        return 'Email and password are required.', 400
     a = Admin(name=name, email=email)
     a.set_password(password)
     db.session.add(a)
     db.session.commit()
-    return f'Admin created: {email}. Delete this route or protect it now.'
+    return f'Admin created: {email}.'

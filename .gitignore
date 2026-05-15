@@ -13,12 +13,14 @@ build/
 venv/
 .venv/
 env/
+.codex-python/
 .env
 
 # Flask / SQLite
 instance/
 *.db
 *.sqlite3
+flask-bg*.log
 
 # Secrets / env
 .env

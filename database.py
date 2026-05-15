@@ -107,9 +107,13 @@ class Business(db.Model):
     shifts = db.relationship('Shift', backref='business', lazy=True,
                              order_by='Shift.start_time')
 
-    def get_available_times(self, for_date):
+    def get_available_times(self, for_date, party_size=1):
         if self.reservations_paused:
             return []
+        try:
+            party_size = int(party_size)
+        except (TypeError, ValueError):
+            party_size = 1
         day_of_week = for_date.weekday()  # 0=Mon 6=Sun
         active_shifts = [s for s in self.shifts if s.is_active and day_of_week in s.get_days_list()]
         if active_shifts:
@@ -122,8 +126,29 @@ class Business(db.Model):
                         times.append(t)
         else:
             times = RESTAURANT_TIMES if self.category == 'restaurant' else DEFAULT_TIMES
-        booked = {b.booking_time for b in self.bookings
-                  if b.booking_date == for_date and b.status == 'confirmed'}
+
+        active_tables = [t for t in self.tables if t.is_active]
+        suitable_tables = [t for t in active_tables if t.capacity >= party_size]
+        if active_tables and not suitable_tables:
+            return []
+        if suitable_tables:
+            available = []
+            for time in times:
+                booked_table_ids = {
+                    b.table_id for b in self.bookings
+                    if b.booking_date == for_date
+                    and b.booking_time == time
+                    and b.status == 'confirmed'
+                    and b.table_id is not None
+                }
+                if any(t.id not in booked_table_ids for t in suitable_tables):
+                    available.append(time)
+            return available
+
+        booked = {
+            b.booking_time for b in self.bookings
+            if b.booking_date == for_date and b.status == 'confirmed'
+        }
         return [t for t in times if t not in booked]
 
     def get_hours_display(self):

@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 from database import db, Business, Booking, Review, User, BusinessOwner, Service, RestaurantTable, Shift, Admin
 from datetime import datetime, date, timedelta
 from dotenv import load_dotenv
+import hmac
 import os
 from translations import get_translation
 
@@ -135,12 +136,13 @@ def search():
     if date_str and time_str:
         try:
             search_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            party_size = max(1, int(party_str))
             available = []
             for b in businesses:
-                if not b.reservations_paused and time_str in b.get_available_times(search_date):
+                if not b.reservations_paused and time_str in b.get_available_times(search_date, party_size):
                     available.append(b)
             businesses = available
-        except ValueError:
+        except (TypeError, ValueError):
             pass
 
     all_cities = KOSOVO_CITIES + ALBANIA_CITIES
@@ -167,6 +169,10 @@ def business_detail(business_id):
     pre_date = request.args.get('date', '')
     pre_time = request.args.get('time', '')
     pre_party = request.args.get('party', '2')
+    try:
+        pre_party_size = max(1, int(pre_party))
+    except (TypeError, ValueError):
+        pre_party_size = 2
 
     slots = []
     today = date.today()
@@ -177,7 +183,7 @@ def business_detail(business_id):
             'display': day.strftime('%a, %b %d'),
             'short_day': day.strftime('%a'),
             'short_date': day.strftime('%b %d'),
-            'times': business.get_available_times(day) if not business.reservations_paused else []
+            'times': business.get_available_times(day, pre_party_size) if not business.reservations_paused else []
         })
 
     prefill = {}
@@ -198,18 +204,33 @@ def business_detail(business_id):
 
 @app.route('/book', methods=['POST'])
 def book():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     business_id = data.get('business_id')
     name = data.get('name', '').strip()
     email = data.get('email', '').strip()
     phone = data.get('phone', '').strip()
     booking_date = data.get('date')
     booking_time = data.get('time')
-    party_size = data.get('party_size', 2)
+    party_size_raw = data.get('party_size', 2)
     notes = data.get('notes', '')
 
     if not all([business_id, name, email, booking_date, booking_time]):
         return jsonify({'success': False, 'error': 'Please fill in all required fields.'}), 400
+
+    try:
+        party_size = int(party_size_raw)
+        if party_size < 1 or party_size > 20:
+            raise ValueError
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'Please choose a valid party size.'}), 400
+
+    try:
+        booking_day = datetime.strptime(booking_date, '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'Please choose a valid reservation date.'}), 400
+
+    if booking_day < date.today():
+        return jsonify({'success': False, 'error': 'Please choose a future reservation date.'}), 400
 
     business = Business.query.get(business_id)
     if not business:
@@ -218,6 +239,9 @@ def book():
     if business.reservations_paused:
         return jsonify({'success': False, 'error': business.pause_message or 'Reservations are paused.'}), 400
 
+    if booking_time not in business.get_available_times(booking_day, party_size):
+        return jsonify({'success': False, 'error': 'That time is no longer available. Please choose another time.'}), 409
+
     user_id = None
     if session.get('user_type') == 'customer':
         user_id = session.get('user_id')
@@ -225,11 +249,12 @@ def book():
     table_id = None
     tables = RestaurantTable.query.filter_by(business_id=business_id, is_active=True).all()
     if tables:
-        check_date = datetime.strptime(booking_date, '%Y-%m-%d').date()
         for t in sorted(tables, key=lambda x: x.capacity):
-            if t.capacity >= party_size and not t.is_booked_at(check_date, booking_time):
+            if t.capacity >= party_size and not t.is_booked_at(booking_day, booking_time):
                 table_id = t.id
                 break
+        if table_id is None:
+            return jsonify({'success': False, 'error': 'No table is available for that party size and time.'}), 409
 
     booking = Booking(
         business_id=business_id,
@@ -238,7 +263,7 @@ def book():
         customer_name=name,
         customer_email=email,
         customer_phone=phone,
-        booking_date=datetime.strptime(booking_date, '%Y-%m-%d').date(),
+        booking_date=booking_day,
         booking_time=booking_time,
         party_size=party_size,
         notes=notes,
@@ -276,13 +301,17 @@ def set_language(code):
     return redirect(request.referrer or url_for('index'))
 
 
-@app.route('/setup')
+@app.route('/setup', methods=['POST'])
 def setup():
+    setup_token = os.environ.get('ADMIN_SETUP_TOKEN')
+    provided_token = request.headers.get('X-Setup-Token') or request.form.get('token') or request.args.get('token')
+    if not setup_token or not provided_token or not hmac.compare_digest(setup_token, provided_token):
+        return 'Not found', 404
     try:
         db.create_all()
         seed_data()
         biz_count = Business.query.count()
-        return f'OK — {biz_count} restaurants in DB.'
+        return f'OK - {biz_count} restaurants in DB.'
     except Exception as e:
         return f'Error: {e}', 500
 
