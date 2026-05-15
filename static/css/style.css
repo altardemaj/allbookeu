@@ -624,6 +624,53 @@ img { max-width: 100%; display: block; }
     .cta-box { flex-direction: column; gap: 28px; }
     .footer-top { flex-direction: column; gap: 32px; }
     .rp-info-grid { flex-direction: column; }
+    .dash-page, .dash-layout { flex-direction: column; }
+    .dash-sidebar {
+        width: 100%;
+        min-height: auto;
+        position: static;
+    }
+    .ds-biz-name {
+        padding: 16px 16px 12px;
+        margin: 0;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .ds-nav {
+        flex-direction: row;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 12px 16px;
+        scrollbar-width: none;
+    }
+    .ds-nav::-webkit-scrollbar { display: none; }
+    .ds-link {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        padding: 9px 12px;
+    }
+    .ds-pause-box { margin: 0 16px 16px; }
+    .dash-main { padding: 24px; }
+    .dash-header { align-items: stretch; }
+    .dash-header .btn-reserve,
+    .dash-header .btn-outline { width: 100%; text-align: center; }
+    .db-grid { grid-template-columns: 1fr; }
+    .bk-table { min-width: 760px; }
+    .profile-card,
+    .tables-add-box,
+    .floor-section,
+    .db-card { padding: 18px; }
+    .pf-row { flex-direction: column; gap: 0; }
+    .pf-field-sm { flex: 1; }
+    .hours-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        align-items: stretch;
+    }
+    .hours-times { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; }
+    .table-card { width: min(100%, 180px); }
+    .modal-overlay { padding: 16px; }
+    .modal-box { max-height: calc(100vh - 32px); overflow-y: auto; }
 }
 @media (max-width: 680px) {
     .hsf-inner, .sbf-inner { flex-direction: column; }
@@ -632,12 +679,42 @@ img { max-width: 100%; display: block; }
     .sbf-btn { padding: 13px; width: 100%; }
     .result-card { flex-direction: column; }
     .result-img-link { width: 100%; height: 200px; }
-    .dash-page, .dash-layout { flex-direction: column; }
-    .dash-sidebar { width: 100%; }
-    .dash-main { padding: 20px; }
+    .navbar { height: auto; }
+    .navbar-inner {
+        min-height: 64px;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 10px 16px;
+    }
+    .nav-links { width: 100%; justify-content: flex-start; overflow-x: auto; padding-bottom: 4px; }
+    .dash-main { padding: 16px; }
+    .dash-header h1 { font-size: 1.35rem; }
     .dash-stats-row { grid-template-columns: 1fr 1fr; }
+    .res-row { align-items: flex-start; flex-wrap: wrap; gap: 8px 12px; }
+    .res-time { width: 100%; min-width: 0; }
+    .res-info { flex: 1 1 100%; }
+    .res-actions { width: 100%; justify-content: flex-start; }
+    .quick-actions { display: grid; grid-template-columns: 1fr; }
+    .qa-btn { text-align: center; }
+    .bk-filters { flex-direction: column; align-items: stretch; }
+    .bk-filters .btn-outline { text-align: center; }
+    .bk-actions { flex-direction: column; align-items: stretch; }
     .bc-biz-img { width: 80px; }
     .bc-actions { min-width: auto; }
     .atf-row { flex-direction: column; }
+    .atf-field,
+    .atf-field-sm,
+    .btn-add-table { width: 100%; align-self: stretch; }
+    .fs-header { align-items: flex-start; flex-direction: column; gap: 4px; }
+    .fs-tables { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .table-card { width: 100%; }
+    .tc-actions { flex-direction: column; align-items: stretch; }
+    .tc-actions form,
+    .tc-actions .tc-btn { width: 100%; }
+    .hours-times { grid-template-columns: 1fr; }
+    .hours-to { text-align: center; }
+    .auth-card { padding: 24px; }
+    .auth-row { flex-direction: column; gap: 0; }
+    .auth-field-sm { flex: 1; }
     .footer-cols { flex-direction: column; gap: 20px; }
 }

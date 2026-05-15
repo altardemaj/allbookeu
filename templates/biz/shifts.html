@@ -282,6 +282,43 @@
   font-size: 0.875rem; font-weight: 600; cursor: pointer; font-family: inherit;
 }
 .btn-modal-save:hover { background: var(--red-dark); }
+
+@media (max-width: 980px) {
+  .schedule-page { flex-direction: column; min-height: auto; }
+  .schedule-panel {
+    width: 100%;
+    min-width: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .schedule-panel .ds-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .schedule-panel .ds-link { flex: 0 0 auto; white-space: nowrap; }
+  .shift-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .shift-card { margin-bottom: 0; }
+  .schedule-main { padding: 18px; overflow: visible; }
+  .schedule-grid-wrap { max-height: 70vh; }
+  .schedule-grid,
+  .schedule-grid-wrap > div:first-child { min-width: 760px; }
+}
+
+@media (max-width: 560px) {
+  .shift-list { grid-template-columns: 1fr; }
+  .sf-row { flex-direction: column; gap: 0; }
+  .shift-actions { flex-wrap: wrap; }
+  .shift-actions form,
+  .shift-actions button { flex: 1 1 96px; }
+  .modal-actions { flex-direction: column; }
+  .btn-modal-cancel,
+  .btn-modal-save { width: 100%; }
+}
 </style>
 {% endblock %}
 
