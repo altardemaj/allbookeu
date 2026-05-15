@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}AllBookEU — Restaurant Reservations in Kosovo & Albania{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -137,6 +138,26 @@
 </footer>
 
 <script>
+window.ALLBOOK_CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content || '';
+document.querySelectorAll('form[method="post"], form[method="POST"]').forEach(form => {
+    if (!form.querySelector('input[name="_csrf_token"]')) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = '_csrf_token';
+        input.value = window.ALLBOOK_CSRF_TOKEN;
+        form.appendChild(input);
+    }
+});
+const allbookFetch = window.fetch;
+window.fetch = (input, init = {}) => {
+    const method = (init.method || 'GET').toUpperCase();
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+        const headers = new Headers(init.headers || {});
+        headers.set('X-CSRF-Token', window.ALLBOOK_CSRF_TOKEN);
+        init = {...init, headers};
+    }
+    return allbookFetch(input, init);
+};
 const avatarBtn = document.getElementById('navAvatarBtn');
 const dropdown = document.getElementById('navDropdown');
 if (avatarBtn && dropdown) {

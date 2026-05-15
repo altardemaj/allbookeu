@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <title>{% block title %}Admin{% endblock %} — AllBookEU</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -161,5 +162,27 @@ a { text-decoration: none; color: inherit; }
     </div>
   </main>
 </div>
+<script>
+window.ALLBOOK_CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content || '';
+document.querySelectorAll('form[method="post"], form[method="POST"]').forEach(form => {
+  if (!form.querySelector('input[name="_csrf_token"]')) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = '_csrf_token';
+    input.value = window.ALLBOOK_CSRF_TOKEN;
+    form.appendChild(input);
+  }
+});
+const allbookFetch = window.fetch;
+window.fetch = (input, init = {}) => {
+  const method = (init.method || 'GET').toUpperCase();
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    const headers = new Headers(init.headers || {});
+    headers.set('X-CSRF-Token', window.ALLBOOK_CSRF_TOKEN);
+    init = {...init, headers};
+  }
+  return allbookFetch(input, init);
+};
+</script>
 </body>
 </html>

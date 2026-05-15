@@ -1,9 +1,10 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, abort
 from database import db, Business, Booking, Review, User, BusinessOwner, Service, RestaurantTable, Shift, Admin
 from datetime import datetime, date, timedelta
 from dotenv import load_dotenv
 import hmac
 import os
+import secrets
 from translations import get_translation
 
 load_dotenv()
@@ -18,6 +19,30 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-fallback-secret')
 
 db.init_app(app)
+
+
+def get_csrf_token():
+    token = session.get('_csrf_token')
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session['_csrf_token'] = token
+    return token
+
+
+@app.before_request
+def protect_post_requests():
+    if request.method != 'POST':
+        return
+    if request.endpoint in {'setup', 'admin.setup'}:
+        return
+    expected = session.get('_csrf_token')
+    provided = (
+        request.headers.get('X-CSRF-Token')
+        or request.form.get('_csrf_token')
+        or ((request.get_json(silent=True) or {}).get('_csrf_token') if request.is_json else None)
+    )
+    if not expected or not provided or not hmac.compare_digest(expected, provided):
+        abort(400)
 
 def _migrate_db():
     from sqlalchemy import text, inspect
@@ -43,11 +68,6 @@ def _migrate_db():
                 with db.engine.connect() as conn:
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {dtype}"))
                     conn.commit()
-
-try:
-    _migrate_db()
-except Exception:
-    pass
 
 from auth_routes import auth
 from customer_routes import customer
@@ -90,6 +110,7 @@ def inject_auth():
         all_cuisines=CUISINES,
         lang=lang,
         t=t,
+        csrf_token=get_csrf_token,
     )
 
 
@@ -308,12 +329,32 @@ def setup():
     if not setup_token or not provided_token or not hmac.compare_digest(setup_token, provided_token):
         return 'Not found', 404
     try:
-        db.create_all()
-        seed_data()
+        _migrate_db()
+        if request.form.get('seed') == '1' or request.args.get('seed') == '1':
+            seed_data()
         biz_count = Business.query.count()
         return f'OK - {biz_count} restaurants in DB.'
     except Exception as e:
         return f'Error: {e}', 500
+
+
+@app.route('/api/restaurant/<int:business_id>/availability')
+def api_restaurant_availability(business_id):
+    business = Business.query.get_or_404(business_id)
+    try:
+        party_size = max(1, min(20, int(request.args.get('party', 2))))
+    except (TypeError, ValueError):
+        party_size = 2
+
+    today = date.today()
+    slots = []
+    for i in range(14):
+        day = today + timedelta(days=i)
+        slots.append({
+            'date': day.strftime('%Y-%m-%d'),
+            'times': business.get_available_times(day, party_size) if not business.reservations_paused else []
+        })
+    return jsonify({'success': True, 'slots': slots})
 
 
 @app.route('/api/businesses')
@@ -507,12 +548,8 @@ def seed_data():
     db.session.commit()
 
 
-with app.app_context():
-    try:
-        db.create_all()
-        seed_data()
-    except Exception as e:
-        print(f"DB init skipped: {e}")
-
 if __name__ == '__main__':
+    with app.app_context():
+        _migrate_db()
+        seed_data()
     app.run(debug=True, port=5000)

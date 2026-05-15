@@ -231,7 +231,9 @@ def owner_action(owner_id):
         try:
             from email_utils import _send, _base
             import os
-            base_url = os.environ.get('BASE_URL', 'https://allbookeu.vercel.app')
+            base_url = os.environ.get('BASE_URL', 'https://allbookeu.com').rstrip('/')
+            if 'vercel.app' in base_url:
+                base_url = 'https://allbookeu.com'
             html = _base(f"""
             <h2 style="margin:0 0 8px;font-size:22px;font-weight:800;color:#111">You're approved!</h2>
             <p style="margin:0 0 20px;color:#6b7280;font-size:15px">

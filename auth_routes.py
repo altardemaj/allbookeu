@@ -99,8 +99,10 @@ def biz_signup():
         # Business fields
         biz_name = request.form.get('biz_name', '').strip()
         category = request.form.get('category', '')
+        cuisine = request.form.get('cuisine', '').strip()
         address = request.form.get('address', '').strip()
         city = request.form.get('city', '').strip()
+        country = request.form.get('country', 'Kosovo').strip()
         state = request.form.get('state', '').strip()
         zip_code = request.form.get('zip_code', '').strip()
         phone = request.form.get('phone', '').strip()
@@ -126,8 +128,8 @@ def biz_signup():
             'thu': '9am-6pm', 'fri': '9am-6pm', 'sat': '10am-4pm', 'sun': 'closed'
         })
         business = Business(
-            name=biz_name, category=category, description=description,
-            address=address, city=city, state=state, zip_code=zip_code,
+            name=biz_name, category=category, cuisine=cuisine, description=description,
+            address=address, city=city, country=country, state=state, zip_code=zip_code,
             phone=phone, email=biz_email or email,
             rating=0.0, review_count=0, price_range='$$',
             image_url='https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&q=80',
@@ -154,7 +156,7 @@ def forgot_password():
         account_type = request.form.get('account_type', 'customer')
         import os
         base_url = os.environ.get('BASE_URL', 'https://allbookeu.com').rstrip('/')
-        if 'allbookeu.vercel.app' in base_url:
+        if 'vercel.app' in base_url:
             base_url = 'https://allbookeu.com'
 
         if account_type == 'owner':

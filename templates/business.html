@@ -226,10 +226,18 @@ const firstDateBtn = document.querySelector('.date-btn');
 if (firstDateBtn && !selectedDate) selectedDate = firstDateBtn.dataset.date;
 
 document.getElementById('partyMinus').addEventListener('click', () => {
-    if (partySize > 1) { partySize--; document.getElementById('partyCount').textContent = partySize; if(selectedTime) showSummary(); }
+    if (partySize > 1) {
+        partySize--;
+        document.getElementById('partyCount').textContent = partySize;
+        refreshAvailabilityForParty();
+    }
 });
 document.getElementById('partyPlus').addEventListener('click', () => {
-    if (partySize < 20) { partySize++; document.getElementById('partyCount').textContent = partySize; if(selectedTime) showSummary(); }
+    if (partySize < 20) {
+        partySize++;
+        document.getElementById('partyCount').textContent = partySize;
+        refreshAvailabilityForParty();
+    }
 });
 
 document.querySelectorAll('.date-btn').forEach(btn => {
@@ -271,7 +279,35 @@ document.querySelectorAll('.time-btn').forEach(btn => {
     });
 });
 
+const initialActiveDate = document.querySelector('.date-btn.date-active');
+if (initialActiveDate) renderTimes(JSON.parse(initialActiveDate.dataset.times));
 if (selectedDate && selectedTime) showSummary();
+
+async function refreshAvailabilityForParty() {
+    const activeDate = document.querySelector('.date-btn.date-active');
+    const previousTime = selectedTime;
+    try {
+        const res = await fetch(`/api/restaurant/${BUSINESS_ID}/availability?party=${partySize}`);
+        const data = await res.json();
+        if (!data.success) return;
+        data.slots.forEach(slot => {
+            const btn = document.querySelector(`.date-btn[data-date="${slot.date}"]`);
+            if (btn) btn.dataset.times = JSON.stringify(slot.times);
+        });
+        const times = activeDate ? JSON.parse(activeDate.dataset.times) : [];
+        selectedTime = times.includes(previousTime) ? previousTime : null;
+        renderTimes(times);
+        if (selectedTime) {
+            const timeBtn = document.querySelector(`.time-btn[data-time="${selectedTime}"]`);
+            if (timeBtn) timeBtn.classList.add('time-active');
+            showSummary();
+        } else {
+            hideSummary();
+        }
+    } catch(e) {
+        showError('Could not refresh availability. Please try again.');
+    }
+}
 
 function showSummary() {
     const activeDate = document.querySelector('.date-btn.date-active');

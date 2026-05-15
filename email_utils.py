@@ -4,7 +4,7 @@ import resend
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
 SENDER = os.environ.get('EMAIL_FROM', 'AllBookEU <noreply@allbookeu.com>')
 BASE_URL = os.environ.get('BASE_URL', 'https://allbookeu.com').rstrip('/')
-if 'allbookeu.vercel.app' in BASE_URL:
+if 'vercel.app' in BASE_URL:
     BASE_URL = 'https://allbookeu.com'
 
 _RED = '#e63946'
