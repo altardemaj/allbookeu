@@ -37,8 +37,10 @@
 
     <div class="dash-main">
         <div class="dash-header">
-            <h1>Menu Items</h1>
-            <p>Showcase your dishes and specialties on your public listing.</p>
+            <div>
+                <h1>Menu Items</h1>
+                <p>Showcase your dishes and specialties on your public listing.</p>
+            </div>
         </div>
 
         <div class="tables-add-box">
@@ -48,17 +50,17 @@
                 <div class="atf-row">
                     <div class="atf-field">
                         <label>Item name</label>
-                        <input type="text" name="name" placeholder="e.g. Tavë Kosi, Qebapa…" required class="atf-input">
+                        <input type="text" name="name" placeholder="e.g. Tave Kosi, Qebapa" required class="atf-input">
                     </div>
                     <div class="atf-field">
                         <label>Description</label>
                         <input type="text" name="description" placeholder="Short description" class="atf-input">
                     </div>
                     <div class="atf-field atf-field-sm">
-                        <label>Price (€)</label>
+                        <label>Price (EUR)</label>
                         <input type="number" name="price" placeholder="0" min="0" step="0.5" value="0" class="atf-input">
                     </div>
-                    <button type="submit" class="btn-add-table">+ Add</button>
+                    <button type="submit" class="btn-add-table">Add item</button>
                 </div>
             </form>
         </div>
@@ -70,7 +72,7 @@
                 <div class="menu-item-info">
                     <div class="menu-item-name">{{ svc.name }}</div>
                     {% if svc.description %}<div class="menu-item-desc">{{ svc.description }}</div>{% endif %}
-                    <div class="menu-item-price">{% if svc.price > 0 %}€{{ "%.0f"|format(svc.price) }}{% else %}On request{% endif %}</div>
+                    <div class="menu-item-price">{% if svc.price > 0 %}EUR {{ "%.0f"|format(svc.price) }}{% else %}On request{% endif %}</div>
                 </div>
                 <div class="tc-actions">
                     <button class="tc-btn" onclick="toggleEdit({{ svc.id }})">Edit</button>
@@ -95,7 +97,7 @@
                                 <input type="text" name="description" value="{{ svc.description or '' }}" class="atf-input">
                             </div>
                             <div class="atf-field atf-field-sm">
-                                <label>Price (€)</label>
+                                <label>Price (EUR)</label>
                                 <input type="number" name="price" value="{{ svc.price }}" min="0" step="0.5" class="atf-input">
                             </div>
                             <button type="submit" class="btn-add-table">Save</button>
@@ -108,7 +110,6 @@
         </div>
         {% else %}
         <div class="no-tables-empty">
-            <div class="nte-icon">🍽</div>
             <h3>No menu items yet</h3>
             <p>Add your signature dishes to make your listing stand out.</p>
         </div>

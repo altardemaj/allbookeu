@@ -38,8 +38,10 @@
 
     <div class="dash-main">
         <div class="dash-header">
-            <h1>Table Setup</h1>
-            <p>Configure your floor plan. AllBookEU auto-assigns tables to reservations based on party size.</p>
+            <div>
+                <h1>Table Setup</h1>
+                <p>Configure your floor plan. AllBookEU auto-assigns tables to reservations based on party size.</p>
+            </div>
         </div>
 
         <!-- ADD TABLE FORM -->
@@ -70,9 +72,9 @@
                     </div>
                     <div class="atf-field">
                         <label>Notes (optional)</label>
-                        <input type="text" name="notes" placeholder="window seat, accessible…" class="atf-input">
+                        <input type="text" name="notes" placeholder="Window seat, accessible, quiet area" class="atf-input">
                     </div>
-                    <button type="submit" class="btn-add-table">+ Add</button>
+                    <button type="submit" class="btn-add-table">Add table</button>
                 </div>
             </form>
         </div>
@@ -124,7 +126,6 @@
         </div>
         {% else %}
         <div class="no-tables-empty">
-            <div class="nte-icon">🪑</div>
             <h3>No tables yet</h3>
             <p>Add your first table above to set up your floor plan. AllBookEU will auto-assign tables to reservations based on party size and availability.</p>
         </div>

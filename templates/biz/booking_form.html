@@ -47,7 +47,12 @@
         </div>
 
         <section class="profile-card manual-booking-card">
-            <h2 class="profile-section-title">Guest and time</h2>
+            <div class="profile-section-head">
+                <div>
+                    <h2 class="profile-section-title">Guest and time</h2>
+                    <p class="profile-section-sub">Create an in-house booking and keep table availability accurate.</p>
+                </div>
+            </div>
             <form method="post" action="{{ url_for('biz.new_booking') }}">
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                 <div class="pf-row">

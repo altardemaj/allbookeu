@@ -123,6 +123,7 @@
             <div class="nte-icon">📭</div>
             <h3>No reservations found</h3>
             <p>{% if status_filter != 'all' or date_filter %}Try adjusting your filters.{% else %}Reservations will appear here when guests book with you.{% endif %}</p>
+            <a href="{{ url_for('biz.new_booking') }}" class="btn-reserve empty-action">Add reservation</a>
         </div>
         {% endif %}
     </div>
