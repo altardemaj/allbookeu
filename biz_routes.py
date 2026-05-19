@@ -329,13 +329,17 @@ def tables():
             capacity = int(request.form.get('capacity', 4))
             section = request.form.get('section', 'Main Floor').strip()
             notes = request.form.get('notes', '').strip()
+            shape = request.form.get('shape', 'square').strip()
+            if shape not in ('square', 'round', 'rect'):
+                shape = 'square'
             if table_number:
                 t = RestaurantTable(
                     business_id=business.id,
                     table_number=table_number,
                     capacity=capacity,
                     section=section,
-                    notes=notes
+                    notes=notes,
+                    shape=shape
                 )
                 db.session.add(t)
                 db.session.commit()
@@ -351,6 +355,9 @@ def tables():
                 t.capacity = int(request.form.get('capacity', t.capacity))
                 t.section = request.form.get('section', t.section).strip()
                 t.notes = request.form.get('notes', '').strip()
+                new_shape = request.form.get('shape', t.shape or 'square').strip()
+                if new_shape in ('square', 'round', 'rect'):
+                    t.shape = new_shape
                 db.session.commit()
                 flash(f'Table {t.table_number} updated.', 'success')
 
@@ -748,17 +755,24 @@ def floor_builder():
         business_id=business.id, is_active=True
     ).order_by(RestaurantTable.section, RestaurantTable.table_number).all()
 
-    placed = [t for t in all_tables if t.grid_x is not None and t.grid_y is not None]
-    unplaced = [t for t in all_tables if t.grid_x is None or t.grid_y is None]
+    # All unique sections in insertion order
+    all_sections = list(dict.fromkeys(t.section for t in all_tables)) or ['Main Floor']
 
-    # Build grid occupancy map for collision detection
-    occupied = {(t.grid_x, t.grid_y): t for t in placed}
+    current_section = request.args.get('section', all_sections[0])
+    if current_section not in all_sections:
+        current_section = all_sections[0]
+
+    # Only tables in the current section
+    section_tables = [t for t in all_tables if t.section == current_section]
+    placed = [t for t in section_tables if t.grid_x is not None and t.grid_y is not None]
+    unplaced = [t for t in section_tables if t.grid_x is None or t.grid_y is None]
 
     return render_template('biz/floor_builder.html',
                            owner=owner, business=business,
                            placed=placed, unplaced=unplaced,
                            all_tables=all_tables,
-                           occupied=occupied,
+                           all_sections=all_sections,
+                           current_section=current_section,
                            grid_cols=20, grid_rows=14)
 
 
@@ -783,9 +797,9 @@ def save_table_position(table_id):
 
     x, y = int(x), int(y)
 
-    # Check for collision with another table
+    # Check for collision within the same section only
     conflict = RestaurantTable.query.filter_by(
-        business_id=business.id, grid_x=x, grid_y=y
+        business_id=business.id, section=t.section, grid_x=x, grid_y=y
     ).filter(RestaurantTable.id != table_id).first()
     if conflict:
         return jsonify({'error': 'Cell occupied', 'by': conflict.table_number}), 409

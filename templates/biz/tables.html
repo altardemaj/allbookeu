@@ -71,6 +71,26 @@
                         </select>
                     </div>
                     <div class="atf-field">
+                        <label>Shape</label>
+                        <div class="shape-pick-row">
+                            <label class="shape-pick-opt">
+                                <input type="radio" name="shape" value="square" checked>
+                                <span class="sp-icon sq-icon"></span>
+                                <span class="sp-label">Square</span>
+                            </label>
+                            <label class="shape-pick-opt">
+                                <input type="radio" name="shape" value="round">
+                                <span class="sp-icon rd-icon"></span>
+                                <span class="sp-label">Round</span>
+                            </label>
+                            <label class="shape-pick-opt">
+                                <input type="radio" name="shape" value="rect">
+                                <span class="sp-icon rc-icon"></span>
+                                <span class="sp-label">Long</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="atf-field">
                         <label>Notes (optional)</label>
                         <input type="text" name="notes" placeholder="Window seat, accessible, quiet area" class="atf-input">
                     </div>
@@ -106,7 +126,7 @@
                             {% endif %}
                         </div>
                         <div class="tc-actions">
-                            <button class="tc-btn" onclick="openEditModal({{ t.id }},'{{ t.table_number }}',{{ t.capacity }},'{{ t.section }}','{{ t.notes or '' }}')">Edit</button>
+                            <button class="tc-btn" onclick="openEditModal({{ t.id }},'{{ t.table_number }}',{{ t.capacity }},'{{ t.section }}','{{ t.notes or '' }}','{{ t.shape or 'square' }}')">Edit</button>
                             <form method="post" style="display:inline">
                                 <input type="hidden" name="action" value="toggle">
                                 <input type="hidden" name="table_id" value="{{ t.id }}">
@@ -164,6 +184,26 @@
                 </select>
             </div>
             <div class="modal-field">
+                <label>Shape</label>
+                <div class="shape-pick-row">
+                    <label class="shape-pick-opt">
+                        <input type="radio" name="shape" value="square" id="editShapeSq">
+                        <span class="sp-icon sq-icon"></span>
+                        <span class="sp-label">Square</span>
+                    </label>
+                    <label class="shape-pick-opt">
+                        <input type="radio" name="shape" value="round" id="editShapeRd">
+                        <span class="sp-icon rd-icon"></span>
+                        <span class="sp-label">Round</span>
+                    </label>
+                    <label class="shape-pick-opt">
+                        <input type="radio" name="shape" value="rect" id="editShapeRc">
+                        <span class="sp-icon rc-icon"></span>
+                        <span class="sp-label">Long</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-field">
                 <label>Notes</label>
                 <input type="text" name="notes" id="editNotes" placeholder="Optional notes" class="rw-input">
             </div>
@@ -175,13 +215,37 @@
     </div>
 </div>
 
+<style>
+.shape-pick-row { display: flex; gap: 8px; margin-top: 4px; }
+.shape-pick-opt { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
+.shape-pick-opt input[type="radio"] { display: none; }
+.sp-icon {
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid #e2e6ec;
+    background: #f4f6f8;
+    transition: all 0.15s;
+    border-radius: 4px;
+}
+.sq-icon { width: 36px; height: 36px; border-radius: 6px; }
+.rd-icon { width: 36px; height: 36px; border-radius: 50%; }
+.rc-icon { width: 52px; height: 28px; border-radius: 6px; }
+.shape-pick-opt input:checked + .sp-icon {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+.sp-label { font-size: 0.68rem; font-weight: 600; color: #6b7280; }
+</style>
 <script>
-function openEditModal(id, number, capacity, section, notes) {
+function openEditModal(id, number, capacity, section, notes, shape) {
     document.getElementById('editTableId').value = id;
     document.getElementById('editTableNumber').value = number;
     document.getElementById('editCapacity').value = capacity;
     document.getElementById('editSection').value = section;
     document.getElementById('editNotes').value = notes;
+    const s = shape || 'square';
+    document.getElementById('editShapeSq').checked = s === 'square';
+    document.getElementById('editShapeRd').checked = s === 'round';
+    document.getElementById('editShapeRc').checked = s === 'rect';
     document.getElementById('editModal').style.display = 'flex';
 }
 function closeEditModal() {

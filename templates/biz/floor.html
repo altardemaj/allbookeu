@@ -102,6 +102,30 @@ body.selecting .floor-table:not(.available) { opacity:.4; cursor:default; }
 .floor-table.upcoming .table-time-badge { color:#60a5fa; }
 .table-capacity-label { font-size:0.6rem; color:rgba(255,255,255,.9); }
 
+/* Table shapes */
+.floor-table.shape-round .table-body { border-radius: 50%; }
+.floor-table.shape-rect .table-body { width: 110px; height: 58px; border-radius: 8px; }
+.floor-table.shape-round .table-seats-row,
+.floor-table.shape-round .table-middle-row .table-seat { display: none; }
+
+/* Area filter tabs */
+.fv-area-tab {
+  padding: 5px 16px;
+  border-radius: 20px;
+  border: 1.5px solid #e5e7eb;
+  background: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.fv-area-tab:hover { border-color: #3b82f6; color: #3b82f6; }
+.fv-area-tab.active { background: #1e3a5f; color: #60a5fa; border-color: #1e3a5f; }
+
 /* ── Action popup ── */
 .table-popup { position:fixed; background:#fff; border:1px solid #d6dbe3; border-radius:8px; padding:14px; min-width:180px; z-index:1000; box-shadow:0 12px 34px rgba(15,23,42,.18); }
 .table-popup h4 { font-size:0.8rem; font-weight:800; color:#111827; margin:0 0 4px; }
@@ -215,9 +239,19 @@ body.selecting .floor-table:not(.available) { opacity:.4; cursor:default; }
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <a href="{{ url_for('biz.floor_builder') }}" style="font-size:0.78rem;color:#2f86a6;padding:7px 12px;border:1px solid #d6dbe3;border-radius:4px;background:#fff;font-weight:700;">Edit Layout</a>
-        <button class="floor-refresh-btn" onclick="location.reload()" style="background:#fff;border:1px solid #d6dbe3;color:#2f86a6;border-radius:4px;padding:7px 14px;font-size:0.78rem;font-weight:700;cursor:pointer;">Refresh</button>
+        <button onclick="location.reload()" style="background:#fff;border:1px solid #d6dbe3;color:#2f86a6;border-radius:4px;padding:7px 14px;font-size:0.78rem;font-weight:700;cursor:pointer;">Refresh</button>
       </div>
     </div>
+
+    <!-- Area tabs -->
+    {% if sections_map|length > 1 %}
+    <div style="display:flex;gap:6px;padding:10px 20px;background:#fff;border-bottom:1px solid #d6dbe3;overflow-x:auto;scrollbar-width:none">
+      <button class="fv-area-tab active" data-area="all" onclick="filterArea('all')">All areas</button>
+      {% for section in sections_map.keys() %}
+      <button class="fv-area-tab" data-area="{{ section }}" onclick="filterArea('{{ section|e }}')">{{ section }}</button>
+      {% endfor %}
+    </div>
+    {% endif %}
 
     <div class="floor-canvas" id="floorCanvas" onclick="handleCanvasClick(event)">
       {% set has_positions = table_data | selectattr('table.grid_x', 'ne', none) | list | length > 0 %}
@@ -230,10 +264,11 @@ body.selecting .floor-table:not(.available) { opacity:.4; cursor:default; }
         {% endfor %}
         <div style="position:relative;width:{{ (max_x.v + 2) * 114 }}px;height:{{ (max_y.v + 2) * 114 }}px;min-width:100%">
           {% for td in table_data %}
-          {% set t = td.table %}{% set status = td.status %}
+          {% set t = td.table %}{% set status = td.status %}{% set sh = t.shape or 'square' %}
           {% if t.grid_x is not none and t.grid_y is not none %}
-          <div class="floor-table {{ status }}"
+          <div class="floor-table {{ status }} shape-{{ sh }}"
                data-table-id="{{ t.id }}" data-table-num="{{ t.table_number }}" data-status="{{ status }}"
+               data-section="{{ t.section }}"
                data-booking-id="{{ td.booking.id if td.booking else '' }}" data-booking-name="{{ td.booking.customer_name if td.booking else '' }}"
                style="position:absolute;left:{{ t.grid_x * 114 }}px;top:{{ t.grid_y * 114 }}px"
                onclick="handleTableClick(event, this)">
@@ -259,12 +294,13 @@ body.selecting .floor-table:not(.available) { opacity:.4; cursor:default; }
           <a href="{{ url_for('biz.floor_builder') }}" style="color:#2f86a6;font-weight:700;">Set up your floor plan</a> to see tables in their actual positions.
         </div>
         {% for section, table_list in sections_map.items() %}
-        <div class="floor-section-block">
+        <div class="floor-section-block" data-section="{{ section }}">
           <div class="floor-section-label">{{ section }}</div>
           <div class="floor-grid">
-            {% for td in table_list %}{% set t = td.table %}{% set status = td.status %}
-            <div class="floor-table {{ status }}"
+            {% for td in table_list %}{% set t = td.table %}{% set status = td.status %}{% set sh = t.shape or 'square' %}
+            <div class="floor-table {{ status }} shape-{{ sh }}"
                  data-table-id="{{ t.id }}" data-table-num="{{ t.table_number }}" data-status="{{ status }}"
+                 data-section="{{ t.section }}"
                  data-booking-id="{{ td.booking.id if td.booking else '' }}" data-booking-name="{{ td.booking.customer_name if td.booking else '' }}"
                  onclick="handleTableClick(event, this)">
               <div class="table-seats-row">{% for _ in range([t.capacity // 2, 4]|min) %}<div class="table-seat"></div>{% endfor %}</div>
@@ -447,5 +483,17 @@ function filterGuests(q) {
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { clearSelection(); closePopup(); } });
 setTimeout(() => location.reload(), 60000);
+
+function filterArea(area) {
+  document.querySelectorAll('.fv-area-tab').forEach(t => t.classList.toggle('active', t.dataset.area === area));
+  // Section blocks (list view)
+  document.querySelectorAll('.floor-section-block').forEach(b => {
+    b.style.display = (area === 'all' || b.dataset.section === area) ? '' : 'none';
+  });
+  // Positioned tables (grid view)
+  document.querySelectorAll('.floor-table[data-section]').forEach(t => {
+    t.style.display = (area === 'all' || t.dataset.section === area) ? '' : 'none';
+  });
+}
 </script>
 {% endblock %}

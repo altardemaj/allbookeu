@@ -110,6 +110,7 @@ def _migrate_db():
         ("business_owners", "reset_token_expires", "TIMESTAMP"),
         ("business_owners", "status", "VARCHAR(20) DEFAULT 'active'"),
         ("reviews", "user_id", "INTEGER"),
+        ("restaurant_tables", "shape", "VARCHAR(20) DEFAULT 'square'"),
     ]
     with app.app_context():
         db.create_all()

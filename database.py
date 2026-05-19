@@ -204,6 +204,7 @@ class RestaurantTable(db.Model):
     notes = db.Column(db.String(200))
     grid_x = db.Column(db.Integer, nullable=True)
     grid_y = db.Column(db.Integer, nullable=True)
+    shape = db.Column(db.String(20), default='square')
 
     bookings = db.relationship('Booking', backref='table', lazy=True, foreign_keys='Booking.table_id')
 
