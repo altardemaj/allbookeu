@@ -6,19 +6,19 @@
         <div class="ds-biz-name">{{ business.name }}</div>
         <nav class="ds-nav">
             <a href="{{ url_for('biz.dashboard') }}" class="ds-link">Dashboard</a>
-            <a href="{{ url_for('biz.floor_view') }}" class="ds-link">&#128506; Floor View</a>
-            <a href="{{ url_for('biz.floor_builder') }}" class="ds-link">&#9999; Floor Builder</a>
+            <a href="{{ url_for('biz.floor_view') }}" class="ds-link">Floor View</a>
+            <a href="{{ url_for('biz.floor_builder') }}" class="ds-link">Floor Builder</a>
             <a href="{{ url_for('biz.bookings') }}" class="ds-link active">Reservations</a>
             <a href="{{ url_for('biz.shifts') }}" class="ds-link">Schedule</a>
             <a href="{{ url_for('biz.tables') }}" class="ds-link">Tables</a>
             <a href="{{ url_for('biz.services') }}" class="ds-link">Menu Items</a>
             <a href="{{ url_for('biz.profile') }}" class="ds-link">Profile</a>
-            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="ds-link" target="_blank">View Listing &#8599;</a>
+            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="ds-link" target="_blank">View Listing</a>
         </nav>
 
         <div class="ds-pause-box {% if business.reservations_paused %}is-paused{% endif %}">
             {% if business.reservations_paused %}
-            <div class="dpb-status paused">&#9208; Reservations paused</div>
+            <div class="dpb-status paused">Reservations paused</div>
             <p class="dpb-msg">{{ business.pause_message }}</p>
             <form method="post" action="{{ url_for('biz.toggle_pause') }}">
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
@@ -26,7 +26,7 @@
                 <button type="submit" class="btn-resume">Resume reservations</button>
             </form>
             {% else %}
-            <div class="dpb-status open">&#9679; Accepting reservations</div>
+            <div class="dpb-status open">Accepting reservations</div>
             <form method="post" action="{{ url_for('biz.toggle_pause') }}">
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="action" value="pause">

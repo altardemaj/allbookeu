@@ -11,12 +11,13 @@
 }
 .db-stat {
     background: #fff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 20px;
+    border: 1px solid #e2e5ea;
+    border-radius: 8px;
+    padding: 20px 22px;
+    box-shadow: 0 1px 2px rgba(17,24,39,0.04);
 }
-.db-stat-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
-.db-stat-num { font-size: 1.9rem; font-weight: 800; color: var(--text); line-height: 1; }
+.db-stat-label { font-size: 0.72rem; color: #6b7280; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+.db-stat-num { font-size: 2rem; font-weight: 850; color: #111827; line-height: 1; letter-spacing: 0; }
 .db-stat-sub { font-size: 0.72rem; margin-top: 6px; display: flex; align-items: center; gap: 4px; }
 .db-stat-sub.up { color: #16a34a; }
 .db-stat-sub.down { color: #dc2626; }
@@ -25,10 +26,11 @@
 /* ── 14-day chart ── */
 .db-chart-card {
     background: #fff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px 24px;
+    border: 1px solid #e2e5ea;
+    border-radius: 8px;
+    padding: 22px 24px;
     margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(17,24,39,0.04);
 }
 .db-chart-title {
     font-size: 0.875rem;
@@ -139,26 +141,26 @@
         <div class="ds-biz-name">{{ business.name }}</div>
         <nav class="ds-nav">
             <a href="{{ url_for('biz.dashboard') }}" class="ds-link active">Dashboard</a>
-            <a href="{{ url_for('biz.floor_view') }}" class="ds-link">🗺 Floor View</a>
-            <a href="{{ url_for('biz.floor_builder') }}" class="ds-link">✏ Floor Builder</a>
+            <a href="{{ url_for('biz.floor_view') }}" class="ds-link">Floor View</a>
+            <a href="{{ url_for('biz.floor_builder') }}" class="ds-link">Floor Builder</a>
             <a href="{{ url_for('biz.bookings') }}" class="ds-link">Reservations</a>
             <a href="{{ url_for('biz.shifts') }}" class="ds-link">Schedule</a>
             <a href="{{ url_for('biz.tables') }}" class="ds-link">Tables</a>
             <a href="{{ url_for('biz.services') }}" class="ds-link">Menu Items</a>
             <a href="{{ url_for('biz.profile') }}" class="ds-link">Profile</a>
-            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="ds-link" target="_blank">View Listing ↗</a>
+            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="ds-link" target="_blank">View Listing</a>
         </nav>
 
         <div class="ds-pause-box {% if business.reservations_paused %}is-paused{% endif %}">
             {% if business.reservations_paused %}
-            <div class="dpb-status paused">⏸ Reservations paused</div>
+            <div class="dpb-status paused">Reservations paused</div>
             <p class="dpb-msg">{{ business.pause_message }}</p>
             <form method="post" action="{{ url_for('biz.toggle_pause') }}">
                 <input type="hidden" name="action" value="resume">
                 <button type="submit" class="btn-resume">Resume reservations</button>
             </form>
             {% else %}
-            <div class="dpb-status open">● Accepting reservations</div>
+            <div class="dpb-status open">Accepting reservations</div>
             <form method="post" action="{{ url_for('biz.toggle_pause') }}">
                 <input type="hidden" name="action" value="pause">
                 <input type="text" name="pause_message" placeholder="Reason (optional)" class="dpb-reason-input">
