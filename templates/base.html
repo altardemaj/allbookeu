@@ -121,17 +121,17 @@
                 </div>
                 <div class="footer-col">
                     <h4>AllBookEU</h4>
-                    <a href="{{ url_for('auth.biz_signup') }}">For Restaurants</a>
-                    <a href="{{ url_for('auth.signup') }}">Create Account</a>
-                    <a href="{{ url_for('auth.login') }}">Sign In</a>
+                    <a href="{{ url_for('auth.biz_signup') }}">{{ t('for_restaurants') }}</a>
+                    <a href="{{ url_for('auth.signup') }}">{{ t('create_account') }}</a>
+                    <a href="{{ url_for('auth.login') }}">{{ t('sign_in') }}</a>
                 </div>
             </div>
         </div>
         <div class="footer-bottom">
             <p>{{ t('all_rights') }}</p>
             <div class="footer-legal">
-                <a href="{{ url_for('privacy') }}">Privacy</a>
-                <a href="{{ url_for('terms') }}">Terms</a>
+                <a href="{{ url_for('privacy') }}">{{ t('privacy') }}</a>
+                <a href="{{ url_for('terms') }}">{{ t('terms') }}</a>
             </div>
         </div>
     </div>
