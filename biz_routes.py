@@ -3,16 +3,8 @@ from functools import wraps
 from database import db, BusinessOwner, Business, Booking, Service, RestaurantTable, Shift
 from datetime import date, timedelta, datetime
 import json
-import os
 import cloudinary
 import cloudinary.uploader
-
-cloudinary.config(
-    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
-    api_key=os.environ.get('CLOUDINARY_API_KEY'),
-    api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
-    secure=True
-)
 
 biz = Blueprint('biz', __name__, url_prefix='/biz')
 
