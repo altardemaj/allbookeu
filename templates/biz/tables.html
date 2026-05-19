@@ -1,7 +1,439 @@
 {% extends "base.html" %}
-{% block title %}Table Setup — {{ business.name }}{% endblock %}
+{% block title %}Table Setup - {{ business.name }}{% endblock %}
+
+{% block head %}
+<style>
+.table-setup-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
+    align-items: end;
+    margin-bottom: 20px;
+}
+.table-setup-eyebrow {
+    color: var(--red);
+    font-size: 0.76rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+}
+.table-setup-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+.setup-btn {
+    min-height: 44px;
+    border-radius: 8px;
+    padding: 11px 16px;
+    font-size: 0.88rem;
+    font-weight: 850;
+    border: 1px solid #dfe3e8;
+    background: #fff;
+    color: #111827;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.setup-btn.primary {
+    background: var(--red);
+    border-color: var(--red);
+    color: #fff;
+}
+.setup-btn:hover { box-shadow: 0 8px 20px rgba(17,24,39,0.08); transform: translateY(-1px); }
+
+.setup-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+.setup-stat {
+    background: #fff;
+    border: 1px solid #e2e5ea;
+    border-radius: 8px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 2px rgba(17,24,39,0.04);
+}
+.setup-stat strong {
+    display: block;
+    font-size: 1.55rem;
+    line-height: 1;
+    color: #111827;
+    margin-bottom: 6px;
+}
+.setup-stat span {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.table-workflow {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.5fr);
+    gap: 18px;
+    align-items: start;
+}
+.setup-panel {
+    background: #fff;
+    border: 1px solid #e2e5ea;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(17,24,39,0.04);
+}
+.setup-panel-head {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+}
+.setup-panel-head h2 {
+    font-size: 1rem;
+    font-weight: 850;
+    margin-bottom: 4px;
+}
+.setup-panel-head p {
+    color: var(--text-muted);
+    font-size: 0.84rem;
+}
+.setup-form {
+    padding: 20px;
+}
+.setup-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+.setup-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+.setup-field.full { grid-column: 1 / -1; }
+.setup-field label {
+    color: var(--text-muted);
+    font-size: 0.73rem;
+    font-weight: 850;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.setup-input,
+.setup-select {
+    width: 100%;
+    min-height: 46px;
+    border: 1.5px solid #dfe3e8;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.94rem;
+    font-family: inherit;
+    color: #111827;
+    background: #fff;
+    outline: none;
+}
+.setup-input:focus,
+.setup-select:focus {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(218,55,67,0.12);
+}
+.setup-hint {
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    line-height: 1.45;
+}
+.shape-picker {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 9px;
+}
+.shape-option {
+    min-height: 86px;
+    border: 1.5px solid #dfe3e8;
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    background: #fbfbfc;
+}
+.shape-option input { display: none; }
+.shape-preview {
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    background: #c8cdd5;
+    border: 4px solid #343844;
+    box-shadow: 0 0 0 5px #f1f3f5;
+}
+.shape-preview.round { border-radius: 50%; }
+.shape-preview.rect { width: 58px; height: 32px; }
+.shape-option span:last-child {
+    color: #4b5563;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+.shape-option:has(input:checked) {
+    border-color: var(--red);
+    background: #fff7f8;
+    box-shadow: 0 0 0 3px rgba(218,55,67,0.09);
+}
+.switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    border: 1px solid #e2e5ea;
+    border-radius: 8px;
+    padding: 13px 14px;
+    background: #fbfbfc;
+}
+.switch-copy strong {
+    display: block;
+    font-size: 0.9rem;
+}
+.switch-copy span {
+    color: var(--text-muted);
+    font-size: 0.76rem;
+}
+.setup-switch {
+    position: relative;
+    width: 52px;
+    height: 30px;
+    flex-shrink: 0;
+}
+.setup-switch input { opacity: 0; width: 0; height: 0; }
+.setup-slider {
+    position: absolute;
+    inset: 0;
+    background: #d1d5db;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.setup-slider::before {
+    content: "";
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    left: 3px;
+    top: 3px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: transform 0.15s;
+}
+.setup-switch input:checked + .setup-slider { background: #16a34a; }
+.setup-switch input:checked + .setup-slider::before { transform: translateX(22px); }
+.btn-create-table {
+    width: 100%;
+    min-height: 50px;
+    margin-top: 16px;
+    border: none;
+    border-radius: 8px;
+    background: var(--red);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 850;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.section-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.section-card {
+    background: #fff;
+    border: 1px solid #e2e5ea;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(17,24,39,0.04);
+    overflow: hidden;
+}
+.section-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 17px 20px;
+    border-bottom: 1px solid var(--border);
+}
+.section-card-head h3 {
+    font-size: 0.98rem;
+    font-weight: 850;
+}
+.section-card-head span {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+.table-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    padding: 16px;
+}
+.setup-table-card {
+    border: 1px solid #e2e5ea;
+    border-radius: 8px;
+    padding: 14px;
+    background: #fbfbfc;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 13px;
+    min-height: 152px;
+}
+.setup-table-card.is-inactive { opacity: 0.62; }
+.setup-table-figure {
+    width: 74px;
+    min-height: 82px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.table-shape {
+    width: 58px;
+    height: 58px;
+    border-radius: 8px;
+    background: #bfc4cc;
+    border: 5px solid #343844;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 900;
+    box-shadow: 0 -9px 0 -4px #343844, 0 9px 0 -4px #343844;
+}
+.table-shape.round { border-radius: 50%; box-shadow: none; }
+.table-shape.rect { width: 74px; height: 44px; }
+.setup-table-main {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+.setup-table-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+.setup-table-name {
+    font-size: 1rem;
+    font-weight: 900;
+    color: #111827;
+}
+.status-pill {
+    border-radius: 999px;
+    padding: 4px 8px;
+    font-size: 0.68rem;
+    font-weight: 850;
+    white-space: nowrap;
+}
+.status-pill.active { background: #dcfce7; color: #166534; }
+.status-pill.inactive { background: #f1f3f5; color: #6b7280; }
+.setup-table-meta {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 1.55;
+    margin: 5px 0 8px;
+}
+.layout-pill {
+    display: inline-flex;
+    width: fit-content;
+    border-radius: 6px;
+    padding: 4px 7px;
+    background: #eef2ff;
+    color: #3730a3;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+.layout-pill.missing { background: #fff7ed; color: #9a3412; }
+.setup-table-notes {
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    line-height: 1.45;
+    margin-top: 8px;
+}
+.setup-table-actions {
+    margin-top: auto;
+    padding-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+.table-action-btn {
+    min-height: 38px;
+    border-radius: 7px;
+    border: 1px solid #dfe3e8;
+    background: #fff;
+    color: #111827;
+    padding: 8px 11px;
+    font-size: 0.78rem;
+    font-weight: 850;
+    font-family: inherit;
+    cursor: pointer;
+}
+.table-action-btn.danger { color: #b91c1c; border-color: #fecaca; }
+.table-action-btn:hover { background: #f3f4f6; }
+
+.empty-setup {
+    background: #fff;
+    border: 1px solid #e2e5ea;
+    border-radius: 8px;
+    padding: 50px 20px;
+    text-align: center;
+    color: var(--text-muted);
+}
+.empty-setup h3 {
+    color: #111827;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+
+.modal-box.table-modal { max-width: 620px; }
+.modal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+.modal-grid .full { grid-column: 1 / -1; }
+
+@media (max-width: 1100px) {
+    .table-workflow { grid-template-columns: 1fr; }
+    .setup-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+    .table-setup-hero { grid-template-columns: 1fr; }
+    .table-setup-actions { justify-content: stretch; }
+    .setup-btn { flex: 1; }
+    .setup-summary { grid-template-columns: 1fr 1fr; }
+    .setup-form-grid,
+    .modal-grid { grid-template-columns: 1fr; }
+    .setup-field.full,
+    .modal-grid .full { grid-column: auto; }
+    .table-grid { grid-template-columns: 1fr; }
+    .setup-table-card { grid-template-columns: auto 1fr; }
+}
+@media (max-width: 460px) {
+    .setup-summary { grid-template-columns: 1fr; }
+    .setup-table-card { grid-template-columns: 1fr; }
+    .setup-table-figure { width: 100%; justify-content: flex-start; min-height: 62px; }
+}
+</style>
+{% endblock %}
 
 {% block content %}
+{% set stats = namespace(active=0, seats=0, placed=0) %}
+{% for table in all_tables %}
+    {% if table.is_active %}{% set stats.active = stats.active + 1 %}{% endif %}
+    {% set stats.seats = stats.seats + table.capacity %}
+    {% if table.grid_x is not none and table.grid_y is not none %}{% set stats.placed = stats.placed + 1 %}{% endif %}
+{% endfor %}
+
 <div class="dash-page">
     <div class="dash-sidebar">
         <div class="ds-biz-name">{{ business.name }}</div>
@@ -37,175 +469,242 @@
     </div>
 
     <div class="dash-main">
-        <div class="dash-header">
+        <div class="table-setup-hero">
             <div>
-                <h1>Table Setup</h1>
-                <p>Configure your floor plan. AllBookEU auto-assigns tables to reservations based on party size.</p>
+                <div class="table-setup-eyebrow">Floor setup</div>
+                <h1>Tables</h1>
+                <p>Create the tables guests can book, then place them on your floor plan for service.</p>
+            </div>
+            <div class="table-setup-actions">
+                <a href="{{ url_for('biz.floor_builder') }}" class="setup-btn">Build floor plan</a>
+                <a href="{{ url_for('biz.floor_view') }}" class="setup-btn primary">Open live floor</a>
             </div>
         </div>
 
-        <!-- ADD TABLE FORM -->
-        <div class="tables-add-box">
-            <h3>Add a Table</h3>
-            <form method="post" class="add-table-form">
-                <input type="hidden" name="action" value="add">
-                <div class="atf-row">
-                    <div class="atf-field">
-                        <label>Table name / number</label>
-                        <input type="text" name="table_number" placeholder="e.g. T1, Corner, B3" required class="atf-input">
-                    </div>
-                    <div class="atf-field atf-field-sm">
-                        <label>Seats</label>
-                        <select name="capacity" class="atf-input">
-                            {% for i in [1,2,3,4,5,6,7,8,10,12,15,20] %}
-                            <option value="{{ i }}" {% if i == 4 %}selected{% endif %}>{{ i }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="atf-field">
-                        <label>Section</label>
-                        <select name="section" class="atf-input">
-                            {% for s in sections %}
-                            <option>{{ s }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="atf-field">
-                        <label>Shape</label>
-                        <div class="shape-pick-row">
-                            <label class="shape-pick-opt">
-                                <input type="radio" name="shape" value="square" checked>
-                                <span class="sp-icon sq-icon"></span>
-                                <span class="sp-label">Square</span>
-                            </label>
-                            <label class="shape-pick-opt">
-                                <input type="radio" name="shape" value="round">
-                                <span class="sp-icon rd-icon"></span>
-                                <span class="sp-label">Round</span>
-                            </label>
-                            <label class="shape-pick-opt">
-                                <input type="radio" name="shape" value="rect">
-                                <span class="sp-icon rc-icon"></span>
-                                <span class="sp-label">Long</span>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="atf-field">
-                        <label>Notes (optional)</label>
-                        <input type="text" name="notes" placeholder="Window seat, accessible, quiet area" class="atf-input">
-                    </div>
-                    <button type="submit" class="btn-add-table">Add table</button>
-                </div>
-            </form>
+        <div class="setup-summary">
+            <div class="setup-stat"><strong>{{ all_tables|length }}</strong><span>Total tables</span></div>
+            <div class="setup-stat"><strong>{{ stats.active }}</strong><span>Bookable</span></div>
+            <div class="setup-stat"><strong>{{ stats.placed }}</strong><span>Placed on floor</span></div>
+            <div class="setup-stat"><strong>{{ stats.seats }}</strong><span>Total seats</span></div>
         </div>
 
-        <!-- FLOOR PLAN -->
-        {% if sections_map %}
-        <div class="floor-plan">
-            {% for section_name, tables in sections_map.items() %}
-            <div class="floor-section">
-                <div class="fs-header">
-                    <h3 class="fs-name">{{ section_name }}</h3>
-                    <span class="fs-count">{{ tables|length }} table{% if tables|length != 1 %}s{% endif %}</span>
+        <div class="table-workflow">
+            <section class="setup-panel">
+                <div class="setup-panel-head">
+                    <h2>Add a table</h2>
+                    <p>Use clear numbers like 1, 2, 3 or labels like Bar 1.</p>
                 </div>
-                <div class="fs-tables">
-                    {% for t in tables %}
-                    <div class="table-card {% if not t.is_active %}table-inactive{% endif %}">
-                        <div class="tc-top">
-                            <div class="tc-number">{{ t.table_number }}</div>
-                            <div class="tc-seats">{{ t.capacity }} seats</div>
+                <form method="post" class="setup-form">
+                    <input type="hidden" name="action" value="add">
+                    <div class="setup-form-grid">
+                        <div class="setup-field">
+                            <label for="tableNumber">Table number</label>
+                            <input id="tableNumber" type="text" name="table_number" placeholder="Example: 12" required class="setup-input">
                         </div>
-                        {% if t.notes %}
-                        <div class="tc-notes">{{ t.notes }}</div>
-                        {% endif %}
-                        <div class="tc-badge-wrap">
-                            {% if t.is_active %}
-                            <span class="tc-badge active">Active</span>
-                            {% else %}
-                            <span class="tc-badge inactive">Inactive</span>
-                            {% endif %}
+                        <div class="setup-field">
+                            <label for="capacity">Capacity</label>
+                            <select id="capacity" name="capacity" class="setup-select">
+                                {% for i in [1,2,3,4,5,6,7,8,9,10,12,14,16,20,24,30] %}
+                                <option value="{{ i }}" {% if i == 4 %}selected{% endif %}>{{ i }} guests</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                        <div class="tc-actions">
-                            <button class="tc-btn" onclick="openEditModal({{ t.id }},'{{ t.table_number }}',{{ t.capacity }},'{{ t.section }}','{{ t.notes or '' }}','{{ t.shape or 'square' }}')">Edit</button>
-                            <form method="post" style="display:inline">
-                                <input type="hidden" name="action" value="toggle">
-                                <input type="hidden" name="table_id" value="{{ t.id }}">
-                                <button type="submit" class="tc-btn">{{ 'Deactivate' if t.is_active else 'Activate' }}</button>
-                            </form>
-                            <form method="post" style="display:inline" onsubmit="return confirm('Remove table {{ t.table_number }}?')">
-                                <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="table_id" value="{{ t.id }}">
-                                <button type="submit" class="tc-btn tc-delete">Remove</button>
-                            </form>
+                        <div class="setup-field">
+                            <label for="section">Section</label>
+                            <select id="section" name="section" class="setup-select">
+                                {% for s in sections %}
+                                <option value="{{ s }}" {% if hint_section and s == hint_section %}selected{% endif %}>{{ s }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="setup-field">
+                            <label for="sectionCustom">New section</label>
+                            <input id="sectionCustom" type="text" name="section_custom" value="{{ hint_section if hint_section else '' }}" placeholder="Optional" class="setup-input">
+                        </div>
+                        <div class="setup-field full">
+                            <label>Shape</label>
+                            <div class="shape-picker">
+                                <label class="shape-option">
+                                    <input type="radio" name="shape" value="square" checked>
+                                    <span class="shape-preview"></span>
+                                    <span>Square</span>
+                                </label>
+                                <label class="shape-option">
+                                    <input type="radio" name="shape" value="round">
+                                    <span class="shape-preview round"></span>
+                                    <span>Round</span>
+                                </label>
+                                <label class="shape-option">
+                                    <input type="radio" name="shape" value="rect">
+                                    <span class="shape-preview rect"></span>
+                                    <span>Rectangle</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="setup-field full">
+                            <label for="notes">Notes</label>
+                            <input id="notes" type="text" name="notes" placeholder="Window, high-top, patio, accessible" class="setup-input">
+                            <div class="setup-hint">Notes are for staff only and help during busy service.</div>
+                        </div>
+                        <div class="setup-field full">
+                            <div class="switch-row">
+                                <div class="switch-copy">
+                                    <strong>Active for reservations</strong>
+                                    <span>Turn this off for storage, broken, or seasonal tables.</span>
+                                </div>
+                                <label class="setup-switch">
+                                    <input type="checkbox" name="is_active" checked>
+                                    <span class="setup-slider"></span>
+                                </label>
+                            </div>
                         </div>
                     </div>
+                    <button type="submit" class="btn-create-table">Create table</button>
+                </form>
+            </section>
+
+            <div class="section-stack">
+                {% if sections_map %}
+                    {% for section_name, tables in sections_map.items() %}
+                    <section class="section-card">
+                        <div class="section-card-head">
+                            <h3>{{ section_name }}</h3>
+                            <span>{{ tables|length }} table{% if tables|length != 1 %}s{% endif %}</span>
+                        </div>
+                        <div class="table-grid">
+                            {% for t in tables %}
+                            {% set shape = t.shape or 'square' %}
+                            <article class="setup-table-card {% if not t.is_active %}is-inactive{% endif %}">
+                                <div class="setup-table-figure">
+                                    <div class="table-shape {% if shape == 'round' %}round{% elif shape == 'rect' %}rect{% endif %}">{{ t.table_number }}</div>
+                                </div>
+                                <div class="setup-table-main">
+                                    <div class="setup-table-top">
+                                        <div>
+                                            <div class="setup-table-name">Table {{ t.table_number }}</div>
+                                            <div class="setup-table-meta">{{ t.capacity }} guests - {{ shape|replace('rect', 'rectangle') }}</div>
+                                        </div>
+                                        <span class="status-pill {% if t.is_active %}active{% else %}inactive{% endif %}">
+                                            {{ 'Active' if t.is_active else 'Inactive' }}
+                                        </span>
+                                    </div>
+                                    {% if t.grid_x is not none and t.grid_y is not none %}
+                                    <span class="layout-pill">Placed on floor</span>
+                                    {% else %}
+                                    <span class="layout-pill missing">Needs placement</span>
+                                    {% endif %}
+                                    {% if t.notes %}
+                                    <div class="setup-table-notes">{{ t.notes }}</div>
+                                    {% endif %}
+                                    <div class="setup-table-actions">
+                                        <button type="button"
+                                                class="table-action-btn"
+                                                data-id="{{ t.id }}"
+                                                data-number="{{ t.table_number|e }}"
+                                                data-capacity="{{ t.capacity }}"
+                                                data-section="{{ t.section|e }}"
+                                                data-notes="{{ (t.notes or '')|e }}"
+                                                data-shape="{{ shape }}"
+                                                data-active="{{ '1' if t.is_active else '0' }}"
+                                                onclick="openEditModal(this)">Edit</button>
+                                        <form method="post">
+                                            <input type="hidden" name="action" value="toggle">
+                                            <input type="hidden" name="table_id" value="{{ t.id }}">
+                                            <button type="submit" class="table-action-btn">{{ 'Deactivate' if t.is_active else 'Activate' }}</button>
+                                        </form>
+                                        <form method="post" onsubmit="return confirm('Remove table {{ t.table_number }}?')">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="table_id" value="{{ t.id }}">
+                                            <button type="submit" class="table-action-btn danger">Remove</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </article>
+                            {% endfor %}
+                        </div>
+                    </section>
                     {% endfor %}
+                {% else %}
+                <div class="empty-setup">
+                    <h3>No tables yet</h3>
+                    <p>Add your first table, then use the floor builder to place it for service.</p>
                 </div>
+                {% endif %}
             </div>
-            {% endfor %}
         </div>
-        {% else %}
-        <div class="no-tables-empty">
-            <h3>No tables yet</h3>
-            <p>Add your first table above to set up your floor plan. AllBookEU will auto-assign tables to reservations based on party size and availability.</p>
-        </div>
-        {% endif %}
     </div>
 </div>
 
-<!-- EDIT MODAL -->
 <div class="modal-overlay" id="editModal" style="display:none">
-    <div class="modal-box">
+    <div class="modal-box table-modal">
         <div class="modal-header">
-            <h3>Edit Table</h3>
-            <button class="modal-close" onclick="closeEditModal()">×</button>
+            <h3>Edit table</h3>
+            <button class="modal-close" type="button" onclick="closeEditModal()">&times;</button>
         </div>
         <form method="post" class="modal-form">
             <input type="hidden" name="action" value="edit">
             <input type="hidden" name="table_id" id="editTableId">
-            <div class="modal-field">
-                <label>Table name / number</label>
-                <input type="text" name="table_number" id="editTableNumber" required class="rw-input">
-            </div>
-            <div class="modal-field">
-                <label>Seats</label>
-                <select name="capacity" id="editCapacity" class="rw-input">
-                    {% for i in [1,2,3,4,5,6,7,8,10,12,15,20] %}
-                    <option value="{{ i }}">{{ i }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="modal-field">
-                <label>Section</label>
-                <select name="section" id="editSection" class="rw-input">
-                    {% for s in sections %}
-                    <option>{{ s }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="modal-field">
-                <label>Shape</label>
-                <div class="shape-pick-row">
-                    <label class="shape-pick-opt">
-                        <input type="radio" name="shape" value="square" id="editShapeSq">
-                        <span class="sp-icon sq-icon"></span>
-                        <span class="sp-label">Square</span>
-                    </label>
-                    <label class="shape-pick-opt">
-                        <input type="radio" name="shape" value="round" id="editShapeRd">
-                        <span class="sp-icon rd-icon"></span>
-                        <span class="sp-label">Round</span>
-                    </label>
-                    <label class="shape-pick-opt">
-                        <input type="radio" name="shape" value="rect" id="editShapeRc">
-                        <span class="sp-icon rc-icon"></span>
-                        <span class="sp-label">Long</span>
-                    </label>
+            <div class="modal-grid">
+                <div class="setup-field">
+                    <label for="editTableNumber">Table number</label>
+                    <input type="text" name="table_number" id="editTableNumber" required class="setup-input">
                 </div>
-            </div>
-            <div class="modal-field">
-                <label>Notes</label>
-                <input type="text" name="notes" id="editNotes" placeholder="Optional notes" class="rw-input">
+                <div class="setup-field">
+                    <label for="editCapacity">Capacity</label>
+                    <select name="capacity" id="editCapacity" class="setup-select">
+                        {% for i in [1,2,3,4,5,6,7,8,9,10,12,14,16,20,24,30] %}
+                        <option value="{{ i }}">{{ i }} guests</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="setup-field">
+                    <label for="editSection">Section</label>
+                    <select name="section" id="editSection" class="setup-select">
+                        {% for s in sections %}
+                        <option value="{{ s }}">{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="setup-field">
+                    <label for="editSectionCustom">New section</label>
+                    <input type="text" name="section_custom" id="editSectionCustom" placeholder="Optional" class="setup-input">
+                </div>
+                <div class="setup-field full">
+                    <label>Shape</label>
+                    <div class="shape-picker">
+                        <label class="shape-option">
+                            <input type="radio" name="shape" value="square" id="editShapeSq">
+                            <span class="shape-preview"></span>
+                            <span>Square</span>
+                        </label>
+                        <label class="shape-option">
+                            <input type="radio" name="shape" value="round" id="editShapeRd">
+                            <span class="shape-preview round"></span>
+                            <span>Round</span>
+                        </label>
+                        <label class="shape-option">
+                            <input type="radio" name="shape" value="rect" id="editShapeRc">
+                            <span class="shape-preview rect"></span>
+                            <span>Rectangle</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="setup-field full">
+                    <label for="editNotes">Notes</label>
+                    <input type="text" name="notes" id="editNotes" placeholder="Optional staff notes" class="setup-input">
+                </div>
+                <div class="setup-field full">
+                    <div class="switch-row">
+                        <div class="switch-copy">
+                            <strong>Active for reservations</strong>
+                            <span>Inactive tables stay saved but are hidden from booking availability.</span>
+                        </div>
+                        <label class="setup-switch">
+                            <input type="checkbox" name="is_active" id="editIsActive">
+                            <span class="setup-slider"></span>
+                        </label>
+                    </div>
+                </div>
             </div>
             <div class="modal-actions">
                 <button type="button" class="btn-outline" onclick="closeEditModal()">Cancel</button>
@@ -215,44 +714,30 @@
     </div>
 </div>
 
-<style>
-.shape-pick-row { display: flex; gap: 8px; margin-top: 4px; }
-.shape-pick-opt { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
-.shape-pick-opt input[type="radio"] { display: none; }
-.sp-icon {
-    display: flex; align-items: center; justify-content: center;
-    border: 2px solid #e2e6ec;
-    background: #f4f6f8;
-    transition: all 0.15s;
-    border-radius: 4px;
-}
-.sq-icon { width: 36px; height: 36px; border-radius: 6px; }
-.rd-icon { width: 36px; height: 36px; border-radius: 50%; }
-.rc-icon { width: 52px; height: 28px; border-radius: 6px; }
-.shape-pick-opt input:checked + .sp-icon {
-    border-color: #3b82f6;
-    background: #eff6ff;
-}
-.sp-label { font-size: 0.68rem; font-weight: 600; color: #6b7280; }
-</style>
 <script>
-function openEditModal(id, number, capacity, section, notes, shape) {
-    document.getElementById('editTableId').value = id;
-    document.getElementById('editTableNumber').value = number;
-    document.getElementById('editCapacity').value = capacity;
-    document.getElementById('editSection').value = section;
-    document.getElementById('editNotes').value = notes;
-    const s = shape || 'square';
-    document.getElementById('editShapeSq').checked = s === 'square';
-    document.getElementById('editShapeRd').checked = s === 'round';
-    document.getElementById('editShapeRc').checked = s === 'rect';
+function openEditModal(button) {
+    const data = button.dataset;
+    document.getElementById('editTableId').value = data.id;
+    document.getElementById('editTableNumber').value = data.number || '';
+    document.getElementById('editCapacity').value = data.capacity || '4';
+    document.getElementById('editSection').value = data.section || 'Main Floor';
+    document.getElementById('editSectionCustom').value = '';
+    document.getElementById('editNotes').value = data.notes || '';
+    const shape = data.shape || 'square';
+    document.getElementById('editShapeSq').checked = shape === 'square';
+    document.getElementById('editShapeRd').checked = shape === 'round';
+    document.getElementById('editShapeRc').checked = shape === 'rect';
+    document.getElementById('editIsActive').checked = data.active === '1';
     document.getElementById('editModal').style.display = 'flex';
 }
 function closeEditModal() {
     document.getElementById('editModal').style.display = 'none';
 }
-document.getElementById('editModal').addEventListener('click', function(e) {
-    if (e.target === this) closeEditModal();
+document.getElementById('editModal').addEventListener('click', function(event) {
+    if (event.target === this) closeEditModal();
+});
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') closeEditModal();
 });
 </script>
 {% endblock %}

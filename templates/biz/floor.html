@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Floor View — {{ business.name }}{% endblock %}
+{% block title %}Floor View - {{ business.name }}{% endblock %}
 {% block head %}
 <style>
 .floor-page { display:flex; height:calc(100vh - 64px); background:#f4f6f8; overflow:hidden; }
@@ -138,6 +138,128 @@ body.selecting .floor-table:not(.available) { opacity:.4; cursor:default; }
 .popup-btn.gray { background:#f1f5f9; color:#475569; }
 .popup-btn.gray:hover { background:#e2e8f0; }
 .popup-close { position:absolute; top:8px; right:10px; background:none; border:none; color:#64748b; font-size:1rem; cursor:pointer; line-height:1; }
+
+/* Service polish */
+.floor-page { background:#edf1f5; }
+.floor-sidebar { width:360px; min-width:360px; box-shadow: 1px 0 0 rgba(15,23,42,0.04); }
+.floor-date-nav { min-height:70px; padding:14px 18px; }
+.floor-date-nav a { width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:none; }
+.floor-date-label { font-size:1rem; }
+.service-summary {
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:8px;
+  padding:12px 14px;
+  border-bottom:1px solid #e5e7eb;
+  background:#fbfbfc;
+}
+.service-summary-card {
+  background:#fff;
+  border:1px solid #e2e5ea;
+  border-radius:8px;
+  padding:10px 8px;
+  text-align:center;
+}
+.service-summary-card strong { display:block; font-size:1.18rem; color:#111827; line-height:1; margin-bottom:4px; }
+.service-summary-card span { color:#6b7280; font-size:0.68rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; }
+.floor-booking-list { padding:12px; }
+.floor-group-label { padding:10px 2px 7px; }
+.floor-booking-card {
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-left-width:4px;
+  border-radius:8px;
+  margin-bottom:8px;
+  padding:12px;
+  box-shadow:0 1px 2px rgba(17,24,39,0.04);
+}
+.floor-booking-card:hover { background:#fff; box-shadow:0 8px 22px rgba(17,24,39,0.08); }
+.floor-booking-card.selected { border-color:#f59e0b !important; box-shadow:0 0 0 3px rgba(245,158,11,0.16); }
+.fbc-table-badge { border-radius:8px; width:38px; min-width:38px; height:38px; }
+.floor-topbar {
+  min-height:74px;
+  padding:14px 22px;
+  background:#111827;
+  border-bottom:1px solid #0b1220;
+  color:#fff;
+}
+.floor-topbar h2 { color:#fff; font-size:1.05rem; }
+.floor-stat { background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.12); color:#d1d5db; }
+.floor-stat strong { color:#fff; }
+.floor-legend .legend-item { color:#d1d5db; }
+.floor-action-link,
+.floor-action-button {
+  min-height:38px;
+  border-radius:7px;
+  padding:9px 13px;
+  font-size:0.78rem;
+  font-weight:850;
+  text-decoration:none;
+  cursor:pointer;
+}
+.floor-action-link { color:#fff; border:1px solid rgba(255,255,255,0.16); background:rgba(255,255,255,0.06); }
+.floor-action-button { color:#111827; border:1px solid #fff; background:#fff; font-family:inherit; }
+.floor-canvas {
+  padding:24px;
+  background-color:#edf1f5;
+  background-image: linear-gradient(#dde3ea 1px, transparent 1px), linear-gradient(90deg, #dde3ea 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+.floor-positioned-map {
+  position:relative;
+  min-width:100%;
+  background:rgba(255,255,255,0.72);
+  border:1px solid #d7dde5;
+  border-radius:12px;
+  box-shadow:0 10px 30px rgba(15,23,42,0.08);
+}
+.floor-table { width:118px; padding:8px; }
+.floor-table:hover { background:rgba(255,255,255,0.75); }
+.table-body {
+  width:86px;
+  height:86px;
+  background:#c5cad3;
+  border:2px solid #7b8492;
+  box-shadow:0 4px 12px rgba(15,23,42,0.12);
+}
+.floor-table.available .table-body { background:#c7ccd4; border-color:#8b95a3; }
+.floor-table.upcoming .table-body { background:#2f86a6; border-color:#256f89; }
+.floor-table.seated .table-body { background:#7c3aed; border-color:#6d28d9; }
+.floor-table.finished .table-body { background:#9aa3b2; border-color:#717b8a; }
+.table-seat { background:#4b5563; }
+.floor-table.available .table-seat { background:#6b7280; }
+.floor-table.upcoming .table-seat { background:#256f89; }
+.floor-table.seated .table-seat { background:#6d28d9; }
+.table-popup {
+  border-radius:10px;
+  min-width:220px;
+  padding:16px;
+  box-shadow:0 20px 50px rgba(15,23,42,.22);
+}
+.popup-btn { min-height:42px; }
+.floor-empty-state {
+  max-width:440px;
+  margin:70px auto;
+  text-align:center;
+  background:#fff;
+  border:1px solid #dfe3e8;
+  border-radius:10px;
+  padding:34px 28px;
+  box-shadow:0 10px 26px rgba(15,23,42,0.06);
+}
+.floor-empty-state h3 { margin:0 0 8px; color:#111827; font-size:1.05rem; }
+.floor-empty-state p { margin:0 0 18px; color:#6b7280; line-height:1.55; }
+
+@media (max-width: 980px) {
+  .floor-page { flex-direction:column; height:auto; min-height:calc(100vh - 64px); overflow:visible; }
+  .floor-sidebar { width:100%; min-width:0; max-height:440px; border-right:0; border-bottom:1px solid #d6dbe3; }
+  .floor-main { min-height:620px; }
+}
+@media (max-width: 620px) {
+  .service-summary { grid-template-columns:1fr 1fr 1fr; }
+  .floor-topbar { align-items:flex-start; gap:12px; flex-direction:column; }
+  .floor-canvas { padding:14px; }
+}
 </style>
 {% endblock %}
 
@@ -147,12 +269,18 @@ body.selecting .floor-table:not(.available) { opacity:.4; cursor:default; }
   <!-- ── Sidebar ── -->
   <div class="floor-sidebar">
     <div class="floor-date-nav">
-      <a href="{{ url_for('biz.floor_view', date=prev_date.isoformat()) }}">‹</a>
+      <a href="{{ url_for('biz.floor_view', date=prev_date.isoformat()) }}">&lt;</a>
       <div class="floor-date-label">
         {% if selected_date == today %}Today{% elif selected_date == next_date %}Tomorrow{% else %}{{ selected_date.strftime('%a, %b %d') }}{% endif %}
         <small>{{ selected_date.strftime('%B %d, %Y') }}</small>
       </div>
-      <a href="{{ url_for('biz.floor_view', date=next_date.isoformat()) }}">›</a>
+      <a href="{{ url_for('biz.floor_view', date=next_date.isoformat()) }}">&gt;</a>
+    </div>
+
+    <div class="service-summary">
+      <div class="service-summary-card"><strong>{{ upcoming|length }}</strong><span>Upcoming</span></div>
+      <div class="service-summary-card"><strong>{{ seated|length }}</strong><span>Seated</span></div>
+      <div class="service-summary-card"><strong>{{ finished|length }}</strong><span>Done</span></div>
     </div>
 
     <div class="selecting-hint" id="selectingHint">
@@ -160,7 +288,7 @@ body.selecting .floor-table:not(.available) { opacity:.4; cursor:default; }
     </div>
 
     <div class="floor-search-wrap">
-      <input type="text" class="floor-search" id="guestSearch" placeholder="Search guest…" oninput="filterGuests(this.value)">
+      <input type="text" class="floor-search" id="guestSearch" placeholder="Search guest..." oninput="filterGuests(this.value)">
     </div>
 
     <div class="floor-booking-list" id="bookingList">
@@ -173,11 +301,11 @@ body.selecting .floor-table:not(.available) { opacity:.4; cursor:default; }
            data-status="upcoming"
            onclick="selectGuest(this, {{ b.id }}, '{{ b.customer_name|e }}')">
         <div class="fbc-table-badge {% if not b.table_id %}no-table-badge{% endif %}">
-          {% if b.table_id and b.table %}{{ b.table.table_number }}{% else %}—{% endif %}
+          {% if b.table_id and b.table %}{{ b.table.table_number }}{% else %}-{% endif %}
         </div>
         <div class="fbc-info">
           <div class="fbc-name">{{ b.customer_name }}</div>
-          <div class="fbc-meta">{{ b.booking_time }} · {{ b.party_size }}p{% if b.notes %} · {{ b.notes[:20] }}{% endif %}</div>
+          <div class="fbc-meta">{{ b.booking_time }} - {{ b.party_size }}p{% if b.notes %} - {{ b.notes[:20] }}{% endif %}</div>
         </div>
         <span class="fbc-badge badge-upcoming">{% if item.minutes_until %}{{ item.minutes_until }}m{% else %}soon{% endif %}</span>
       </div>
@@ -191,11 +319,11 @@ body.selecting .floor-table:not(.available) { opacity:.4; cursor:default; }
            data-status="seated"
            onclick="selectGuest(this, {{ b.id }}, '{{ b.customer_name|e }}')">
         <div class="fbc-table-badge {% if not b.table_id %}no-table-badge{% endif %}">
-          {% if b.table_id and b.table %}{{ b.table.table_number }}{% else %}—{% endif %}
+          {% if b.table_id and b.table %}{{ b.table.table_number }}{% else %}-{% endif %}
         </div>
         <div class="fbc-info">
           <div class="fbc-name">{{ b.customer_name }}</div>
-          <div class="fbc-meta">{{ b.booking_time }} · {{ b.party_size }}p</div>
+          <div class="fbc-meta">{{ b.booking_time }} - {{ b.party_size }}p</div>
         </div>
         <span class="fbc-badge badge-seated">{{ item.minutes }}m</span>
       </div>
@@ -207,17 +335,21 @@ body.selecting .floor-table:not(.available) { opacity:.4; cursor:default; }
       <div class="floor-booking-card finished-card guest-card"
            data-id="{{ b.id }}" data-name="{{ b.customer_name|lower }}"
            data-status="finished">
-        <div class="fbc-table-badge no-table-badge">✓</div>
+        <div class="fbc-table-badge no-table-badge">OK</div>
         <div class="fbc-info">
           <div class="fbc-name">{{ b.customer_name }}</div>
-          <div class="fbc-meta">{{ b.booking_time }} · {{ b.party_size }}p</div>
+          <div class="fbc-meta">{{ b.booking_time }} - {{ b.party_size }}p</div>
         </div>
         <span class="fbc-badge badge-done">done</span>
       </div>
       {% endfor %}{% endif %}
 
       {% if not upcoming and not seated and not finished %}
-      <div style="padding:40px 16px;text-align:center;color:#3a3a6a;font-size:0.875rem;">No reservations for this day.</div>
+      <div class="floor-empty-state">
+        <h3>No reservations for this day</h3>
+        <p>Use Add reservation when someone calls, then seat them from this screen.</p>
+        <a href="{{ url_for('biz.new_booking') }}" class="floor-action-button">Add reservation</a>
+      </div>
       {% endif %}
 
     </div>
@@ -238,8 +370,9 @@ body.selecting .floor-table:not(.available) { opacity:.4; cursor:default; }
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <a href="{{ url_for('biz.floor_builder') }}" style="font-size:0.78rem;color:#2f86a6;padding:7px 12px;border:1px solid #d6dbe3;border-radius:4px;background:#fff;font-weight:700;">Edit Layout</a>
-        <button onclick="location.reload()" style="background:#fff;border:1px solid #d6dbe3;color:#2f86a6;border-radius:4px;padding:7px 14px;font-size:0.78rem;font-weight:700;cursor:pointer;">Refresh</button>
+        <a href="{{ url_for('biz.new_booking') }}" class="floor-action-button">Add reservation</a>
+        <a href="{{ url_for('biz.floor_builder') }}" class="floor-action-link">Edit layout</a>
+        <button onclick="location.reload()" class="floor-action-button">Refresh</button>
       </div>
     </div>
 
@@ -262,7 +395,7 @@ body.selecting .floor-table:not(.available) { opacity:.4; cursor:default; }
           {% if td.table.grid_x is not none and td.table.grid_x > max_x.v %}{% set max_x.v = td.table.grid_x %}{% endif %}
           {% if td.table.grid_y is not none and td.table.grid_y > max_y.v %}{% set max_y.v = td.table.grid_y %}{% endif %}
         {% endfor %}
-        <div style="position:relative;width:{{ (max_x.v + 2) * 114 }}px;height:{{ (max_y.v + 2) * 114 }}px;min-width:100%">
+        <div class="floor-positioned-map" style="width:{{ (max_x.v + 2) * 114 }}px;height:{{ (max_y.v + 2) * 114 }}px;">
           {% for td in table_data %}
           {% set t = td.table %}{% set status = td.status %}{% set sh = t.shape or 'square' %}
           {% if t.grid_x is not none and t.grid_y is not none %}
@@ -322,9 +455,10 @@ body.selecting .floor-table:not(.available) { opacity:.4; cursor:default; }
         </div>
         {% endfor %}
       {% else %}
-        <div style="text-align:center;padding:80px 20px;color:#3040a0">
-          <div style="font-size:3rem;margin-bottom:16px">🪑</div>
-          <p>No tables yet. <a href="{{ url_for('biz.tables') }}" style="color:#5060c0">Add tables</a> first.</p>
+        <div class="floor-empty-state">
+          <h3>No tables yet</h3>
+          <p>Add tables first, then place them on the floor builder.</p>
+          <a href="{{ url_for('biz.tables') }}" class="floor-action-button">Add tables</a>
         </div>
       {% endif %}
     </div>
@@ -333,12 +467,12 @@ body.selecting .floor-table:not(.available) { opacity:.4; cursor:default; }
 
 <!-- ── Table action popup ── -->
 <div class="table-popup" id="tablePopup" style="display:none">
-  <button class="popup-close" onclick="closePopup()">×</button>
+  <button class="popup-close" onclick="closePopup()">x</button>
   <h4 id="popupTitle">Table</h4>
   <p id="popupMeta"></p>
-  <button class="popup-btn green" id="popupSeatBtn" onclick="popupSeat()" style="display:none">✓ Seat guest</button>
-  <button class="popup-btn green" id="popupFinishBtn" onclick="popupFinish()" style="display:none">✓ Mark as finished</button>
-  <button class="popup-btn gray" id="popupUnassignBtn" onclick="popupUnassign()" style="display:none">↩ Unassign</button>
+  <button class="popup-btn green" id="popupSeatBtn" onclick="popupSeat()" style="display:none">Seat guest</button>
+  <button class="popup-btn green" id="popupFinishBtn" onclick="popupFinish()" style="display:none">Mark as finished</button>
+  <button class="popup-btn gray" id="popupUnassignBtn" onclick="popupUnassign()" style="display:none">Unassign</button>
 </div>
 
 <script>
@@ -383,7 +517,7 @@ function handleTableClick(e, el) {
   const bookingId = el.dataset.bookingId;
   const bookingName = el.dataset.bookingName;
 
-  // If we have a selected guest and table is available → assign
+  // If we have a selected guest and table is available, assign it.
   if (selectedBookingId && status === 'available') {
     assignGuest(selectedBookingId, selectedGuestName, tableId, el);
     return;

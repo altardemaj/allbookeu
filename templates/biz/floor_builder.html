@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Floor Builder — {{ business.name }}{% endblock %}
+{% block title %}Floor Builder - {{ business.name }}{% endblock %}
 {% block head %}
 <style>
 :root {
@@ -144,6 +144,23 @@
 }
 .btn-bld-view:hover { background: #2563eb; }
 
+.btn-bld-tables {
+  background: transparent;
+  color: rgba(255,255,255,0.78);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-bld-tables:hover { color: #fff; border-color: rgba(255,255,255,0.32); }
+
 .btn-bld-clear {
   background: transparent;
   color: rgba(255,255,255,0.4);
@@ -222,6 +239,11 @@
   background: #f8faff;
 }
 .dock-card.dragging { opacity: 0.35; }
+.dock-card.selected {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.16);
+}
 
 .dock-shape {
   width: 34px;
@@ -276,6 +298,53 @@
 .bld-canvas-wrap::-webkit-scrollbar { width: 7px; height: 7px; }
 .bld-canvas-wrap::-webkit-scrollbar-thumb { background: #c8cdd7; border-radius: 4px; }
 
+.bld-canvas-intro {
+  width: min(100%, 1760px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.bld-canvas-title {
+  background: #fff;
+  border: 1px solid #dfe3e8;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.bld-canvas-title h1 {
+  margin: 0 0 3px;
+  font-size: 1rem;
+  font-weight: 850;
+  color: #111827;
+}
+.bld-canvas-title p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.82rem;
+}
+.bld-quick-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 8px;
+}
+.bld-step {
+  min-height: 66px;
+  background: #fff;
+  border: 1px solid #dfe3e8;
+  border-radius: 10px;
+  padding: 11px 12px;
+  color: #4b5563;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+.bld-step strong {
+  display: block;
+  color: #111827;
+  font-size: 0.78rem;
+  margin-bottom: 2px;
+}
+
 .bld-grid {
   display: grid;
   grid-template-columns: repeat({{ grid_cols }}, 88px);
@@ -301,6 +370,8 @@
 }
 .grid-cell.drag-over { background: #eff6ff; border-color: #3b82f6; box-shadow: inset 0 0 0 2px rgba(59,130,246,0.3); }
 .grid-cell.drag-over.occupied { background: #fef2f2; border-color: #ef4444; }
+.grid-cell.tap-target { cursor: crosshair; }
+.grid-cell.tap-target:hover { background: #f8faff; box-shadow: inset 0 0 0 2px rgba(59,130,246,0.12); }
 
 /* ── Placed Table ── */
 .placed-table {
@@ -417,12 +488,17 @@
 @media (max-width: 900px) {
   .bld-dock { width: 200px; min-width: 200px; }
   .bld-brand { display: none; }
+  .bld-canvas-intro { grid-template-columns: 1fr; }
+  .bld-quick-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {
   .builder-page { height: auto; min-height: calc(100vh - 64px); overflow: visible; }
   .bld-body { flex-direction: column; }
   .bld-dock { width: 100%; min-width: 0; max-height: 280px; border-right: none; border-bottom: 1px solid var(--dock-border); }
   .bld-canvas-wrap { min-height: 480px; overflow: auto; }
+  .bld-topbar { flex-wrap: wrap; height: auto; padding: 10px 12px; gap: 10px; }
+  .bld-actions { width: 100%; margin-left: 0; justify-content: space-between; }
+  .bld-quick-steps { grid-template-columns: 1fr; }
 }
 </style>
 {% endblock %}
@@ -464,9 +540,10 @@
     </div>
 
     <div class="bld-actions">
-      <span class="bld-status" id="saveStatus">{{ placed|length }} placed · {{ unplaced|length }} left</span>
+      <span class="bld-status" id="saveStatus">{{ placed|length }} placed - {{ unplaced|length }} left</span>
       <button class="btn-bld-clear" onclick="clearAll()" {% if not placed %}disabled{% endif %}>Clear</button>
-      <a href="{{ url_for('biz.floor_view') }}" class="btn-bld-view">Live View →</a>
+      <a href="{{ url_for('biz.tables') }}" class="btn-bld-tables">Tables</a>
+      <a href="{{ url_for('biz.floor_view') }}" class="btn-bld-view">Live View -></a>
     </div>
   </div>
 
@@ -475,8 +552,8 @@
     <!-- ── Dock ── -->
     <div class="bld-dock">
       <div class="dock-header">
-        <h3>Unplaced — {{ current_section }}</h3>
-        <p>Drag a table onto the grid</p>
+        <h3>Unplaced - {{ current_section }}</h3>
+        <p>Drag or tap a table, then place it on the grid</p>
       </div>
       <div class="dock-list" id="dockList">
         {% if unplaced %}
@@ -489,6 +566,7 @@
                data-capacity="{{ t.capacity }}"
                data-section="{{ t.section }}"
                data-shape="{{ t.shape or 'square' }}"
+               onclick="selectDockForTouch(event, this)"
                ondragstart="onDockDragStart(event)">
             <div class="dock-shape">
               {% set sh = t.shape or 'square' %}
@@ -498,24 +576,35 @@
             </div>
             <div class="dock-card-info">
               <div class="dock-card-name">Table {{ t.table_number }}</div>
-              <div class="dock-card-meta">{{ t.capacity }}p · {{ sh }}</div>
+              <div class="dock-card-meta">{{ t.capacity }}p - {{ sh }}</div>
             </div>
           </div>
           {% endfor %}
         {% else %}
           <div class="dock-empty">
-            <div class="dock-empty-icon">✓</div>
+            <div class="dock-empty-icon">Done</div>
             All tables placed in {{ current_section }}
           </div>
         {% endif %}
       </div>
       <div class="dock-hint">
-        <strong>Drag</strong> to place · <strong>×</strong> to remove
+        <strong>Tablet tip:</strong> tap a table, then tap a grid square. Use the red x to remove.
       </div>
     </div>
 
     <!-- ── Grid Canvas ── -->
     <div class="bld-canvas-wrap">
+      <div class="bld-canvas-intro">
+        <div class="bld-canvas-title">
+          <h1>{{ current_section }} floor plan</h1>
+          <p>Place active tables where staff expect to see them during service.</p>
+        </div>
+        <div class="bld-quick-steps">
+          <div class="bld-step"><strong>1. Choose</strong>Pick an unplaced table from the left.</div>
+          <div class="bld-step"><strong>2. Place</strong>Tap or drag it into an open square.</div>
+          <div class="bld-step"><strong>3. Serve</strong>Open Live View when service starts.</div>
+        </div>
+      </div>
       <div class="bld-grid" id="builderGrid">
         {% for row in range(grid_rows) %}
           {% for col in range(grid_cols) %}
@@ -529,6 +618,7 @@
                id="cell-{{ col }}-{{ row }}"
                data-x="{{ col }}"
                data-y="{{ row }}"
+               onclick="onCellTap(event)"
                ondragover="onDragOver(event)"
                ondragleave="onDragLeave(event)"
                ondrop="onDrop(event)">
@@ -549,7 +639,7 @@
                    ondragstart="onPlacedDragStart(event)">
                 <div class="pt-seats-top">{% for _ in range(seat_n) %}<div class="pt-seat"></div>{% endfor %}</div>
                 <div class="pt-body">
-                  <button class="pt-remove" onclick="removeTable(event, {{ t.id }}, {{ t.grid_x }}, {{ t.grid_y }})">×</button>
+                  <button class="pt-remove" onclick="removeTable(event, {{ t.id }}, {{ t.grid_x }}, {{ t.grid_y }})">x</button>
                   <div class="pt-num">{{ t.table_number }}</div>
                   <div class="pt-cap">{{ t.capacity }}p</div>
                 </div>
@@ -569,6 +659,7 @@
 
 <script>
 let dragTableId = null, dragFromX = null, dragFromY = null, isDockDrag = false;
+let selectedTouchCard = null;
 
 function setStatus(msg, type) {
   const el = document.getElementById('saveStatus');
@@ -578,17 +669,39 @@ function setStatus(msg, type) {
 function getCountMsg() {
   const p = document.querySelectorAll('.placed-table').length;
   const u = document.querySelectorAll('.dock-card').length;
-  return `${p} placed · ${u} left`;
+  return `${p} placed - ${u} left`;
 }
 
 function onDockDragStart(e) {
   const c = e.currentTarget;
+  clearTouchSelection();
   dragTableId = c.dataset.tableId;
   dragFromX = null; dragFromY = null; isDockDrag = true;
   c.classList.add('dragging');
   e.dataTransfer.effectAllowed = 'move';
   e.dataTransfer.setData('text/plain', dragTableId);
   setTimeout(() => c.classList.remove('dragging'), 0);
+}
+
+function selectDockForTouch(e, card) {
+  if (e.detail === 0) return;
+  if (selectedTouchCard === card) {
+    clearTouchSelection();
+    setStatus(getCountMsg());
+    return;
+  }
+  clearTouchSelection();
+  selectedTouchCard = card;
+  dragTableId = card.dataset.tableId;
+  card.classList.add('selected');
+  document.querySelectorAll('.grid-cell:not(.has-table)').forEach(cell => cell.classList.add('tap-target'));
+  setStatus(`Tap an open square to place Table ${card.dataset.tableNum}`, 'saving');
+}
+
+function clearTouchSelection() {
+  if (selectedTouchCard) selectedTouchCard.classList.remove('selected');
+  selectedTouchCard = null;
+  document.querySelectorAll('.grid-cell').forEach(cell => cell.classList.remove('tap-target'));
 }
 
 function onPlacedDragStart(e) {
@@ -620,24 +733,48 @@ async function onDrop(e) {
   cell.classList.remove('drag-over', 'occupied');
   const x = parseInt(cell.dataset.x), y = parseInt(cell.dataset.y);
   if (dragFromX === x && dragFromY === y) return;
+  await placeTableInCell(cell, dragTableId, x, y);
+}
+
+async function onCellTap(e) {
+  const cell = e.currentTarget;
+  if (!selectedTouchCard) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const x = parseInt(cell.dataset.x), y = parseInt(cell.dataset.y);
+  await placeTableInCell(cell, selectedTouchCard.dataset.tableId, x, y);
+}
+
+async function saveTablePosition(tableId, x, y) {
+  const r = await fetch(`/biz/table/${tableId}/position`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': '{{ csrf_token() }}' },
+    body: JSON.stringify({ x, y })
+  });
+  if (!r.ok) {
+    const err = await r.json();
+    throw new Error(err.error || 'failed');
+  }
+}
+
+async function placeTableInCell(cell, tableId, x, y) {
   const placed = cell.querySelector('.placed-table');
-  if (placed && placed.dataset.tableId !== dragTableId) {
+  if (placed && placed.dataset.tableId !== tableId) {
     setStatus('Cell occupied by Table ' + placed.dataset.tableNum, 'error');
     setTimeout(() => setStatus(getCountMsg()), 2500);
     return;
   }
-  setStatus('Saving…', 'saving');
+  setStatus('Saving...', 'saving');
   try {
-    const r = await fetch(`/biz/table/${dragTableId}/position`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': '{{ csrf_token() }}' },
-      body: JSON.stringify({ x, y })
-    });
-    if (!r.ok) { const err = await r.json(); setStatus('Error: ' + (err.error || 'failed'), 'error'); setTimeout(() => setStatus(getCountMsg()), 2500); return; }
-    movePlacedTable(dragTableId, x, y);
+    await saveTablePosition(tableId, x, y);
+    movePlacedTable(tableId, x, y);
+    clearTouchSelection();
     setStatus('Saved', 'saved');
     setTimeout(() => setStatus(getCountMsg()), 1500);
-  } catch { setStatus('Network error', 'error'); setTimeout(() => setStatus(getCountMsg()), 2500); }
+  } catch (err) {
+    setStatus('Error: ' + err.message, 'error');
+    setTimeout(() => setStatus(getCountMsg()), 2500);
+  }
 }
 
 function makePlacedHTML(tableId, tableNum, capacity, section, shape, newX, newY) {
@@ -658,7 +795,7 @@ function makePlacedHTML(tableId, tableNum, capacity, section, shape, newX, newY)
          ondragstart="onPlacedDragStart(event)">
       <div class="pt-seats-top">${shape !== 'round' ? seatsTop : ''}</div>
       <div class="pt-body">
-        <button class="pt-remove" onclick="removeTable(event, ${tableId}, ${newX}, ${newY})">×</button>
+        <button class="pt-remove" onclick="removeTable(event, ${tableId}, ${newX}, ${newY})">x</button>
         <div class="pt-num">${tableNum}</div>
         <div class="pt-cap">${capacity}p</div>
       </div>
@@ -698,7 +835,8 @@ function movePlacedTable(tableId, newX, newY) {
 
 async function removeTable(e, tableId, x, y) {
   e.stopPropagation();
-  setStatus('Removing…', 'saving');
+  clearTouchSelection();
+  setStatus('Removing...', 'saving');
   try {
     const r = await fetch(`/biz/table/${tableId}/position`, {
       method: 'POST',
@@ -737,12 +875,13 @@ function addToDock(tableId, tableNum, capacity, section, shape) {
   card.dataset.capacity = capacity;
   card.dataset.section = section;
   card.dataset.shape = shape;
+  card.setAttribute('onclick', 'selectDockForTouch(event, this)');
   card.setAttribute('ondragstart', 'onDockDragStart(event)');
   card.innerHTML = `
     <div class="dock-shape"><div class="ds-inner ${shClass}">${tableNum}</div></div>
     <div class="dock-card-info">
       <div class="dock-card-name">Table ${tableNum}</div>
-      <div class="dock-card-meta">${capacity}p · ${shape}</div>
+      <div class="dock-card-meta">${capacity}p - ${shape}</div>
     </div>`;
   dockList.appendChild(card);
 }
@@ -750,13 +889,14 @@ function addToDock(tableId, tableNum, capacity, section, shape) {
 function checkDockEmpty() {
   const dockList = document.getElementById('dockList');
   if (!dockList.querySelectorAll('.dock-card').length) {
-    dockList.innerHTML = '<div class="dock-empty"><div class="dock-empty-icon">✓</div>All tables placed</div>';
+    dockList.innerHTML = '<div class="dock-empty"><div class="dock-empty-icon">Done</div>All tables placed</div>';
   }
 }
 
 async function clearAll() {
   if (!confirm('Remove all tables from this floor plan?')) return;
-  setStatus('Clearing…', 'saving');
+  clearTouchSelection();
+  setStatus('Clearing...', 'saving');
   for (const pt of document.querySelectorAll('.placed-table')) {
     const id = pt.dataset.tableId, cell = pt.closest('.grid-cell');
     const cx = parseInt(cell.dataset.x), cy = parseInt(cell.dataset.y);

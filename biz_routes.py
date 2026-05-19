@@ -23,6 +23,18 @@ TIME_OPTIONS = [
 SECTIONS = ['Main Floor', 'Terrace', 'Garden', 'Private Room', 'Bar', 'Rooftop', 'Basement']
 
 
+def _safe_int(value, default=0, minimum=None, maximum=None):
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        number = default
+    if minimum is not None:
+        number = max(minimum, number)
+    if maximum is not None:
+        number = min(maximum, number)
+    return number
+
+
 def owner_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -398,8 +410,8 @@ def tables():
 
         if action == 'add':
             table_number = request.form.get('table_number', '').strip()
-            capacity = int(request.form.get('capacity', 4))
-            section = request.form.get('section', 'Main Floor').strip()
+            capacity = _safe_int(request.form.get('capacity'), default=4, minimum=1, maximum=30)
+            section = request.form.get('section_custom', '').strip() or request.form.get('section', 'Main Floor').strip()
             notes = request.form.get('notes', '').strip()
             shape = request.form.get('shape', 'square').strip()
             if shape not in ('square', 'round', 'rect'):
@@ -411,7 +423,8 @@ def tables():
                     capacity=capacity,
                     section=section,
                     notes=notes,
-                    shape=shape
+                    shape=shape,
+                    is_active=request.form.get('is_active') == 'on'
                 )
                 db.session.add(t)
                 db.session.commit()
@@ -424,9 +437,10 @@ def tables():
             t = RestaurantTable.query.get(table_id)
             if t and t.business_id == business.id:
                 t.table_number = request.form.get('table_number', t.table_number).strip()
-                t.capacity = int(request.form.get('capacity', t.capacity))
-                t.section = request.form.get('section', t.section).strip()
+                t.capacity = _safe_int(request.form.get('capacity'), default=t.capacity, minimum=1, maximum=30)
+                t.section = request.form.get('section_custom', '').strip() or request.form.get('section', t.section).strip()
                 t.notes = request.form.get('notes', '').strip()
+                t.is_active = request.form.get('is_active') == 'on'
                 new_shape = request.form.get('shape', t.shape or 'square').strip()
                 if new_shape in ('square', 'round', 'rect'):
                     t.shape = new_shape
@@ -459,9 +473,14 @@ def tables():
     for t in all_tables:
         sections_map.setdefault(t.section, []).append(t)
 
+    known_sections = list(dict.fromkeys(SECTIONS + [t.section for t in all_tables if t.section]))
+    hint_section = request.args.get('hint_section', '').strip()
+    if hint_section and hint_section not in known_sections:
+        known_sections.append(hint_section)
+
     return render_template('biz/tables.html', owner=owner, business=business,
                            all_tables=all_tables, sections_map=sections_map,
-                           sections=SECTIONS)
+                           sections=known_sections, hint_section=hint_section)
 
 
 @biz.route('/services', methods=['GET', 'POST'])
