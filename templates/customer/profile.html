@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ t('profile_settings') }} — AllBook{% endblock %}
+{% block title %}{{ t('profile_settings') }} - AllBook{% endblock %}
 {% block content %}
 <div class="dash-layout">
 
@@ -13,94 +13,103 @@
         </div>
         <nav class="dash-nav">
             <a href="{{ url_for('customer.dashboard') }}" class="dash-nav-item">
-                <span>📅</span> {{ t('my_bookings') }}
+                <span aria-hidden="true">&#128197;</span> {{ t('my_bookings') }}
             </a>
             <a href="{{ url_for('customer.profile') }}" class="dash-nav-item dash-nav-active">
-                <span>👤</span> {{ t('profile_settings') }}
+                <span aria-hidden="true">&#128100;</span> {{ t('profile_settings') }}
             </a>
             <a href="{{ url_for('search') }}" class="dash-nav-item">
-                <span>🔍</span> {{ t('find_businesses') }}
+                <span aria-hidden="true">&#128269;</span> {{ t('find_businesses') }}
             </a>
         </nav>
-        <form action="{{ url_for('auth.logout') }}" method="post" style="margin-top:auto;padding:20px">
-            <button type="submit" class="dash-logout-btn">🚪 {{ t('sign_out') }}</button>
+        <form action="{{ url_for('auth.logout') }}" method="post" class="dash-sidebar-form">
+            <button type="submit" class="dash-logout-btn"><span aria-hidden="true">&#128682;</span> {{ t('sign_out') }}</button>
         </form>
     </aside>
 
     <main class="dash-main">
-        <div class="dash-header">
+        <div class="dash-header profile-header">
             <div>
                 <h1>{{ t('profile_settings') }}</h1>
+                <p>{{ t('account_info') }}</p>
             </div>
+            <a href="{{ url_for('search') }}" class="btn-dash-primary">{{ t('find_businesses') }}</a>
         </div>
 
-        <!-- PROFILE INFO -->
-        <div class="dash-card">
-            <h2 class="dash-card-title">{{ t('personal_info') }}</h2>
-            <form method="post" action="{{ url_for('customer.profile') }}" class="dash-form">
-                <input type="hidden" name="action" value="update_profile">
-                <div class="form-row-2">
-                    <div class="form-group">
-                        <label>{{ t('full_name') }} <span class="req">*</span></label>
-                        <input type="text" name="name" value="{{ user.name }}" required class="dash-input">
-                    </div>
-                    <div class="form-group">
-                        <label>{{ t('phone_number') }}</label>
-                        <input type="tel" name="phone" value="{{ user.phone or '' }}" class="dash-input">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>{{ t('email') }}</label>
-                    <input type="email" value="{{ user.email }}" disabled class="dash-input dash-input-disabled">
-                </div>
-                <div class="dash-form-footer">
-                    <button type="submit" class="btn-dash-primary">{{ t('save_changes') }}</button>
-                </div>
-            </form>
-        </div>
+        <div class="customer-profile-grid">
+            <div class="customer-profile-stack">
+                <section class="dash-card profile-panel">
+                    <h2 class="dash-card-title">{{ t('personal_info') }}</h2>
+                    <form method="post" action="{{ url_for('customer.profile') }}" class="dash-form">
+                        <input type="hidden" name="action" value="update_profile">
+                        <div class="form-row-2">
+                            <div class="form-group">
+                                <label>{{ t('full_name') }} <span class="req">*</span></label>
+                                <input type="text" name="name" value="{{ user.name }}" required class="dash-input" autocomplete="name">
+                            </div>
+                            <div class="form-group">
+                                <label>{{ t('phone_number') }}</label>
+                                <input type="tel" name="phone" value="{{ user.phone or '' }}" class="dash-input" autocomplete="tel">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ t('email') }}</label>
+                            <input type="email" value="{{ user.email }}" disabled class="dash-input dash-input-disabled">
+                        </div>
+                        <div class="dash-form-footer">
+                            <button type="submit" class="btn-dash-primary">{{ t('save_changes') }}</button>
+                        </div>
+                    </form>
+                </section>
 
-        <!-- CHANGE PASSWORD -->
-        <div class="dash-card" style="margin-top:24px">
-            <h2 class="dash-card-title">{{ t('change_password') }}</h2>
-            <form method="post" action="{{ url_for('customer.profile') }}" class="dash-form">
-                <input type="hidden" name="action" value="change_password">
-                <div class="form-group">
-                    <label>{{ t('current_password') }}</label>
-                    <input type="password" name="current_password" placeholder="••••••••" required class="dash-input">
-                </div>
-                <div class="form-row-2">
-                    <div class="form-group">
-                        <label>{{ t('new_password') }}</label>
-                        <input type="password" name="new_password" placeholder="Min. 6 characters" required minlength="6" class="dash-input">
-                    </div>
-                    <div class="form-group">
-                        <label>{{ t('confirm_password') }}</label>
-                        <input type="password" name="confirm_password" placeholder="Repeat new password" required class="dash-input">
-                    </div>
-                </div>
-                <div class="dash-form-footer">
-                    <button type="submit" class="btn-dash-primary">{{ t('update_password') }}</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- ACCOUNT INFO -->
-        <div class="dash-card dash-card-muted" style="margin-top:24px">
-            <h2 class="dash-card-title">{{ t('account_info') }}</h2>
-            <div class="dash-info-list">
-                <div class="dash-info-row">
-                    <span>{{ t('account_type') }}</span>
-                    <span class="dash-badge">{{ t('customer_label') }}</span>
-                </div>
-                <div class="dash-info-row">
-                    <span>{{ t('member_since') }}</span>
-                    <span>{{ user.created_at.strftime('%B %Y') }}</span>
-                </div>
-                <div class="dash-info-row">
-                    <span>{{ t('email') }}</span>
-                    <span>{{ user.email }}</span>
-                </div>
+                <section class="dash-card profile-panel">
+                    <h2 class="dash-card-title">{{ t('change_password') }}</h2>
+                    <form method="post" action="{{ url_for('customer.profile') }}" class="dash-form">
+                        <input type="hidden" name="action" value="change_password">
+                        <div class="form-group">
+                            <label>{{ t('current_password') }}</label>
+                            <input type="password" name="current_password" required class="dash-input" autocomplete="current-password">
+                        </div>
+                        <div class="form-row-2">
+                            <div class="form-group">
+                                <label>{{ t('new_password') }}</label>
+                                <input type="password" name="new_password" placeholder="Min. 6 characters" required minlength="6" class="dash-input" autocomplete="new-password">
+                            </div>
+                            <div class="form-group">
+                                <label>{{ t('confirm_password') }}</label>
+                                <input type="password" name="confirm_password" placeholder="Repeat new password" required class="dash-input" autocomplete="new-password">
+                            </div>
+                        </div>
+                        <div class="dash-form-footer">
+                            <button type="submit" class="btn-dash-primary">{{ t('update_password') }}</button>
+                        </div>
+                    </form>
+                </section>
             </div>
+
+            <aside class="dash-card dash-card-muted account-summary-card">
+                <div class="account-summary-head">
+                    <div class="account-summary-avatar">{{ user.name[0].upper() }}</div>
+                    <div>
+                        <h2 class="account-summary-name">{{ user.name }}</h2>
+                        <p class="account-summary-email">{{ user.email }}</p>
+                    </div>
+                </div>
+                <div class="dash-info-list">
+                    <div class="dash-info-row">
+                        <span>{{ t('account_type') }}</span>
+                        <span class="dash-badge">{{ t('customer_label') }}</span>
+                    </div>
+                    <div class="dash-info-row">
+                        <span>{{ t('member_since') }}</span>
+                        <span>{{ user.created_at.strftime('%B %Y') }}</span>
+                    </div>
+                    <div class="dash-info-row">
+                        <span>{{ t('email') }}</span>
+                        <span>{{ user.email }}</span>
+                    </div>
+                </div>
+            </aside>
         </div>
     </main>
 </div>
