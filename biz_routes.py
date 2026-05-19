@@ -3,6 +3,16 @@ from functools import wraps
 from database import db, BusinessOwner, Business, Booking, Service, RestaurantTable, Shift
 from datetime import date, timedelta, datetime
 import json
+import os
+import cloudinary
+import cloudinary.uploader
+
+cloudinary.config(
+    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', 'dclrp75ux'),
+    api_key=os.environ.get('CLOUDINARY_API_KEY', '476324119944417'),
+    api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
+    secure=True
+)
 
 biz = Blueprint('biz', __name__, url_prefix='/biz')
 
@@ -456,9 +466,18 @@ def profile():
             business.email = request.form.get('biz_email', '').strip()
             business.website = request.form.get('website', '').strip()
             business.price_range = request.form.get('price_range', '€€')
-            img = request.form.get('image_url', '').strip()
-            if img:
-                business.image_url = img
+            cover_file = request.files.get('cover_photo')
+            if cover_file and cover_file.filename:
+                result = cloudinary.uploader.upload(
+                    cover_file,
+                    folder='allbookeu',
+                    transformation=[{'width': 1200, 'height': 400, 'crop': 'fill'}]
+                )
+                business.image_url = result['secure_url']
+            else:
+                img = request.form.get('image_url', '').strip()
+                if img:
+                    business.image_url = img
             db.session.commit()
             flash('Restaurant profile updated.', 'success')
 
