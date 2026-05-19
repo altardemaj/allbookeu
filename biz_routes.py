@@ -97,6 +97,74 @@ def dashboard():
             'is_occupied': len(booked_times) > 0
         })
 
+    profile_fields = [
+        business.name,
+        business.cuisine,
+        business.description,
+        business.address,
+        business.city,
+        business.country,
+        business.phone,
+    ]
+    default_cover_marker = 'photo-1556742049-0cfed4f6a45d'
+    has_custom_cover = bool(business.image_url and default_cover_marker not in business.image_url)
+    has_hours_or_shifts = bool(business.get_hours_display()) or Shift.query.filter_by(business_id=business.id).count() > 0
+    has_floor_plan = any(t.grid_x is not None and t.grid_y is not None for t in tables)
+    has_test_booking = Booking.query.filter_by(business_id=business.id).first() is not None
+    onboarding_items = [
+        {
+            'key': 'profile',
+            'label_key': 'onboarding_profile_completed',
+            'helper_key': 'onboarding_profile_helper',
+            'done': all(bool(str(v).strip()) for v in profile_fields),
+            'href': url_for('biz.profile'),
+            'action_key': 'onboarding_profile_action',
+        },
+        {
+            'key': 'cover',
+            'label_key': 'onboarding_cover_uploaded',
+            'helper_key': 'onboarding_cover_helper',
+            'done': has_custom_cover,
+            'href': url_for('biz.profile'),
+            'action_key': 'onboarding_cover_action',
+        },
+        {
+            'key': 'hours',
+            'label_key': 'onboarding_hours_added',
+            'helper_key': 'onboarding_hours_helper',
+            'done': has_hours_or_shifts,
+            'href': url_for('biz.shifts'),
+            'action_key': 'onboarding_hours_action',
+        },
+        {
+            'key': 'tables',
+            'label_key': 'onboarding_tables_created',
+            'helper_key': 'onboarding_tables_helper',
+            'done': len(tables) > 0,
+            'href': url_for('biz.tables'),
+            'action_key': 'onboarding_tables_action',
+        },
+        {
+            'key': 'floor',
+            'label_key': 'onboarding_floor_configured',
+            'helper_key': 'onboarding_floor_helper',
+            'done': has_floor_plan,
+            'href': url_for('biz.floor_builder'),
+            'action_key': 'onboarding_floor_action',
+        },
+        {
+            'key': 'booking',
+            'label_key': 'onboarding_test_booking_created',
+            'helper_key': 'onboarding_test_booking_helper',
+            'done': has_test_booking,
+            'href': url_for('biz.new_booking'),
+            'action_key': 'onboarding_test_booking_action',
+        },
+    ]
+    onboarding_done = sum(1 for item in onboarding_items if item['done'])
+    onboarding_total = len(onboarding_items)
+    onboarding_progress = round(onboarding_done / onboarding_total * 100) if onboarding_total else 0
+
     # Covers (party size totals)
     today_covers = sum(b.party_size for b in today_bookings)
     week_covers = sum(b.party_size for b in week_bookings)
@@ -156,6 +224,10 @@ def dashboard():
                            total_customers=total_customers,
                            table_status=table_status,
                            today=today,
+                           onboarding_items=onboarding_items,
+                           onboarding_done=onboarding_done,
+                           onboarding_total=onboarding_total,
+                           onboarding_progress=onboarding_progress,
                            today_covers=today_covers,
                            week_covers=week_covers,
                            last_week_covers=last_week_covers,

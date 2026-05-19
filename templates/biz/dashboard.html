@@ -119,11 +119,134 @@
 }
 .chart-bar-wrap:hover .chart-tip { display: block; }
 
+.onboarding-card {
+    background: #fff;
+    border: 1px solid #e2e5ea;
+    border-radius: 8px;
+    padding: 22px 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(17,24,39,0.04);
+}
+.onboarding-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    margin-bottom: 16px;
+}
+.onboarding-title {
+    font-size: 1rem;
+    font-weight: 850;
+    color: #111827;
+    margin-bottom: 4px;
+}
+.onboarding-sub {
+    color: var(--text-muted);
+    font-size: 0.84rem;
+}
+.onboarding-count {
+    flex-shrink: 0;
+    min-width: 88px;
+    text-align: right;
+    color: #111827;
+}
+.onboarding-count strong {
+    font-size: 1.5rem;
+    font-weight: 850;
+    line-height: 1;
+}
+.onboarding-count span {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 3px;
+}
+.onboarding-progress {
+    height: 8px;
+    border-radius: 999px;
+    background: #f1f3f5;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+.onboarding-progress-bar {
+    height: 100%;
+    border-radius: inherit;
+    background: var(--red);
+}
+.onboarding-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+.onboarding-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-height: 92px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fbfbfc;
+}
+.onboarding-item.is-done {
+    background: #f0faf4;
+    border-color: #bbf7d0;
+}
+.onboarding-check {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    font-weight: 850;
+    background: #fff;
+    border: 1.5px solid #d1d5db;
+    color: #9ca3af;
+}
+.onboarding-item.is-done .onboarding-check {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
+}
+.onboarding-copy {
+    flex: 1;
+    min-width: 0;
+}
+.onboarding-label {
+    display: block;
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 3px;
+}
+.onboarding-helper {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+}
+.onboarding-action {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    color: var(--red);
+}
+.onboarding-item.is-done .onboarding-action {
+    color: #166534;
+}
+
 @media (max-width: 1024px) {
     .db-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .db-chart-card { overflow-x: auto; }
     .chart-bars,
     .chart-labels { min-width: 560px; }
+    .onboarding-list { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
@@ -132,6 +255,10 @@
     .db-stat-num { font-size: 1.65rem; }
     .db-chart-card { padding: 16px; }
     .chart-legend { gap: 10px; flex-wrap: wrap; }
+    .onboarding-card { padding: 16px; }
+    .onboarding-head { flex-direction: column; gap: 10px; }
+    .onboarding-count { text-align: left; }
+    .onboarding-item { min-height: 0; }
 }
 </style>
 {% endblock %}
@@ -181,6 +308,36 @@
                 <a href="{{ url_for('biz.bookings') }}" class="btn-outline">{{ t('view_all') }}</a>
             </div>
         </div>
+
+        <section class="onboarding-card">
+            <div class="onboarding-head">
+                <div>
+                    <h2 class="onboarding-title">{{ t('onboarding_title') }}</h2>
+                    <p class="onboarding-sub">{{ t('onboarding_sub') }}</p>
+                </div>
+                <div class="onboarding-count">
+                    <strong>{{ onboarding_done }}/{{ onboarding_total }}</strong>
+                    <span>{{ onboarding_progress }}% {{ t('onboarding_complete') }}</span>
+                </div>
+            </div>
+            <div class="onboarding-progress" aria-label="{{ onboarding_progress }}% {{ t('onboarding_complete') }}">
+                <div class="onboarding-progress-bar" style="width: {{ onboarding_progress }}%"></div>
+            </div>
+            <div class="onboarding-list">
+                {% for item in onboarding_items %}
+                <div class="onboarding-item {% if item.done %}is-done{% endif %}">
+                    <span class="onboarding-check">{% if item.done %}✓{% else %}{{ loop.index }}{% endif %}</span>
+                    <div class="onboarding-copy">
+                        <span class="onboarding-label">{{ t(item.label_key) }}</span>
+                        <div class="onboarding-helper">{{ t(item.helper_key) }}</div>
+                        <a href="{{ item.href }}" class="onboarding-action">
+                            {% if item.done %}{{ t('onboarding_review_action') }}{% else %}{{ t(item.action_key) }}{% endif %}
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
 
         <!-- Stats row -->
         <div class="db-stats">
