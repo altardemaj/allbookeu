@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Add Reservation - {{ business.name }} - AllBookEU{% endblock %}
+{% block content %}
+<div class="dash-page">
+    <div class="dash-sidebar">
+        <div class="ds-biz-name">{{ business.name }}</div>
+        <nav class="ds-nav">
+            <a href="{{ url_for('biz.dashboard') }}" class="ds-link">Dashboard</a>
+            <a href="{{ url_for('biz.floor_view') }}" class="ds-link">&#128506; Floor View</a>
+            <a href="{{ url_for('biz.floor_builder') }}" class="ds-link">&#9999; Floor Builder</a>
+            <a href="{{ url_for('biz.bookings') }}" class="ds-link active">Reservations</a>
+            <a href="{{ url_for('biz.shifts') }}" class="ds-link">Schedule</a>
+            <a href="{{ url_for('biz.tables') }}" class="ds-link">Tables</a>
+            <a href="{{ url_for('biz.services') }}" class="ds-link">Menu Items</a>
+            <a href="{{ url_for('biz.profile') }}" class="ds-link">Profile</a>
+            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="ds-link" target="_blank">View Listing &#8599;</a>
+        </nav>
+
+        <div class="ds-pause-box {% if business.reservations_paused %}is-paused{% endif %}">
+            {% if business.reservations_paused %}
+            <div class="dpb-status paused">&#9208; Reservations paused</div>
+            <p class="dpb-msg">{{ business.pause_message }}</p>
+            <form method="post" action="{{ url_for('biz.toggle_pause') }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="resume">
+                <button type="submit" class="btn-resume">Resume reservations</button>
+            </form>
+            {% else %}
+            <div class="dpb-status open">&#9679; Accepting reservations</div>
+            <form method="post" action="{{ url_for('biz.toggle_pause') }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="pause">
+                <input type="text" name="pause_message" placeholder="Reason (optional)" class="dpb-reason-input">
+                <button type="submit" class="btn-pause">Pause reservations</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="dash-main">
+        <div class="dash-header">
+            <div>
+                <h1>Add Reservation</h1>
+                <p>For phone, walk-in, WhatsApp, or in-house bookings.</p>
+            </div>
+            <a href="{{ url_for('biz.bookings') }}" class="btn-outline">Back to reservations</a>
+        </div>
+
+        <section class="profile-card manual-booking-card">
+            <h2 class="profile-section-title">Guest and time</h2>
+            <form method="post" action="{{ url_for('biz.new_booking') }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <div class="pf-row">
+                    <div class="pf-field">
+                        <label>Guest name *</label>
+                        <input type="text" name="customer_name" value="{{ form_values.get('customer_name', '') }}" required class="rw-input" autocomplete="name">
+                    </div>
+                    <div class="pf-field">
+                        <label>Phone *</label>
+                        <input type="tel" name="customer_phone" value="{{ form_values.get('customer_phone', '') }}" required class="rw-input" autocomplete="tel">
+                    </div>
+                    <div class="pf-field">
+                        <label>Email optional</label>
+                        <input type="email" name="customer_email" value="{{ form_values.get('customer_email', '') }}" class="rw-input" autocomplete="email">
+                    </div>
+                </div>
+
+                <div class="pf-row">
+                    <div class="pf-field pf-field-sm">
+                        <label>Date *</label>
+                        <input type="date" name="booking_date" value="{{ form_values.get('booking_date', today.isoformat()) }}" min="{{ today.isoformat() }}" required class="rw-input">
+                    </div>
+                    <div class="pf-field pf-field-sm">
+                        <label>Time *</label>
+                        <select name="booking_time" required class="rw-input">
+                            {% for option in time_options %}
+                            <option value="{{ option }}" {% if form_values.get('booking_time', '7:00 PM') == option %}selected{% endif %}>{{ option }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="pf-field pf-field-sm">
+                        <label>Party size *</label>
+                        <select name="party_size" required class="rw-input">
+                            {% for n in range(1, 31) %}
+                            <option value="{{ n }}" {% if form_values.get('party_size', '2')|int == n %}selected{% endif %}>{{ n }}{% if n == 1 %} guest{% else %} guests{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="pf-field pf-field-sm">
+                        <label>Source</label>
+                        <select name="source" class="rw-input">
+                            {% for option in ['Phone', 'Walk-in', 'WhatsApp', 'Instagram', 'In-house'] %}
+                            <option value="{{ option }}" {% if form_values.get('source', 'Phone') == option %}selected{% endif %}>{{ option }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pf-field">
+                    <label>Notes</label>
+                    <textarea name="notes" rows="3" class="rw-input rw-textarea" placeholder="Seating request, occasion, allergies, or anything the host should know.">{{ form_values.get('notes', '') }}</textarea>
+                </div>
+
+                <div class="manual-booking-actions">
+                    <a href="{{ url_for('biz.bookings') }}" class="btn-outline">Cancel</a>
+                    <button type="submit" class="btn-reserve">Add reservation</button>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+{% endblock %}

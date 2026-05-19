@@ -174,7 +174,10 @@
                 <h1>{% set h = today.strftime('%H')|int %}{% if h < 12 %}Good morning{% elif h < 17 %}Good afternoon{% else %}Good evening{% endif %}, {{ owner.name.split()[0] }}</h1>
                 <p>{{ today.strftime('%A, %B %d, %Y') }} · {{ business.name }}</p>
             </div>
-            <a href="{{ url_for('biz.bookings') }}" class="btn-reserve">View All Reservations</a>
+            <div class="dash-actions">
+                <a href="{{ url_for('biz.new_booking') }}" class="btn-reserve">Add reservation</a>
+                <a href="{{ url_for('biz.bookings') }}" class="btn-outline">View all</a>
+            </div>
         </div>
 
         <!-- Stats row -->

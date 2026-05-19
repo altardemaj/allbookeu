@@ -37,8 +37,13 @@
 
     <div class="dash-main">
         <div class="dash-header">
-            <h1>Reservations</h1>
-            <p>All reservations for {{ business.name }}.</p>
+            <div>
+                <h1>Reservations</h1>
+                <p>All reservations for {{ business.name }}.</p>
+            </div>
+            <div class="dash-actions">
+                <a href="{{ url_for('biz.new_booking') }}" class="btn-reserve">Add reservation</a>
+            </div>
         </div>
 
         <form class="bk-filters" method="get" action="{{ url_for('biz.bookings') }}">
@@ -72,7 +77,11 @@
                     <tr class="{% if b.status == 'cancelled' %}bk-row-cancelled{% endif %}">
                         <td>
                             <div class="bk-guest-name">{{ b.customer_name }}</div>
+                            {% if b.customer_email.endswith('@phone.allbookeu.local') %}
+                            <div class="bk-guest-sub">Phone / in-house</div>
+                            {% else %}
                             <div class="bk-guest-sub">{{ b.customer_email }}</div>
+                            {% endif %}
                             {% if b.customer_phone %}<div class="bk-guest-sub">{{ b.customer_phone }}</div>{% endif %}
                         </td>
                         <td>

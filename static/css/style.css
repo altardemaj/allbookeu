@@ -321,6 +321,11 @@ img { max-width: 100%; display: block; }
 .dash-header { margin-bottom: 28px; }
 .dash-header h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; }
 .dash-header p { color: var(--text-muted); font-size: 0.9rem; }
+.dash-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dash-actions .btn-reserve,
+.manual-booking-actions .btn-reserve { display: inline-block; width: auto; min-width: 150px; text-align: center; }
+.manual-booking-card { max-width: 980px; }
+.manual-booking-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
 
 .stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
 .stat-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
@@ -692,6 +697,9 @@ img { max-width: 100%; display: block; }
     .dash-header { align-items: stretch; }
     .dash-header .btn-reserve,
     .dash-header .btn-outline { width: 100%; text-align: center; }
+    .dash-actions { width: 100%; display: grid; grid-template-columns: 1fr; }
+    .dash-actions .btn-reserve,
+    .manual-booking-actions .btn-reserve { width: 100%; }
     .customer-profile-grid { grid-template-columns: 1fr; }
     .profile-panel { max-width: none; }
     .account-summary-card { position: static; order: -1; }
@@ -795,5 +803,7 @@ img { max-width: 100%; display: block; }
     .auth-tab { min-height: 42px; }
     .auth-row { flex-direction: column; gap: 0; }
     .auth-field-sm { flex: 1; }
+    .manual-booking-actions { flex-direction: column-reverse; }
+    .manual-booking-actions .btn-outline { text-align: center; }
     .footer-cols { flex-direction: column; gap: 20px; }
 }

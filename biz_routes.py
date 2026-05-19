@@ -37,6 +37,23 @@ def get_owner_business():
     return owner, Business.query.get(owner.business_id)
 
 
+def assign_table_for_booking(business, booking_day, booking_time, party_size):
+    tables = RestaurantTable.query.filter_by(business_id=business.id, is_active=True).all()
+    if not tables:
+        existing = Booking.query.filter_by(
+            business_id=business.id,
+            booking_date=booking_day,
+            booking_time=booking_time,
+            status='confirmed'
+        ).first()
+        return None, existing is None
+
+    for table in sorted(tables, key=lambda x: x.capacity):
+        if table.capacity >= party_size and not table.is_booked_at(booking_day, booking_time):
+            return table.id, True
+    return None, False
+
+
 @biz.route('/dashboard')
 @owner_required
 def dashboard():
@@ -177,6 +194,83 @@ def bookings():
 @owner_required
 def reservations_redirect():
     return redirect(url_for('biz.bookings'))
+
+
+@biz.route('/bookings/new', methods=['GET', 'POST'])
+@owner_required
+def new_booking():
+    owner, business = get_owner_business()
+    if not business:
+        return redirect(url_for('biz.dashboard'))
+
+    today = date.today()
+
+    def render_form():
+        return render_template('biz/booking_form.html', owner=owner, business=business,
+                               time_options=TIME_OPTIONS, today=today,
+                               form_values=request.form)
+
+    if request.method == 'POST':
+        name = request.form.get('customer_name', '').strip()
+        phone = request.form.get('customer_phone', '').strip()
+        email = request.form.get('customer_email', '').strip()
+        booking_date_raw = request.form.get('booking_date', '').strip()
+        booking_time = request.form.get('booking_time', '').strip()
+        notes = request.form.get('notes', '').strip()
+        source = request.form.get('source', 'Phone').strip() or 'Phone'
+
+        try:
+            party_size = int(request.form.get('party_size', 2))
+        except (TypeError, ValueError):
+            party_size = 2
+
+        try:
+            booking_day = datetime.strptime(booking_date_raw, '%Y-%m-%d').date()
+        except ValueError:
+            booking_day = None
+
+        if not name or not phone or not booking_day or not booking_time:
+            flash('Guest name, phone, date, and time are required.', 'error')
+            return render_form()
+
+        if booking_day < today:
+            flash('Choose today or a future date for this reservation.', 'error')
+            return render_form()
+
+        if party_size < 1 or party_size > 30:
+            flash('Party size must be between 1 and 30 guests.', 'error')
+            return render_form()
+
+        table_id, has_capacity = assign_table_for_booking(business, booking_day, booking_time, party_size)
+        if not has_capacity:
+            flash('No table is available for that party size and time.', 'error')
+            return render_form()
+
+        stored_email = email or f"phone-{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}@phone.allbookeu.local"
+        booking_notes = f"{source} reservation"
+        if notes:
+            booking_notes = f"{booking_notes}: {notes}"
+
+        booking = Booking(
+            business_id=business.id,
+            user_id=None,
+            table_id=table_id,
+            customer_name=name,
+            customer_email=stored_email,
+            customer_phone=phone,
+            booking_date=booking_day,
+            booking_time=booking_time,
+            party_size=party_size,
+            notes=booking_notes,
+            status='confirmed'
+        )
+        db.session.add(booking)
+        db.session.commit()
+
+        flash(f'Reservation added for {name}.', 'success')
+        return redirect(url_for('biz.bookings', date=booking_day.isoformat()))
+
+    return render_form()
 
 
 @biz.route('/booking/<int:booking_id>/status', methods=['POST'])
