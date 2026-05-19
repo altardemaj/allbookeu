@@ -461,10 +461,10 @@ def profile():
             cover_file = request.files.get('cover_photo')
             if cover_file and cover_file.filename:
                 try:
-                    result = cloudinary.uploader.upload(
+                    result = cloudinary.uploader.unsigned_upload(
                         cover_file,
-                        folder='allbookeu',
-                        transformation=[{'width': 1200, 'height': 400, 'crop': 'fill'}]
+                        'allbookeu',
+                        cloud_name='dclrp75ux'
                     )
                     business.image_url = result['secure_url']
                 except Exception as e:
