@@ -134,6 +134,12 @@ app.register_blueprint(customer)
 app.register_blueprint(biz)
 app.register_blueprint(admin_bp)
 
+# Run migrations automatically on every cold start (idempotent — uses IF NOT EXISTS)
+try:
+    _migrate_db()
+except Exception:
+    pass
+
 KOSOVO_CITIES = ['Prishtina', 'Prizren', 'Peja', 'Gjakova', 'Ferizaj', 'Gjilan', 'Mitrovica', 'Vushtrri', 'Podujeva', 'Suhareka']
 ALBANIA_CITIES = ['Tirana', 'Durrës', 'Shkodër', 'Vlorë', 'Elbasan', 'Fier', 'Korçë', 'Berat', 'Sarandë', 'Lushnja']
 
