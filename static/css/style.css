@@ -303,12 +303,13 @@ img { max-width: 100%; display: block; }
 .ds-link:hover { background: rgba(255,255,255,0.07); color: #fff; }
 .ds-link.active { background: var(--red); color: #fff; }
 
-.ds-pause-box { margin: 16px 12px 0; border-radius: var(--radius-sm); padding: 14px; border: 1px solid rgba(255,255,255,0.1); }
+.ds-pause-box { margin: 16px 12px 0; border-radius: var(--radius-sm); padding: 12px 14px 14px; border: 1px solid rgba(255,255,255,0.1); }
 .ds-pause-box.is-paused { border-color: #f59e0b; background: rgba(245,158,11,0.1); }
-.dpb-status { font-size: 0.8rem; font-weight: 700; margin-bottom: 8px; }
+.dpb-status { font-size: 0.8rem; font-weight: 700; margin-bottom: 6px; }
 .dpb-status.open { color: #4ade80; }
 .dpb-status.paused { color: #f59e0b; }
-.dpb-msg { font-size: 0.78rem; color: var(--sidebar-text); margin-bottom: 10px; line-height: 1.4; }
+.dpb-msg { font-size: 0.78rem; color: var(--sidebar-text); margin-bottom: 6px; line-height: 1.35; }
+.ds-pause-box form { margin: 0; }
 .dpb-reason-input { width: 100%; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius-sm); padding: 7px 10px; color: #fff; font-size: 0.8rem; margin-bottom: 8px; outline: none; font-family: inherit; }
 .dpb-reason-input::placeholder { color: rgba(255,255,255,0.35); }
 .btn-pause { width: 100%; background: #f59e0b; color: #fff; border: none; border-radius: var(--radius-sm); padding: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; }
