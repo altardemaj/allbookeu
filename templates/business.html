@@ -1,42 +1,37 @@
 {% extends "base.html" %}
-{% block title %}{{ business.name }} — AllBookEU{% endblock %}
+{% block title %}{{ business.name }} - AllBookEU{% endblock %}
 
 {% block content %}
-<div class="restaurant-page">
-
-    <!-- HERO IMAGE -->
-    <div class="rp-hero">
+<div class="restaurant-page premium-booking-page">
+    <div class="rp-hero premium-hero">
         <img src="{{ business.image_url }}" alt="{{ business.name }}">
         <div class="rp-hero-overlay"></div>
+        <div class="premium-hero-content container">
+            <div class="premium-hero-card">
+                <div class="premium-kicker">{{ business.cuisine or 'Restaurant' }} in {{ business.city }}</div>
+                <h1>{{ business.name }}</h1>
+                <div class="rp-meta premium-meta">
+                    <span class="rp-star">&starf;</span>
+                    <span class="rp-rating">{{ "%.1f"|format(business.rating) }}</span>
+                    <span class="rp-review-count">({{ business.review_count }} reviews)</span>
+                    {% if business.price_range %}<span class="rp-dot">-</span><span>{{ business.price_range }}</span>{% endif %}
+                    <span class="rp-dot">-</span><span>{{ business.city }}, {{ business.country }}</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="container rp-body">
         <div class="rp-layout">
-
-            <!-- LEFT: INFO -->
-            <div class="rp-main">
-                <div class="rp-header">
-                    <h1>{{ business.name }}</h1>
-                    <div class="rp-meta">
-                        <span class="rp-star">★</span>
-                        <span class="rp-rating">{{ "%.1f"|format(business.rating) }}</span>
-                        <span class="rp-review-count">({{ business.review_count }} reviews)</span>
-                        {% if business.price_range %}
-                        <span class="rp-dot">·</span>
-                        <span>{{ business.price_range }}</span>
-                        {% endif %}
-                        {% if business.cuisine %}
-                        <span class="rp-dot">·</span>
-                        <span>{{ business.cuisine }}</span>
-                        {% endif %}
-                        <span class="rp-dot">·</span>
+            <main class="rp-main">
+                <section class="rp-section premium-overview">
+                    <h2>About</h2>
+                    <p class="rp-description">{{ business.description }}</p>
+                    <div class="premium-facts">
+                        {% if business.price_range %}<span>{{ business.price_range }}</span>{% endif %}
+                        {% if business.cuisine %}<span>{{ business.cuisine }}</span>{% endif %}
                         <span>{{ business.city }}, {{ business.country }}</span>
                     </div>
-                </div>
-
-                <section class="rp-section">
-                    <h2>{{ t('description') }}</h2>
-                    <p class="rp-description">{{ business.description }}</p>
                 </section>
 
                 <section class="rp-section">
@@ -90,7 +85,7 @@
                                 </div>
                                 <div class="review-stars">
                                     {% for i in range(1, 6) %}
-                                    <span class="rstar {% if i <= review.rating %}rstar-filled{% endif %}">★</span>
+                                    <span class="rstar {% if i <= review.rating %}rstar-filled{% endif %}">&starf;</span>
                                     {% endfor %}
                                 </div>
                             </div>
@@ -102,227 +97,263 @@
                     <p class="no-reviews">{{ t('no_reviews') }}</p>
                     {% endif %}
                 </section>
-            </div>
+            </main>
 
-            <!-- RIGHT: RESERVATION WIDGET -->
-            <div class="rp-sidebar">
+            <aside class="rp-sidebar booking-sidebar">
                 {% if business.reservations_paused %}
-                <div class="reservation-paused-box">
-                    <div class="rpb-icon">⏸</div>
+                <div class="reservation-paused-box premium-paused">
+                    <div class="rpb-icon">Paused</div>
                     <h3>{{ t('reservations_paused') }}</h3>
                     <p>{{ business.pause_message or 'Online reservations are temporarily unavailable.' }}</p>
                     {% if business.phone %}
-                    <a href="tel:{{ business.phone }}" class="btn-call">Call us: {{ business.phone }}</a>
+                    <a href="tel:{{ business.phone }}" class="btn-call">Call {{ business.phone }}</a>
                     {% endif %}
                 </div>
                 {% else %}
-                <div class="reservation-widget" id="reservationWidget">
-                    <div class="rw-header">
-                        <h3>{{ t('book_table') }}</h3>
+                <div class="reservation-widget premium-widget" id="reservationWidget">
+                    <div class="rw-header premium-rw-header">
+                        <div>
+                            <span class="premium-kicker">Reserve now</span>
+                            <h3>{{ t('book_table') }}</h3>
+                        </div>
+                        <span class="booking-step-pill" id="bookingStepPill">Step 1 of 2</span>
                     </div>
 
-                    <div class="rw-section">
-                        <label class="rw-label">{{ t('party_size') }}</label>
-                        <div class="party-size-row">
-                            <button type="button" class="party-btn" id="partyMinus">−</button>
-                            <span class="party-display"><span id="partyCount">{{ pre_party or 2 }}</span> {{ t('people') }}</span>
-                            <button type="button" class="party-btn" id="partyPlus">+</button>
+                    <div class="booking-control-row">
+                        <div class="booking-control">
+                            <label class="rw-label">{{ t('party_size') }}</label>
+                            <div class="party-size-row premium-party-row">
+                                <button type="button" class="party-btn" id="partyMinus" aria-label="Decrease party size">-</button>
+                                <span class="party-display"><span id="partyCount">{{ pre_party or 2 }}</span> people</span>
+                                <button type="button" class="party-btn" id="partyPlus" aria-label="Increase party size">+</button>
+                            </div>
                         </div>
                     </div>
 
                     <div class="rw-section">
-                        <label class="rw-label">{{ t('date') }}</label>
-                        <div class="date-scroll" id="dateScroll">
+                        <div class="section-label-row">
+                            <label class="rw-label">{{ t('date') }}</label>
+                            <span class="section-helper">Next 14 days</span>
+                        </div>
+                        <div class="date-scroll premium-date-scroll" id="dateScroll">
                             {% for slot in slots %}
-                            <button class="date-btn {% if slot.date == pre_date or (loop.first and not pre_date) %}date-active{% endif %}"
+                            <button class="date-btn premium-date-btn {% if slot.date == pre_date or (loop.first and not pre_date) %}date-active{% endif %}"
                                     data-date="{{ slot.date }}"
+                                    data-label="{{ slot.full_display }}"
                                     data-times='{{ slot.times | tojson }}'>
-                                <span class="db-day">{{ slot.short_day }}</span>
+                                <span class="db-day">{% if slot.is_today %}Today{% else %}{{ slot.short_day }}{% endif %}</span>
                                 <span class="db-date">{{ slot.short_date }}</span>
+                                <span class="db-count">{{ slot.times|length }} slots</span>
                             </button>
                             {% endfor %}
                         </div>
                     </div>
 
                     <div class="rw-section">
-                        <label class="rw-label">{{ t('available_times') }}</label>
-                        <div class="time-grid" id="timeGrid">
-                            {% if slots %}
-                                {% for t in slots[0].times %}
-                                <button class="time-btn {% if t == pre_time %}time-active{% endif %}" data-time="{{ t }}">{{ t }}</button>
-                                {% endfor %}
-                            {% endif %}
+                        <div class="section-label-row">
+                            <label class="rw-label">{{ t('available_times') }}</label>
+                            <span class="section-helper" id="selectedDateLabel"></span>
                         </div>
+                        <div class="time-grid premium-time-grid" id="timeGrid"></div>
                     </div>
 
-                    <div class="rw-summary" id="rwSummary" style="display:none;">
-                        <div class="rws-row"><span class="rws-label">{{ t('date') }}</span><span id="summaryDate">–</span></div>
-                        <div class="rws-row"><span class="rws-label">{{ t('time') }}</span><span id="summaryTime">–</span></div>
-                        <div class="rws-row"><span class="rws-label">{{ t('party_size') }}</span><span id="summaryParty">–</span></div>
-                        <button class="btn-continue" id="btnContinue">Next: Enter details →</button>
+                    <div class="rw-summary premium-summary" id="rwSummary" style="display:none;">
+                        <div class="summary-title">Your reservation</div>
+                        <div class="rws-row"><span class="rws-label">{{ t('date') }}</span><span id="summaryDate">-</span></div>
+                        <div class="rws-row"><span class="rws-label">{{ t('time') }}</span><span id="summaryTime">-</span></div>
+                        <div class="rws-row"><span class="rws-label">{{ t('party_size') }}</span><span id="summaryParty">-</span></div>
+                        <button class="btn-continue" id="btnContinue">Continue</button>
                     </div>
 
-                    <div class="rw-form" id="rwForm" style="display:none;">
+                    <div class="rw-form premium-form" id="rwForm" style="display:none;">
+                        <div class="form-section-title">Guest details</div>
                         {% if prefill %}
                         <div class="rw-prefill-note">Booking as <strong>{{ prefill.name }}</strong></div>
                         {% endif %}
                         <input type="text" id="bookName" placeholder="Full name *" class="rw-input" value="{{ prefill.name if prefill else '' }}">
                         <input type="email" id="bookEmail" placeholder="Email address *" class="rw-input" value="{{ prefill.email if prefill else '' }}">
                         <input type="tel" id="bookPhone" placeholder="Phone number" class="rw-input" value="{{ prefill.phone if prefill else '' }}">
-                        <textarea id="bookNotes" placeholder="Special requests (allergies, occasion, seating…)" class="rw-input rw-textarea"></textarea>
+                        <textarea id="bookNotes" placeholder="Special requests, allergies, occasion, seating preference" class="rw-input rw-textarea"></textarea>
                         <button class="btn-reserve" id="btnReserve">{{ t('confirm_booking') }}</button>
-                        <p class="rw-policy">{{ t('email_confirmation') }}</p>
+                        <p class="rw-policy">You will receive an email confirmation. To cancel or edit later, contact the restaurant directly.</p>
                     </div>
                 </div>
 
-                <div class="reservation-success" id="reservationSuccess" style="display:none;">
-                    <div class="rs-check">✓</div>
+                <div class="reservation-success premium-success" id="reservationSuccess" style="display:none;">
+                    <div class="rs-check">OK</div>
                     <h3>{{ t('reservation_confirmed') }}</h3>
                     <p id="successMsg"></p>
                     <div class="rs-details" id="successDetails"></div>
+                    <div class="after-booking-help" id="afterBookingHelp"></div>
                     <button class="btn-outline" onclick="resetWidget()">{{ t('make_another') }}</button>
                 </div>
                 {% endif %}
 
-                <div class="rp-info-card">
+                <div class="rp-info-card premium-info-card">
                     {% if business.phone %}
                     <a href="tel:{{ business.phone }}" class="ric-row">
-                        <span class="ric-icon">📞</span><span>{{ business.phone }}</span>
+                        <span class="ric-icon">Phone</span><span>{{ business.phone }}</span>
                     </a>
                     {% endif %}
                     <div class="ric-row">
-                        <span class="ric-icon">📍</span><span>{{ business.address }}, {{ business.city }}</span>
+                        <span class="ric-icon">Address</span><span>{{ business.address }}, {{ business.city }}</span>
                     </div>
                     {% if business.price_range %}
                     <div class="ric-row">
-                        <span class="ric-icon">💶</span><span>{{ business.price_range }}{% if business.cuisine %} · {{ business.cuisine }}{% endif %}</span>
+                        <span class="ric-icon">Info</span><span>{{ business.price_range }}{% if business.cuisine %} - {{ business.cuisine }}{% endif %}</span>
                     </div>
                     {% endif %}
                 </div>
-            </div>
+            </aside>
         </div>
     </div>
 </div>
 
-<!-- Mobile sticky booking bar -->
 <div class="mobile-book-bar" id="mobileBookBar">
     <div class="mbb-info">
         <span class="mbb-name">{{ business.name }}</span>
-        <span class="mbb-sub" id="mbbSub">Select date &amp; time above</span>
+        <span class="mbb-sub" id="mbbSub">Choose a date and time</span>
     </div>
-    <button class="mbb-btn" onclick="document.querySelector('.rp-sidebar').scrollIntoView({behavior:'smooth',block:'start'})">
-        Book a Table
+    <button class="mbb-btn" onclick="document.querySelector('.booking-sidebar').scrollIntoView({behavior:'smooth',block:'start'})">
+        Reserve
     </button>
 </div>
 
 <script>
 const BUSINESS_ID = {{ business.id }};
-let selectedDate = '{{ pre_date }}' || null;
-let selectedTime = '{{ pre_time }}' || null;
-let partySize = parseInt('{{ pre_party }}') || 2;
-document.getElementById('partyCount').textContent = partySize;
+const RESTAURANT_NAME = {{ business.name|tojson }};
+const RESTAURANT_PHONE = {{ (business.phone or '')|tojson }};
+const RESTAURANT_EMAIL = {{ (business.email or '')|tojson }};
+let selectedDate = {{ (pre_date or '')|tojson }} || null;
+let selectedTime = {{ (pre_time or '')|tojson }} || null;
+let partySize = parseInt({{ (pre_party or 2)|tojson }}) || 2;
 
+const partyCountEl = document.getElementById('partyCount');
+const timeGrid = document.getElementById('timeGrid');
+const dateLabelEl = document.getElementById('selectedDateLabel');
 const firstDateBtn = document.querySelector('.date-btn');
+
+partyCountEl.textContent = partySize;
 if (firstDateBtn && !selectedDate) selectedDate = firstDateBtn.dataset.date;
+
+function activeDateButton() {
+    return document.querySelector('.date-btn.date-active');
+}
+
+function formatPartyLabel(count) {
+    return count + (count === 1 ? ' person' : ' people');
+}
+
+function updateMobileBar() {
+    const mbbSub = document.getElementById('mbbSub');
+    if (!mbbSub) return;
+    const activeDate = activeDateButton();
+    const dateLabel = activeDate ? activeDate.dataset.label : selectedDate;
+    mbbSub.textContent = selectedTime ? `${dateLabel} - ${selectedTime} - ${formatPartyLabel(partySize)}` : 'Choose a date and time';
+}
+
+function renderTimes(times) {
+    timeGrid.innerHTML = '';
+    const activeDate = activeDateButton();
+    dateLabelEl.textContent = activeDate ? activeDate.dataset.label : '';
+
+    if (!times.length) {
+        timeGrid.innerHTML = `
+            <div class="no-times premium-no-times">
+                <strong>No tables online for this date</strong>
+                <span>Try another date, lower the party size, or call the restaurant directly.</span>
+                ${RESTAURANT_PHONE ? `<a href="tel:${RESTAURANT_PHONE}">Call ${RESTAURANT_PHONE}</a>` : ''}
+            </div>`;
+        return;
+    }
+
+    times.forEach(time => {
+        const btn = document.createElement('button');
+        btn.className = 'time-btn premium-time-btn';
+        if (time === selectedTime) btn.classList.add('time-active');
+        btn.dataset.time = time;
+        btn.innerHTML = `<span>${time}</span><small>Available</small>`;
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('time-active'));
+            this.classList.add('time-active');
+            selectedTime = time;
+            showSummary();
+        });
+        timeGrid.appendChild(btn);
+    });
+}
+
+function selectDateButton(btn) {
+    document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('date-active'));
+    btn.classList.add('date-active');
+    selectedDate = btn.dataset.date;
+    selectedTime = null;
+    renderTimes(JSON.parse(btn.dataset.times || '[]'));
+    hideSummary();
+    updateMobileBar();
+}
+
+document.querySelectorAll('.date-btn').forEach(btn => {
+    btn.addEventListener('click', function() { selectDateButton(this); });
+});
 
 document.getElementById('partyMinus').addEventListener('click', () => {
     if (partySize > 1) {
         partySize--;
-        document.getElementById('partyCount').textContent = partySize;
+        partyCountEl.textContent = partySize;
         refreshAvailabilityForParty();
     }
 });
+
 document.getElementById('partyPlus').addEventListener('click', () => {
     if (partySize < 20) {
         partySize++;
-        document.getElementById('partyCount').textContent = partySize;
+        partyCountEl.textContent = partySize;
         refreshAvailabilityForParty();
     }
 });
 
-document.querySelectorAll('.date-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('date-active'));
-        this.classList.add('date-active');
-        selectedDate = this.dataset.date;
-        selectedTime = null;
-        renderTimes(JSON.parse(this.dataset.times));
-        hideSummary();
-    });
-});
-
-function renderTimes(times) {
-    const grid = document.getElementById('timeGrid');
-    grid.innerHTML = '';
-    if (!times.length) { grid.innerHTML = '<p class="no-times">No availability for this date</p>'; return; }
-    times.forEach(t => {
-        const btn = document.createElement('button');
-        btn.className = 'time-btn';
-        btn.dataset.time = t;
-        btn.textContent = t;
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('time-active'));
-            this.classList.add('time-active');
-            selectedTime = t;
-            showSummary();
-        });
-        grid.appendChild(btn);
-    });
-}
-
-document.querySelectorAll('.time-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('time-active'));
-        this.classList.add('time-active');
-        selectedTime = this.dataset.time;
-        showSummary();
-    });
-});
-
-const initialActiveDate = document.querySelector('.date-btn.date-active');
-if (initialActiveDate) renderTimes(JSON.parse(initialActiveDate.dataset.times));
-if (selectedDate && selectedTime) showSummary();
-
 async function refreshAvailabilityForParty() {
-    const activeDate = document.querySelector('.date-btn.date-active');
+    const activeDate = activeDateButton();
     const previousTime = selectedTime;
+    timeGrid.innerHTML = '<div class="time-loading">Checking availability...</div>';
     try {
         const res = await fetch(`/api/restaurant/${BUSINESS_ID}/availability?party=${partySize}`);
         const data = await res.json();
         if (!data.success) return;
         data.slots.forEach(slot => {
             const btn = document.querySelector(`.date-btn[data-date="${slot.date}"]`);
-            if (btn) btn.dataset.times = JSON.stringify(slot.times);
+            if (btn) {
+                btn.dataset.times = JSON.stringify(slot.times);
+                const count = btn.querySelector('.db-count');
+                if (count) count.textContent = `${slot.available_count} slots`;
+            }
         });
-        const times = activeDate ? JSON.parse(activeDate.dataset.times) : [];
+        const times = activeDate ? JSON.parse(activeDate.dataset.times || '[]') : [];
         selectedTime = times.includes(previousTime) ? previousTime : null;
         renderTimes(times);
-        if (selectedTime) {
-            const timeBtn = document.querySelector(`.time-btn[data-time="${selectedTime}"]`);
-            if (timeBtn) timeBtn.classList.add('time-active');
-            showSummary();
-        } else {
-            hideSummary();
-        }
+        if (selectedTime) showSummary();
+        else hideSummary();
     } catch(e) {
         showError('Could not refresh availability. Please try again.');
     }
 }
 
 function showSummary() {
-    const activeDate = document.querySelector('.date-btn.date-active');
-    const dateLabel = activeDate ? activeDate.querySelector('.db-date').textContent : selectedDate;
+    const activeDate = activeDateButton();
+    const dateLabel = activeDate ? activeDate.dataset.label : selectedDate;
     document.getElementById('summaryDate').textContent = dateLabel;
     document.getElementById('summaryTime').textContent = selectedTime;
-    document.getElementById('summaryParty').textContent = partySize + ' people';
+    document.getElementById('summaryParty').textContent = formatPartyLabel(partySize);
     document.getElementById('rwSummary').style.display = 'block';
-    const mbbSub = document.getElementById('mbbSub');
-    if (mbbSub) mbbSub.textContent = dateLabel + ' · ' + selectedTime + ' · ' + partySize + ' people';
+    document.getElementById('bookingStepPill').textContent = 'Step 2 of 2';
+    updateMobileBar();
 }
 
 function hideSummary() {
     document.getElementById('rwSummary').style.display = 'none';
     document.getElementById('rwForm').style.display = 'none';
+    document.getElementById('bookingStepPill').textContent = 'Step 1 of 2';
 }
 
 document.getElementById('btnContinue').addEventListener('click', () => {
@@ -337,45 +368,90 @@ document.getElementById('btnReserve').addEventListener('click', async () => {
     const notes = document.getElementById('bookNotes').value.trim();
     if (!name || !email) { showError('Please enter your name and email.'); return; }
     if (!selectedDate || !selectedTime) { showError('Please select a date and time.'); return; }
+
     const btn = document.getElementById('btnReserve');
-    btn.textContent = 'Confirming…'; btn.disabled = true;
+    btn.textContent = 'Confirming...';
+    btn.disabled = true;
     try {
         const res = await fetch('/book', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({business_id: BUSINESS_ID, name, email, phone, notes, date: selectedDate, time: selectedTime, party_size: partySize})
         });
         const data = await res.json();
         if (data.success) {
-            document.getElementById('reservationWidget').style.display = 'none';
-            document.getElementById('reservationSuccess').style.display = 'block';
-            document.getElementById('successMsg').textContent = `Confirmation sent to ${email}`;
-            const tableInfo = data.table_info ? `<div class="rs-detail-row">🪑 ${data.table_info}</div>` : '';
-            document.getElementById('successDetails').innerHTML = `
-                <div class="rs-detail-row">📅 ${document.querySelector('.date-btn.date-active')?.querySelector('.db-date')?.textContent || selectedDate}</div>
-                <div class="rs-detail-row">🕐 ${selectedTime}</div>
-                <div class="rs-detail-row">👥 Party of ${partySize}</div>
-                <div class="rs-detail-row">👤 ${name}</div>${tableInfo}`;
+            showSuccess(data, {name, email});
         } else {
             showError(data.error || 'Something went wrong. Please try again.');
-            btn.textContent = 'Confirm reservation'; btn.disabled = false;
+            btn.textContent = 'Confirm reservation';
+            btn.disabled = false;
         }
     } catch(e) {
         showError('Network error. Please try again.');
-        btn.textContent = 'Confirm reservation'; btn.disabled = false;
+        btn.textContent = 'Confirm reservation';
+        btn.disabled = false;
     }
 });
 
+function showSuccess(data, guest) {
+    const activeDate = activeDateButton();
+    const dateLabel = activeDate ? activeDate.dataset.label : selectedDate;
+    document.getElementById('reservationWidget').style.display = 'none';
+    document.getElementById('reservationSuccess').style.display = 'block';
+    document.getElementById('successMsg').textContent = `Confirmation sent to ${guest.email}`;
+    const tableInfo = data.table_info ? `<div class="rs-detail-row"><strong>Table</strong><span>${data.table_info}</span></div>` : '';
+    document.getElementById('successDetails').innerHTML = `
+        <div class="rs-detail-row"><strong>Restaurant</strong><span>${data.restaurant_name || RESTAURANT_NAME}</span></div>
+        <div class="rs-detail-row"><strong>Date</strong><span>${dateLabel}</span></div>
+        <div class="rs-detail-row"><strong>Time</strong><span>${selectedTime}</span></div>
+        <div class="rs-detail-row"><strong>Party</strong><span>${formatPartyLabel(partySize)}</span></div>
+        <div class="rs-detail-row"><strong>Name</strong><span>${guest.name}</span></div>
+        ${tableInfo}`;
+
+    const contactLine = data.restaurant_phone
+        ? `Call <a href="tel:${data.restaurant_phone}">${data.restaurant_phone}</a>`
+        : data.restaurant_email
+            ? `Email <a href="mailto:${data.restaurant_email}">${data.restaurant_email}</a>`
+            : 'Contact the restaurant directly';
+    document.getElementById('afterBookingHelp').innerHTML = `
+        <strong>Need to cancel or change?</strong>
+        <span>${contactLine}. Your confirmation email has the same details.</span>`;
+    document.getElementById('mobileBookBar').style.display = 'none';
+}
+
 function showError(msg) {
     let el = document.getElementById('rwError');
-    if (!el) { el = document.createElement('div'); el.id = 'rwError'; el.className = 'rw-error'; document.getElementById('btnReserve').before(el); }
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'rwError';
+        el.className = 'rw-error';
+        document.getElementById('btnReserve').before(el);
+    }
     el.textContent = msg;
-    setTimeout(() => el.remove(), 4000);
+    setTimeout(() => el.remove(), 4500);
 }
 
 function resetWidget() {
     document.getElementById('reservationSuccess').style.display = 'none';
     document.getElementById('reservationWidget').style.display = 'block';
-    hideSummary(); selectedTime = null;
+    document.getElementById('mobileBookBar').style.display = '';
+    document.getElementById('btnReserve').textContent = 'Confirm reservation';
+    document.getElementById('btnReserve').disabled = false;
+    hideSummary();
+    selectedTime = null;
+    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('time-active'));
+    updateMobileBar();
 }
+
+const initialActiveDate = activeDateButton();
+if (initialActiveDate) {
+    renderTimes(JSON.parse(initialActiveDate.dataset.times || '[]'));
+    if (selectedTime && document.querySelector('.time-btn.time-active')) {
+        showSummary();
+    } else {
+        selectedTime = null;
+    }
+}
+updateMobileBar();
 </script>
 {% endblock %}

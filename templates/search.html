@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Restaurants in {{ city or 'Kosovo & Albania' }} — AllBookEU{% endblock %}
+{% block title %}Restaurants in {{ city or 'Kosovo & Albania' }} - AllBookEU{% endblock %}
 
 {% block content %}
 <div class="search-page">
@@ -12,12 +12,12 @@
                         <label>{{ t('location') }}</label>
                         <select name="city">
                             <option value="">{{ t('any_city') }}</option>
-                            <optgroup label="— Kosovo —">
+                            <optgroup label="Kosovo">
                                 {% for c in kosovo_cities %}
                                 <option value="{{ c }}" {% if c == city %}selected{% endif %}>{{ c }}</option>
                                 {% endfor %}
                             </optgroup>
-                            <optgroup label="— Albania —">
+                            <optgroup label="Albania">
                                 {% for c in albania_cities %}
                                 <option value="{{ c }}" {% if c == city %}selected{% endif %}>{{ c }}</option>
                                 {% endfor %}
@@ -95,8 +95,12 @@
                         <strong>{{ businesses|length }}</strong>
                         restaurant{% if businesses|length != 1 %}s{% endif %}
                         {% if city %} in <strong>{{ city }}</strong>{% endif %}
-                        {% if cuisine %} · <strong>{{ cuisine }}</strong>{% endif %}
-                        {% if date_str and time_str %} available at <strong>{{ time_str }}</strong>{% endif %}
+                        {% if cuisine %} - <strong>{{ cuisine }}</strong>{% endif %}
+                        {% if date_str and time_str %}
+                        available at <strong>{{ time_str }}</strong>
+                        {% elif date_str %}
+                        for <strong>{{ search_date.strftime('%b %d') }}</strong>
+                        {% endif %}
                     </p>
                 </div>
 
@@ -115,17 +119,17 @@
                                         <a href="{{ url_for('business_detail', business_id=b.id, date=date_str, time=time_str, party=party_str) }}">{{ b.name }}</a>
                                     </h3>
                                     <div class="result-meta">
-                                        <span class="rc-star">★</span>
+                                        <span class="rc-star">&starf;</span>
                                         <span class="result-rating">{{ "%.1f"|format(b.rating) }}</span>
                                         <span class="rc-count">({{ b.review_count }})</span>
-                                        <span class="rc-dot">·</span>
-                                        <span>{{ b.price_range or '€€' }}</span>
-                                        <span class="rc-dot">·</span>
+                                        <span class="rc-dot">-</span>
+                                        <span>{% if b.price_range %}{{ b.price_range }}{% else %}&euro;&euro;{% endif %}</span>
+                                        <span class="rc-dot">-</span>
                                         <span>{{ b.cuisine or 'Restaurant' }}</span>
-                                        <span class="rc-dot">·</span>
+                                        <span class="rc-dot">-</span>
                                         <span>{{ b.city }}, {{ b.country }}</span>
                                     </div>
-                                    <p class="result-desc">{{ b.description[:130] }}…</p>
+                                    <p class="result-desc">{{ b.description[:130] }}{% if b.description|length > 130 %}...{% endif %}</p>
                                 </div>
                                 <div class="result-booked-badge">
                                     {{ (b.review_count // 8) }} {{ t('booked_today') }}
@@ -134,14 +138,21 @@
 
                             {% if b.reservations_paused %}
                             <div class="result-paused">
-                                ⏸ {{ b.pause_message or 'Reservations temporarily paused' }}
+                                {{ b.pause_message or 'Reservations temporarily paused' }}
                             </div>
                             {% else %}
+                            {% set times = availability_map.get(b.id, []) %}
                             <div class="result-times">
-                                {% for t in ['6:30 PM', '7:00 PM', '7:30 PM', '8:00 PM', '8:30 PM'] %}
-                                <a href="{{ url_for('business_detail', business_id=b.id, date=date_str, time=t, party=party_str) }}"
+                                {% if times %}
+                                {% for t in times[:6] %}
+                                <a href="{{ url_for('business_detail', business_id=b.id, date=date_str or search_date.strftime('%Y-%m-%d'), time=t, party=party_str) }}"
                                    class="result-time-btn">{{ t }}</a>
                                 {% endfor %}
+                                {% else %}
+                                <span class="result-no-times">No online times for this date</span>
+                                <a href="{{ url_for('business_detail', business_id=b.id, date=date_str or search_date.strftime('%Y-%m-%d'), party=party_str) }}"
+                                   class="result-time-btn muted">Try another date</a>
+                                {% endif %}
                             </div>
                             {% endif %}
                         </div>
@@ -151,9 +162,9 @@
 
                 {% else %}
                 <div class="no-results">
-                    <div class="no-results-icon">🍽</div>
+                    <div class="no-results-icon">No tables</div>
                     <h3>{{ t('no_results') }}</h3>
-                    <p>{{ t('no_results_sub') }}</p>
+                    <p>Try a different time, date, party size, city, or cuisine.</p>
                     <a href="{{ url_for('search') }}" class="btn-outline">{{ t('all_cuisines') }}</a>
                 </div>
                 {% endif %}

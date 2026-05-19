@@ -216,13 +216,28 @@ def search():
 
     businesses = businesses.all()
 
+    search_date = date.today()
+    try:
+        if date_str:
+            search_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        search_date = date.today()
+
+    try:
+        party_size = max(1, min(20, int(party_str)))
+    except (TypeError, ValueError):
+        party_size = 2
+        party_str = '2'
+
+    availability_map = {}
+    for b in businesses:
+        availability_map[b.id] = [] if b.reservations_paused else b.get_available_times(search_date, party_size)
+
     if date_str and time_str:
         try:
-            search_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-            party_size = max(1, int(party_str))
             available = []
             for b in businesses:
-                if not b.reservations_paused and time_str in b.get_available_times(search_date, party_size):
+                if time_str in availability_map.get(b.id, []):
                     available.append(b)
             businesses = available
         except (TypeError, ValueError):
@@ -239,6 +254,8 @@ def search():
                            date_str=date_str,
                            time_str=time_str,
                            party_str=party_str,
+                           search_date=search_date,
+                           availability_map=availability_map,
                            all_cities=all_cities,
                            cuisines=CUISINES)
 
@@ -264,8 +281,10 @@ def business_detail(business_id):
         slots.append({
             'date': day.strftime('%Y-%m-%d'),
             'display': day.strftime('%a, %b %d'),
+            'full_display': day.strftime('%A, %B %d'),
             'short_day': day.strftime('%a'),
             'short_date': day.strftime('%b %d'),
+            'is_today': day == today,
             'times': business.get_available_times(day, pre_party_size) if not business.reservations_paused else []
         })
 
@@ -373,6 +392,12 @@ def book():
         'success': True,
         'booking_id': booking.id,
         'table_info': table_info,
+        'restaurant_name': business.name,
+        'restaurant_phone': business.phone or '',
+        'restaurant_email': business.email or '',
+        'date': booking_date,
+        'time': booking_time,
+        'party_size': party_size,
         'message': f'Reservation confirmed at {business.name} on {booking_date} at {booking_time}!'
     })
 
@@ -437,11 +462,23 @@ def api_restaurant_availability(business_id):
     slots = []
     for i in range(14):
         day = today + timedelta(days=i)
+        times = business.get_available_times(day, party_size) if not business.reservations_paused else []
         slots.append({
             'date': day.strftime('%Y-%m-%d'),
-            'times': business.get_available_times(day, party_size) if not business.reservations_paused else []
+            'display': day.strftime('%a, %b %d'),
+            'full_display': day.strftime('%A, %B %d'),
+            'short_day': day.strftime('%a'),
+            'short_date': day.strftime('%b %d'),
+            'is_today': day == today,
+            'times': times,
+            'available_count': len(times)
         })
-    return jsonify({'success': True, 'slots': slots})
+    return jsonify({
+        'success': True,
+        'slots': slots,
+        'reservations_paused': business.reservations_paused,
+        'pause_message': business.pause_message or ''
+    })
 
 
 @app.route('/api/businesses')
