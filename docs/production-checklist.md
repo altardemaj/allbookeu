@@ -2,6 +2,8 @@
 
 Use this before launch and after every production deploy.
 
+For daily platform operations, use `docs/management-guide.md`.
+
 ## Vercel
 
 - `allbookeu.com` and `www.allbookeu.com` are attached to the production project.
