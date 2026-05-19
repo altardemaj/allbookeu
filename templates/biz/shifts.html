@@ -407,14 +407,14 @@
     <div style="padding:16px 16px 0">
       <div class="ds-biz-name" style="font-size:0.85rem;font-weight:700;color:var(--text-muted);margin-bottom:10px">{{ business.name }}</div>
       <nav class="ds-nav" style="margin-bottom:12px">
-        <a href="{{ url_for('biz.dashboard') }}" class="ds-link">Dashboard</a>
-        <a href="{{ url_for('biz.floor_view') }}" class="ds-link">Floor View</a>
-        <a href="{{ url_for('biz.floor_builder') }}" class="ds-link">Floor Builder</a>
-        <a href="{{ url_for('biz.bookings') }}" class="ds-link">Reservations</a>
-        <a href="{{ url_for('biz.shifts') }}" class="ds-link active">Schedule</a>
-        <a href="{{ url_for('biz.tables') }}" class="ds-link">Tables</a>
-        <a href="{{ url_for('biz.services') }}" class="ds-link">Menu Items</a>
-        <a href="{{ url_for('biz.profile') }}" class="ds-link">Profile</a>
+        <a href="{{ url_for('biz.dashboard') }}" class="ds-link">{{ t('dashboard') }}</a>
+        <a href="{{ url_for('biz.floor_view') }}" class="ds-link">{{ t('floor_view') }}</a>
+        <a href="{{ url_for('biz.floor_builder') }}" class="ds-link">{{ t('floor_builder') }}</a>
+        <a href="{{ url_for('biz.bookings') }}" class="ds-link">{{ t('reservations') }}</a>
+        <a href="{{ url_for('biz.shifts') }}" class="ds-link active">{{ t('schedule') }}</a>
+        <a href="{{ url_for('biz.tables') }}" class="ds-link">{{ t('tables') }}</a>
+        <a href="{{ url_for('biz.services') }}" class="ds-link">{{ t('menu_items') }}</a>
+        <a href="{{ url_for('biz.profile') }}" class="ds-link">{{ t('profile') }}</a>
       </nav>
     </div>
 

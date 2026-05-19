@@ -5,31 +5,31 @@
     <div class="dash-sidebar">
         <div class="ds-biz-name">{{ business.name }}</div>
         <nav class="ds-nav">
-            <a href="{{ url_for('biz.dashboard') }}" class="ds-link">Dashboard</a>
-            <a href="{{ url_for('biz.floor_view') }}" class="ds-link">Floor View</a>
-            <a href="{{ url_for('biz.floor_builder') }}" class="ds-link">Floor Builder</a>
-            <a href="{{ url_for('biz.bookings') }}" class="ds-link active">Reservations</a>
-            <a href="{{ url_for('biz.shifts') }}" class="ds-link">Schedule</a>
-            <a href="{{ url_for('biz.tables') }}" class="ds-link">Tables</a>
-            <a href="{{ url_for('biz.services') }}" class="ds-link">Menu Items</a>
-            <a href="{{ url_for('biz.profile') }}" class="ds-link">Profile</a>
-            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="ds-link" target="_blank">View Listing</a>
+            <a href="{{ url_for('biz.dashboard') }}" class="ds-link">{{ t('dashboard') }}</a>
+            <a href="{{ url_for('biz.floor_view') }}" class="ds-link">{{ t('floor_view') }}</a>
+            <a href="{{ url_for('biz.floor_builder') }}" class="ds-link">{{ t('floor_builder') }}</a>
+            <a href="{{ url_for('biz.bookings') }}" class="ds-link active">{{ t('reservations') }}</a>
+            <a href="{{ url_for('biz.shifts') }}" class="ds-link">{{ t('schedule') }}</a>
+            <a href="{{ url_for('biz.tables') }}" class="ds-link">{{ t('tables') }}</a>
+            <a href="{{ url_for('biz.services') }}" class="ds-link">{{ t('menu_items') }}</a>
+            <a href="{{ url_for('biz.profile') }}" class="ds-link">{{ t('profile') }}</a>
+            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="ds-link" target="_blank">{{ t('view_listing') }}</a>
         </nav>
 
         <div class="ds-pause-box {% if business.reservations_paused %}is-paused{% endif %}">
             {% if business.reservations_paused %}
-            <div class="dpb-status paused">Reservations paused</div>
+            <div class="dpb-status paused">{{ t('reservations_paused_label') }}</div>
             <p class="dpb-msg">{{ business.pause_message }}</p>
             <form method="post" action="{{ url_for('biz.toggle_pause') }}">
                 <input type="hidden" name="action" value="resume">
-                <button type="submit" class="btn-resume">Resume reservations</button>
+                <button type="submit" class="btn-resume">{{ t('resume_reservations') }}</button>
             </form>
             {% else %}
-            <div class="dpb-status open">Accepting reservations</div>
+            <div class="dpb-status open">{{ t('accepting_reservations') }}</div>
             <form method="post" action="{{ url_for('biz.toggle_pause') }}">
                 <input type="hidden" name="action" value="pause">
-                <input type="text" name="pause_message" placeholder="Reason (optional)" class="dpb-reason-input">
-                <button type="submit" class="btn-pause">Pause reservations</button>
+                <input type="text" name="pause_message" placeholder="{{ t('reason_optional') }}" class="dpb-reason-input">
+                <button type="submit" class="btn-pause">{{ t('pause_reservations') }}</button>
             </form>
             {% endif %}
         </div>
