@@ -3,35 +3,61 @@
 {% block head %}
 <style>
 /* ── Schedule page layout ── */
-.schedule-page { display: flex; min-height: calc(100vh - 64px); background: var(--bg-gray); }
+.schedule-page { display: flex; min-height: calc(100vh - 64px); background: #f4f6f8; }
 
 /* ── Left panel ── */
 .schedule-panel {
-  width: 340px;
-  min-width: 340px;
+  width: 292px;
+  min-width: 292px;
   background: #fff;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid #d6dbe3;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
 }
 .schedule-panel-header {
-  padding: 20px 20px 12px;
-  border-bottom: 1px solid var(--border);
+  padding: 18px 18px 12px;
+  border-top: 1px solid #eef0f3;
+  border-bottom: 1px solid #eef0f3;
 }
-.schedule-panel-header h2 { font-size: 1rem; font-weight: 700; }
+.schedule-panel-header h2 { font-size: 1rem; font-weight: 800; }
 .schedule-panel-header p { font-size: 0.8rem; color: var(--text-muted); margin-top: 3px; }
 
-.shift-list { padding: 12px; flex: 1; }
+.schedule-panel .ds-biz-name {
+  font-size: 0.94rem !important;
+  color: #111827 !important;
+  margin-bottom: 18px !important;
+}
+.schedule-panel .ds-nav {
+  gap: 3px;
+}
+.schedule-panel .ds-link {
+  border-radius: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: #111827;
+  padding: 12px 14px;
+}
+.schedule-panel .ds-link:hover {
+  background: #eef7fa;
+  color: #111827;
+}
+.schedule-panel .ds-link.active {
+  background: #eef7fa;
+  border-left-color: #2f86a6;
+  color: #111827;
+}
+
+.shift-list { padding: 14px; flex: 1; }
 .shift-card {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px solid #d6dbe3;
+  border-radius: 4px;
   padding: 14px 16px;
   margin-bottom: 10px;
   background: #fff;
   transition: box-shadow 0.15s;
 }
-.shift-card:hover { box-shadow: var(--shadow); }
+.shift-card:hover { box-shadow: 0 2px 8px rgba(15,23,42,0.08); }
 .shift-card.inactive { opacity: 0.5; }
 .shift-card-top {
   display: flex;
@@ -99,9 +125,9 @@
 
 /* ── Add form ── */
 .add-shift-form {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid #d6dbe3;
   padding: 16px;
-  background: var(--bg-gray);
+  background: #f8fafc;
 }
 .add-shift-form h3 { font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; }
 .sf-field { margin-bottom: 10px; }
@@ -109,14 +135,14 @@
 .sf-input {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 4px;
   padding: 7px 10px;
   font-size: 0.875rem;
   font-family: inherit;
   outline: none;
   background: #fff;
 }
-.sf-input:focus { border-color: var(--red); }
+.sf-input:focus { border-color: #2f86a6; box-shadow: 0 0 0 3px rgba(47,134,166,0.12); }
 .sf-row { display: flex; gap: 8px; }
 .sf-row .sf-field { flex: 1; }
 .days-checkboxes { display: flex; gap: 4px; flex-wrap: wrap; }
@@ -135,10 +161,10 @@
 .day-check:checked + .day-check-label { background: #eff6ff; color: #1d4ed8; border-color: #93c5fd; }
 .btn-add-shift {
   width: 100%;
-  background: var(--red);
+  background: #2f86a6;
   color: #fff;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 4px;
   padding: 9px;
   font-size: 0.875rem;
   font-weight: 700;
@@ -147,23 +173,23 @@
   margin-top: 4px;
   transition: background 0.15s;
 }
-.btn-add-shift:hover { background: var(--red-dark); }
+.btn-add-shift:hover { background: #287891; }
 
 /* ── Right: weekly grid ── */
 .schedule-main {
   flex: 1;
-  padding: 24px;
+  padding: 20px 20px 20px 24px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
-.schedule-main h2 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+.schedule-main h2 { font-size: 1.36rem; font-weight: 800; margin-bottom: 4px; color:#111827; }
 .schedule-main p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
 
 .schedule-grid-wrap {
   background: #fff;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px solid #d6dbe3;
+  border-radius: 4px;
   overflow: auto;
   flex: 1;
 }
@@ -176,9 +202,9 @@
 .sched-time-col {
   width: 56px;
   min-width: 56px;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid #d6dbe3;
   position: relative;
-  background: #fafafa;
+  background: #f9fafb;
 }
 .sched-hour-label {
   position: absolute;
@@ -199,8 +225,8 @@
 .sched-day-header {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  border-bottom: 2px solid var(--border);
-  background: #fafafa;
+  border-bottom: 1px solid #d6dbe3;
+  background: #f9fafb;
   position: sticky;
   top: 0;
   z-index: 10;
@@ -211,38 +237,39 @@
   font-weight: 700;
   color: var(--text-muted);
   text-align: center;
-  border-left: 1px solid var(--border);
+  border-left: 1px solid #d6dbe3;
 }
-.sched-day-name.today { color: var(--red); }
+.sched-day-name.today { color: #2f86a6; }
 
 .sched-day-col {
   flex: 1;
   min-width: 0;
-  border-left: 1px solid var(--border);
+  border-left: 1px solid #d6dbe3;
   position: relative;
 }
 
 .sched-hour-line {
   position: absolute;
   left: 0; right: 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid #d6dbe3;
   opacity: 0.5;
 }
 
 .sched-shift-block {
   position: absolute;
   left: 3px; right: 3px;
-  border-radius: 5px;
+  border-radius: 4px;
   padding: 4px 8px;
   overflow: hidden;
   cursor: pointer;
   transition: opacity 0.15s, filter 0.15s;
-  border-left: 4px solid rgba(0,0,0,0.15);
+  border: 1px solid #2f86a6;
+  background: #e8f3f7 !important;
 }
-.sched-shift-block:hover { filter: brightness(1.1); }
+.sched-shift-block:hover { filter: brightness(0.98); }
 .sched-shift-block.inactive { opacity: 0.35; filter: grayscale(0.5); }
-.sched-block-name { font-size: 0.72rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sched-block-time { font-size: 0.65rem; color: rgba(255,255,255,0.85); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sched-block-name { font-size: 0.74rem; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sched-block-time { font-size: 0.66rem; color: #475569; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .schedule-legend {
   display: flex;
@@ -501,12 +528,12 @@
       {% set total_height = (grid_end - grid_start) * px_per_hour %}
 
       <!-- Day headers -->
-      <div style="display:flex;position:sticky;top:0;z-index:10;background:#fafafa;border-bottom:2px solid var(--border)">
-        <div style="width:56px;min-width:56px;border-right:1px solid var(--border)"></div>
+      <div style="display:flex;position:sticky;top:0;z-index:10;background:#f9fafb;border-bottom:1px solid #d6dbe3">
+        <div style="width:56px;min-width:56px;border-right:1px solid #d6dbe3"></div>
         {% set today_dow = today_dow %}
         {% for i, label in [(0,'Mon'),(1,'Tue'),(2,'Wed'),(3,'Thu'),(4,'Fri'),(5,'Sat'),(6,'Sun')] %}
-        <div style="flex:1;padding:10px 8px;font-size:0.78rem;font-weight:700;color:{% if i == current_dow %}var(--red){% else %}var(--text-muted){% endif %};text-align:center;border-left:1px solid var(--border)">
-          {{ label }}{% if i == current_dow %} ·{% endif %}
+        <div style="flex:1;padding:12px 8px;font-size:0.78rem;font-weight:700;color:{% if i == current_dow %}#2f86a6{% else %}#4b5563{% endif %};text-align:center;border-left:1px solid #d6dbe3">
+          {{ label }}{% if i == current_dow %} today{% endif %}
         </div>
         {% endfor %}
       </div>
