@@ -133,7 +133,12 @@
         </div>
 
         <div class="profile-card" id="hours">
-            <h2 class="profile-section-title">Opening Hours</h2>
+            <div class="profile-section-head">
+                <div>
+                    <h2 class="profile-section-title">Opening Hours</h2>
+                    <p class="profile-section-sub">Set the weekly schedule guests use when booking online.</p>
+                </div>
+            </div>
             <form method="post" action="{{ url_for('biz.profile') }}">
                 <input type="hidden" name="action" value="update_hours">
                 <div class="hours-grid">
@@ -142,32 +147,35 @@
                     {% set day_name = day_names[i] %}
                     {% set current = hours_data.get(day, '9:00 AM – 6:00 PM') %}
                     {% set is_closed = current == 'closed' %}
-                    <div class="hours-row">
-                        <div class="hours-day-label">{{ day_name }}</div>
-                        <label class="hours-closed-toggle">
-                            <input type="checkbox" name="closed_{{ day }}" {% if is_closed %}checked{% endif %}
-                                   onchange="toggleDay('{{ day }}', this.checked)">
-                            <span>Closed</span>
-                        </label>
-                        <div class="hours-times" id="times-{{ day }}" {% if is_closed %}style="opacity:0.3;pointer-events:none"{% endif %}>
-                            <select name="open_{{ day }}" class="hours-select">
+                    <div class="hours-row {% if is_closed %}is-closed{% endif %}">
+                        <div class="hours-day-label">
+                            <span>{{ day_name }}</span>
+                            <small>{% if is_closed %}Closed all day{% else %}Accepting reservations{% endif %}</small>
+                        </div>
+                        <div class="hours-times" id="times-{{ day }}">
+                            <select name="open_{{ day }}" class="hours-select" aria-label="{{ day_name }} opening time">
                                 {% for t in time_options %}
                                 {% set parts = current.split(' – ') %}
                                 <option value="{{ t }}" {% if parts[0].strip() == t %}selected{% endif %}>{{ t }}</option>
                                 {% endfor %}
                             </select>
                             <span class="hours-to">to</span>
-                            <select name="close_{{ day }}" class="hours-select">
+                            <select name="close_{{ day }}" class="hours-select" aria-label="{{ day_name }} closing time">
                                 {% for t in time_options %}
                                 {% set parts = current.split(' – ') %}
                                 <option value="{{ t }}" {% if parts|length > 1 and parts[1].strip() == t %}selected{% endif %}>{{ t }}</option>
                                 {% endfor %}
                             </select>
                         </div>
+                        <label class="hours-closed-toggle" title="Mark {{ day_name }} as closed">
+                            <input type="checkbox" name="closed_{{ day }}" {% if is_closed %}checked{% endif %}
+                                   onchange="toggleDay('{{ day }}', this.checked)">
+                            <span>Closed</span>
+                        </label>
                     </div>
                     {% endfor %}
                 </div>
-                <div style="margin-top:16px">
+                <div class="profile-form-actions">
                     <button type="submit" class="btn-reserve">Save Hours</button>
                 </div>
             </form>
@@ -201,8 +209,10 @@
 <script>
 function toggleDay(day, closed) {
     const el = document.getElementById('times-' + day);
-    el.style.opacity = closed ? '0.3' : '1';
-    el.style.pointerEvents = closed ? 'none' : 'auto';
+    const row = el.closest('.hours-row');
+    if (row) row.classList.toggle('is-closed', closed);
+    const status = row ? row.querySelector('.hours-day-label small') : null;
+    if (status) status.textContent = closed ? 'Closed all day' : 'Accepting reservations';
 }
 </script>
 {% endblock %}
