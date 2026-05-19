@@ -460,12 +460,15 @@ def profile():
             business.price_range = request.form.get('price_range', '€€')
             cover_file = request.files.get('cover_photo')
             if cover_file and cover_file.filename:
-                result = cloudinary.uploader.upload(
-                    cover_file,
-                    folder='allbookeu',
-                    transformation=[{'width': 1200, 'height': 400, 'crop': 'fill'}]
-                )
-                business.image_url = result['secure_url']
+                try:
+                    result = cloudinary.uploader.upload(
+                        cover_file,
+                        folder='allbookeu',
+                        transformation=[{'width': 1200, 'height': 400, 'crop': 'fill'}]
+                    )
+                    business.image_url = result['secure_url']
+                except Exception as e:
+                    flash(f'Image upload failed: {e}', 'error')
             else:
                 img = request.form.get('image_url', '').strip()
                 if img:
