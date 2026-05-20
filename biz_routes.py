@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 from functools import wraps
-from database import db, BusinessOwner, Business, Booking, Service, RestaurantTable, Shift
+from database import db, BusinessOwner, Business, Booking, Service, RestaurantTable, Shift, TurnTimeRule, TableBlock
 from datetime import date, timedelta, datetime
+from sqlalchemy.exc import SQLAlchemyError
 import json
 import cloudinary
 import cloudinary.uploader
@@ -51,21 +52,16 @@ def get_owner_business():
     return owner, Business.query.get(owner.business_id)
 
 
-def assign_table_for_booking(business, booking_day, booking_time, party_size):
-    tables = RestaurantTable.query.filter_by(business_id=business.id, is_active=True).all()
-    if not tables:
-        existing = Booking.query.filter_by(
-            business_id=business.id,
-            booking_date=booking_day,
-            booking_time=booking_time,
-            status='confirmed'
-        ).first()
-        return None, existing is None
+def _parse_date_field(value):
+    try:
+        return datetime.strptime((value or '').strip(), '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return None
 
-    for table in sorted(tables, key=lambda x: x.capacity):
-        if table.capacity >= party_size and not table.is_booked_at(booking_day, booking_time):
-            return table.id, True
-    return None, False
+
+def _owner_sections(business):
+    sections = [t.section for t in business.tables if t.section]
+    return list(dict.fromkeys(SECTIONS + sections))
 
 
 @biz.route('/dashboard')
@@ -327,9 +323,8 @@ def new_booking():
             flash('Party size must be between 1 and 30 guests.', 'error')
             return render_form()
 
-        table_id, has_capacity = assign_table_for_booking(business, booking_day, booking_time, party_size)
-        if not has_capacity:
-            flash('No table is available for that party size and time.', 'error')
+        if booking_time not in business.get_available_times(booking_day, party_size):
+            flash('That time is no longer available. Please choose another time.', 'error')
             return render_form()
 
         stored_email = email or f"phone-{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}@phone.allbookeu.local"
@@ -337,21 +332,46 @@ def new_booking():
         if notes:
             booking_notes = f"{booking_notes}: {notes}"
 
-        booking = Booking(
-            business_id=business.id,
-            user_id=None,
-            table_id=table_id,
-            customer_name=name,
-            customer_email=stored_email,
-            customer_phone=phone,
-            booking_date=booking_day,
-            booking_time=booking_time,
-            party_size=party_size,
-            notes=booking_notes,
-            status='confirmed'
-        )
-        db.session.add(booking)
-        db.session.commit()
+        try:
+            with db.session.begin_nested():
+                locked_business = Business.query.filter_by(id=business.id).with_for_update().first()
+                if not locked_business:
+                    flash('Restaurant not found.', 'error')
+                    return render_form()
+                db.session.expire(locked_business)
+                if booking_time not in locked_business.get_available_times(booking_day, party_size):
+                    flash('That time is no longer available. Please choose another time.', 'error')
+                    return render_form()
+
+                tables = RestaurantTable.query.filter_by(business_id=business.id, is_active=True).with_for_update().all()
+                table_id = None
+                if tables:
+                    available_tables = locked_business.get_available_tables(booking_day, booking_time, party_size)
+                    if not available_tables:
+                        flash('No table is available for that party size and time.', 'error')
+                        return render_form()
+                    table_id = available_tables[0].id
+
+                booking = Booking(
+                    business_id=business.id,
+                    user_id=None,
+                    table_id=table_id,
+                    customer_name=name,
+                    customer_email=stored_email,
+                    customer_phone=phone,
+                    booking_date=booking_day,
+                    booking_time=booking_time,
+                    party_size=party_size,
+                    notes=booking_notes,
+                    status='confirmed'
+                )
+                db.session.add(booking)
+                db.session.flush()
+            db.session.commit()
+        except SQLAlchemyError:
+            db.session.rollback()
+            flash('We could not add that reservation. Please choose another time.', 'error')
+            return render_form()
 
         flash(f'Reservation added for {name}.', 'success')
         return redirect(url_for('biz.bookings', date=booking_day.isoformat()))
@@ -396,6 +416,144 @@ def toggle_pause():
         flash('Reservations are open again. Guests can book online.', 'success')
 
     return redirect(request.referrer or url_for('biz.dashboard'))
+
+
+@biz.route('/turn-times', methods=['GET', 'POST'])
+@owner_required
+def turn_times():
+    owner, business = get_owner_business()
+    if not business:
+        return redirect(url_for('biz.dashboard'))
+
+    if request.method == 'POST':
+        action = request.form.get('action', 'add')
+
+        if action == 'defaults':
+            TurnTimeRule.query.filter_by(business_id=business.id).delete()
+            for min_size, max_size, duration in [(1, 2, 90), (3, 4, 120), (5, 6, 150), (7, 30, 180)]:
+                db.session.add(TurnTimeRule(
+                    business_id=business.id,
+                    min_party_size=min_size,
+                    max_party_size=max_size,
+                    duration_minutes=duration
+                ))
+            db.session.commit()
+            flash('Default turn times added.', 'success')
+            return redirect(url_for('biz.turn_times'))
+
+        if action == 'delete':
+            rule = TurnTimeRule.query.get(_safe_int(request.form.get('rule_id')))
+            if rule and rule.business_id == business.id:
+                db.session.delete(rule)
+                db.session.commit()
+                flash('Turn time rule removed.', 'success')
+            return redirect(url_for('biz.turn_times'))
+
+        min_size = _safe_int(request.form.get('min_party_size'), default=1, minimum=1, maximum=30)
+        max_size = _safe_int(request.form.get('max_party_size'), default=min_size, minimum=1, maximum=30)
+        duration = _safe_int(request.form.get('duration_minutes'), default=90, minimum=15, maximum=480)
+        if max_size < min_size:
+            flash('Max party size must be greater than or equal to min party size.', 'error')
+            return redirect(url_for('biz.turn_times'))
+
+        if action == 'edit':
+            rule = TurnTimeRule.query.get(_safe_int(request.form.get('rule_id')))
+            if rule and rule.business_id == business.id:
+                rule.min_party_size = min_size
+                rule.max_party_size = max_size
+                rule.duration_minutes = duration
+                db.session.commit()
+                flash('Turn time rule updated.', 'success')
+        else:
+            db.session.add(TurnTimeRule(
+                business_id=business.id,
+                min_party_size=min_size,
+                max_party_size=max_size,
+                duration_minutes=duration
+            ))
+            db.session.commit()
+            flash('Turn time rule added.', 'success')
+
+        return redirect(url_for('biz.turn_times'))
+
+    rules = TurnTimeRule.query.filter_by(business_id=business.id)\
+        .order_by(TurnTimeRule.min_party_size, TurnTimeRule.max_party_size).all()
+    return render_template('biz/turn_times.html', owner=owner, business=business, rules=rules)
+
+
+@biz.route('/table-availability', methods=['GET', 'POST'])
+@owner_required
+def table_availability():
+    owner, business = get_owner_business()
+    if not business:
+        return redirect(url_for('biz.dashboard'))
+
+    if request.method == 'POST':
+        action = request.form.get('action', 'add')
+
+        if action == 'delete':
+            block = TableBlock.query.get(_safe_int(request.form.get('block_id')))
+            if block and block.business_id == business.id:
+                db.session.delete(block)
+                db.session.commit()
+                flash('Table block removed.', 'success')
+            return redirect(url_for('biz.table_availability'))
+
+        start_date = _parse_date_field(request.form.get('start_date'))
+        end_date = _parse_date_field(request.form.get('end_date')) or start_date
+        if not start_date or not end_date:
+            flash('Start and end dates are required.', 'error')
+            return redirect(url_for('biz.table_availability'))
+        if end_date < start_date:
+            flash('End date must be after start date.', 'error')
+            return redirect(url_for('biz.table_availability'))
+
+        table_id = _safe_int(request.form.get('table_id'), default=0)
+        table = RestaurantTable.query.get(table_id) if table_id else None
+        if table and table.business_id != business.id:
+            flash('Choose one of your own tables.', 'error')
+            return redirect(url_for('biz.table_availability'))
+
+        section = request.form.get('section', '').strip()
+        if table:
+            section = None
+        elif section == '__all__':
+            section = None
+
+        start_time = request.form.get('start_time', '').strip() or None
+        end_time = request.form.get('end_time', '').strip() or None
+        if (start_time and not end_time) or (end_time and not start_time):
+            flash('Use both start and end time, or leave both blank for all day.', 'error')
+            return redirect(url_for('biz.table_availability'))
+
+        reason = request.form.get('reason', '').strip() or 'Unavailable'
+        block = TableBlock(
+            business_id=business.id,
+            table_id=table.id if table else None,
+            section=section,
+            start_date=start_date,
+            end_date=end_date,
+            start_time=start_time,
+            end_time=end_time,
+            reason=reason,
+            is_recurring=request.form.get('is_recurring') == 'on'
+        )
+        db.session.add(block)
+        db.session.commit()
+        flash('Availability block added.', 'success')
+        return redirect(url_for('biz.table_availability'))
+
+    tables = RestaurantTable.query.filter_by(business_id=business.id)\
+        .order_by(RestaurantTable.section, RestaurantTable.table_number).all()
+    blocks = TableBlock.query.filter_by(business_id=business.id)\
+        .order_by(TableBlock.start_date.desc(), TableBlock.start_time).all()
+    return render_template('biz/table_availability.html',
+                           owner=owner,
+                           business=business,
+                           tables=tables,
+                           sections=_owner_sections(business),
+                           blocks=blocks,
+                           today=date.today())
 
 
 @biz.route('/flow-controls', methods=['GET', 'POST'])

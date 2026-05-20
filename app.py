@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session, abort
-from database import db, Business, Booking, Review, User, BusinessOwner, Service, RestaurantTable, Shift, Admin
+from database import db, Business, Booking, Review, User, BusinessOwner, Service, RestaurantTable, Shift, Admin, TurnTimeRule, TableBlock
 from datetime import datetime, date, timedelta
 from dotenv import load_dotenv
+from sqlalchemy.exc import SQLAlchemyError
 import hmac
 import os
 import secrets
@@ -353,31 +354,45 @@ def book():
     if session.get('user_type') == 'customer':
         user_id = session.get('user_id')
 
+    booking = None
     table_id = None
-    tables = RestaurantTable.query.filter_by(business_id=business_id, is_active=True).all()
-    if tables:
-        for t in sorted(tables, key=lambda x: x.capacity):
-            if t.capacity >= party_size and business.table_available_for_time(t, booking_day, booking_time):
-                table_id = t.id
-                break
-        if table_id is None:
-            return jsonify({'success': False, 'error': 'No table is available for that party size and time.'}), 409
+    try:
+        with db.session.begin_nested():
+            locked_business = Business.query.filter_by(id=business_id).with_for_update().first()
+            if not locked_business:
+                return jsonify({'success': False, 'error': 'Restaurant not found.'}), 404
+            db.session.expire(locked_business)
+            if locked_business.reservations_paused:
+                return jsonify({'success': False, 'error': locked_business.pause_message or 'Reservations are paused.'}), 400
+            if booking_time not in locked_business.get_available_times(booking_day, party_size):
+                return jsonify({'success': False, 'error': 'That time is no longer available. Please choose another time.'}), 409
 
-    booking = Booking(
-        business_id=business_id,
-        user_id=user_id,
-        table_id=table_id,
-        customer_name=name,
-        customer_email=email,
-        customer_phone=phone,
-        booking_date=booking_day,
-        booking_time=booking_time,
-        party_size=party_size,
-        notes=notes,
-        status='confirmed'
-    )
-    db.session.add(booking)
-    db.session.commit()
+            tables = RestaurantTable.query.filter_by(business_id=business_id, is_active=True).with_for_update().all()
+            if tables:
+                available_tables = locked_business.get_available_tables(booking_day, booking_time, party_size)
+                if not available_tables:
+                    return jsonify({'success': False, 'error': 'No table is available for that party size and time.'}), 409
+                table_id = available_tables[0].id
+
+            booking = Booking(
+                business_id=business_id,
+                user_id=user_id,
+                table_id=table_id,
+                customer_name=name,
+                customer_email=email,
+                customer_phone=phone,
+                booking_date=booking_day,
+                booking_time=booking_time,
+                party_size=party_size,
+                notes=notes,
+                status='confirmed'
+            )
+            db.session.add(booking)
+            db.session.flush()
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'We could not confirm that reservation. Please try another time.'}), 409
 
     table_info = ''
     if table_id:

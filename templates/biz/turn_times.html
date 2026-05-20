@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Turn Times - {{ business.name }} - AllBookEU{% endblock %}
+
+{% block head %}
+<style>
+.inventory-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+.inventory-list { display: grid; gap: 10px; }
+.inventory-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end; padding: 14px; border: 1px solid var(--border); border-radius: 8px; background: #fbfbfc; }
+.inventory-row strong { display: block; font-size: 0.9rem; margin-bottom: 4px; }
+.inventory-row span { color: var(--text-muted); font-size: 0.8rem; }
+.inventory-actions { display: flex; gap: 8px; align-items: center; }
+.inventory-help { color: var(--text-muted); font-size: 0.86rem; line-height: 1.55; }
+@media (max-width: 980px) { .inventory-grid { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .inventory-row { grid-template-columns: 1fr; } .inventory-actions { justify-content: stretch; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dash-page">
+    <div class="dash-sidebar">
+        <div class="ds-biz-name">{{ business.name }}</div>
+        <nav class="ds-nav">
+            <a href="{{ url_for('biz.dashboard') }}" class="ds-link">{{ t('dashboard') }}</a>
+            <a href="{{ url_for('biz.floor_view') }}" class="ds-link">{{ t('floor_view') }}</a>
+            <a href="{{ url_for('biz.floor_builder') }}" class="ds-link">{{ t('floor_builder') }}</a>
+            <a href="{{ url_for('biz.bookings') }}" class="ds-link">{{ t('reservations') }}</a>
+            <a href="{{ url_for('biz.tables') }}" class="ds-link">{{ t('tables') }}</a>
+            <a href="{{ url_for('biz.shifts') }}" class="ds-link">{{ t('schedule') }}</a>
+            <a href="{{ url_for('biz.flow_controls') }}" class="ds-link">Flow Controls</a>
+            <a href="{{ url_for('biz.turn_times') }}" class="ds-link active">Turn Times</a>
+            <a href="{{ url_for('biz.table_availability') }}" class="ds-link">Table Availability</a>
+            <a href="{{ url_for('biz.services') }}" class="ds-link">{{ t('menu_items') }}</a>
+            <a href="{{ url_for('biz.profile') }}" class="ds-link">{{ t('profile') }}</a>
+            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="ds-link" target="_blank">{{ t('view_listing') }}</a>
+        </nav>
+    </div>
+
+    <main class="dash-main">
+        <div class="dash-header">
+            <div>
+                <h1>Turn Times</h1>
+                <p>Set how long tables stay blocked based on party size.</p>
+            </div>
+            <form method="post">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="defaults">
+                <button class="btn-outline" type="submit">Use defaults</button>
+            </form>
+        </div>
+
+        <div class="inventory-grid">
+            <section class="profile-card">
+                <div class="profile-section-head">
+                    <div>
+                        <h2 class="profile-section-title">Current rules</h2>
+                        <p class="profile-section-sub">The first matching party-size range controls the table hold time.</p>
+                    </div>
+                </div>
+                <div class="inventory-list">
+                    {% for rule in rules %}
+                    <form method="post" class="inventory-row">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="rule_id" value="{{ rule.id }}">
+                        <div class="pf-field">
+                            <label>Min party</label>
+                            <input class="rw-input" type="number" min="1" max="30" name="min_party_size" value="{{ rule.min_party_size }}">
+                        </div>
+                        <div class="pf-field">
+                            <label>Max party</label>
+                            <input class="rw-input" type="number" min="1" max="30" name="max_party_size" value="{{ rule.max_party_size }}">
+                        </div>
+                        <div class="pf-field">
+                            <label>Duration</label>
+                            <select class="rw-input" name="duration_minutes">
+                                {% for value in [45, 60, 75, 90, 105, 120, 150, 180, 210, 240] %}
+                                <option value="{{ value }}" {% if rule.duration_minutes == value %}selected{% endif %}>{{ value }} minutes</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="inventory-actions">
+                            <button class="btn-reserve" type="submit" name="action" value="edit">Save</button>
+                            <button class="btn-outline" type="submit" name="action" value="delete">Delete</button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <p class="inventory-help">No custom turn times yet. AllBookEU will use safe defaults until you add rules.</p>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <aside class="profile-card">
+                <div class="profile-section-head">
+                    <div>
+                        <h2 class="profile-section-title">Add rule</h2>
+                        <p class="profile-section-sub">Example: 1-2 guests for 90 minutes.</p>
+                    </div>
+                </div>
+                <form method="post" class="profile-form">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="add">
+                    <div class="pf-row">
+                        <div class="pf-field">
+                            <label>Min party</label>
+                            <input class="rw-input" type="number" min="1" max="30" name="min_party_size" value="1">
+                        </div>
+                        <div class="pf-field">
+                            <label>Max party</label>
+                            <input class="rw-input" type="number" min="1" max="30" name="max_party_size" value="2">
+                        </div>
+                    </div>
+                    <div class="pf-field">
+                        <label>Duration</label>
+                        <select class="rw-input" name="duration_minutes">
+                            {% for value in [45, 60, 75, 90, 105, 120, 150, 180, 210, 240] %}
+                            <option value="{{ value }}" {% if value == 90 %}selected{% endif %}>{{ value }} minutes</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="manual-booking-actions">
+                        <button type="submit" class="btn-reserve">Add rule</button>
+                    </div>
+                </form>
+            </aside>
+        </div>
+    </main>
+</div>
+{% endblock %}
