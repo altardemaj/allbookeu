@@ -266,6 +266,7 @@ img { max-width: 100%; display: block; }
 .btn-continue { width: 100%; padding: 11px; background: var(--red); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-top: 4px; transition: background 0.15s; }
 .btn-continue:hover { background: var(--red-dark); }
 
+.mobile-form-summary { display: none; }
 .rw-prefill-note { background: #f0faf4; color: #166534; font-size: 0.85rem; padding: 8px 12px; border-radius: var(--radius-sm); margin-bottom: 12px; }
 .rw-input { display: block; width: 100%; border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 0.9rem; color: var(--text); margin-bottom: 10px; outline: none; transition: border-color 0.15s; font-family: inherit; background: #fff; }
 .rw-input:focus { border-color: var(--red); }
@@ -1507,6 +1508,36 @@ img { max-width: 100%; display: block; }
         align-items: center;
         justify-content: center;
         text-align: center;
+    }
+
+    .mobile-form-summary {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        margin-bottom: 12px;
+        padding: 12px;
+        border: 1px solid rgba(218, 55, 67, 0.22);
+        border-radius: 10px;
+        background: #fff8f8;
+    }
+
+    .mfs-label {
+        color: var(--red);
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .mobile-form-summary strong {
+        color: var(--text);
+        font-size: 0.98rem;
+        line-height: 1.25;
+    }
+
+    .mobile-form-summary span:last-child {
+        color: var(--text-muted);
+        font-size: 0.82rem;
     }
 
     .restaurant-grid {

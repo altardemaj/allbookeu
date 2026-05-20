@@ -170,6 +170,11 @@
                     </div>
 
                     <div class="rw-form premium-form" id="rwForm" style="display:none;">
+                        <div class="mobile-form-summary" id="mobileFormSummary" aria-live="polite">
+                            <span class="mfs-label">Your reservation</span>
+                            <strong id="mobileFormSummaryMain">Choose a time</strong>
+                            <span id="mobileFormSummarySub"></span>
+                        </div>
                         <div class="form-section-title">Guest details</div>
                         {% if prefill %}
                         <div class="rw-prefill-note">Booking as <strong>{{ prefill.name }}</strong></div>
@@ -218,7 +223,7 @@
         <span class="mbb-name">{{ business.name }}</span>
         <span class="mbb-sub" id="mbbSub">Choose a date and time</span>
     </div>
-    <button class="mbb-btn" onclick="document.querySelector('.booking-sidebar').scrollIntoView({behavior:'smooth',block:'start'})">
+    <button type="button" class="mbb-btn" id="mobileReserveBtn">
         Reserve
     </button>
 </div>
@@ -373,6 +378,7 @@ function showSummary() {
     document.getElementById('summaryDate').textContent = dateLabel;
     document.getElementById('summaryTime').textContent = selectedTime;
     document.getElementById('summaryParty').textContent = formatPartyLabel(partySize);
+    updateFormSummary();
     document.getElementById('rwSummary').style.display = 'block';
     document.getElementById('bookingStepPill').textContent = 'Step 2 of 2';
     updateMobileBar();
@@ -384,10 +390,51 @@ function hideSummary() {
     document.getElementById('bookingStepPill').textContent = 'Step 1 of 2';
 }
 
-document.getElementById('btnContinue').addEventListener('click', () => {
-    document.getElementById('rwForm').style.display = 'block';
-    document.getElementById('rwForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-});
+function isMobileReservationView() {
+    return window.matchMedia('(max-width: 768px)').matches;
+}
+
+function updateFormSummary() {
+    const main = document.getElementById('mobileFormSummaryMain');
+    const sub = document.getElementById('mobileFormSummarySub');
+    if (!main || !sub) return;
+    const activeDate = activeDateButton();
+    const dateLabel = activeDate ? activeDate.dataset.label : selectedDate;
+    main.textContent = selectedTime ? `${dateLabel} at ${selectedTime}` : 'Choose a time';
+    sub.textContent = selectedTime ? formatPartyLabel(partySize) : 'Select an available time before confirming.';
+}
+
+function focusFirstReservationField() {
+    const nameField = document.getElementById('bookName');
+    const emailField = document.getElementById('bookEmail');
+    const target = nameField && !nameField.value.trim() ? nameField : emailField;
+    if (target) target.focus({ preventScroll: true });
+}
+
+function openReservationDetails() {
+    if (!selectedDate || !selectedTime) {
+        document.getElementById('reservationWidget').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+    }
+
+    const form = document.getElementById('rwForm');
+    form.style.display = 'block';
+    updateFormSummary();
+
+    if (isMobileReservationView()) {
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.setTimeout(focusFirstReservationField, 450);
+    } else {
+        form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+document.getElementById('btnContinue').addEventListener('click', openReservationDetails);
+
+const mobileReserveBtn = document.getElementById('mobileReserveBtn');
+if (mobileReserveBtn) {
+    mobileReserveBtn.addEventListener('click', openReservationDetails);
+}
 
 document.getElementById('btnReserve').addEventListener('click', async () => {
     const name = document.getElementById('bookName').value.trim();
