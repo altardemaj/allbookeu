@@ -28,15 +28,16 @@
       </tr></thead>
       <tbody>
         {% for b in businesses %}
+        {% set owner = owner_map.get(b.id) %}
         <tr>
           <td>
             <div style="font-weight:700">{{ b.name }}</div>
             <div style="font-size:0.75rem;color:#6b7280">{{ b.cuisine or b.category }}</div>
           </td>
           <td>
-            {% if b.owner %}
-            <div style="font-weight:600">{{ b.owner.name }}</div>
-            <div style="font-size:0.75rem;color:#6b7280">{{ b.owner.email }}</div>
+            {% if owner %}
+            <div style="font-weight:600">{{ owner.name }}</div>
+            <div style="font-size:0.75rem;color:#6b7280">{{ owner.email }}</div>
             {% else %}
             <div style="color:#9ca3af;font-size:0.8rem;font-style:italic">Platform</div>
             {% endif %}
@@ -44,8 +45,8 @@
           <td style="color:#6b7280">{{ b.city or '—' }}</td>
           <td style="font-weight:700">{{ b.bookings|length }}</td>
           <td>
-            {% if b.owner %}
-              <span class="badge badge-{{ b.owner.status }}">{{ b.owner.status }}</span>
+            {% if owner %}
+              <span class="badge badge-{{ owner.status }}">{{ owner.status }}</span>
             {% else %}
               <span class="badge badge-active">active</span>
             {% endif %}
@@ -61,19 +62,19 @@
               <!-- Edit -->
               <a href="{{ url_for('admin.edit_restaurant', biz_id=b.id) }}" class="btn-sm btn-primary">✎ Edit</a>
               <!-- Owner actions -->
-              {% if b.owner %}
-                {% if b.owner.status == 'pending' %}
-                <form method="post" action="{{ url_for('admin.owner_action', owner_id=b.owner.id) }}" style="display:inline">
+              {% if owner %}
+                {% if owner.status == 'pending' %}
+                <form method="post" action="{{ url_for('admin.owner_action', owner_id=owner.id) }}" style="display:inline">
                   <input type="hidden" name="action" value="approve">
                   <button type="submit" class="btn-sm btn-approve">✓ Approve</button>
                 </form>
-                {% elif b.owner.status == 'active' %}
-                <form method="post" action="{{ url_for('admin.owner_action', owner_id=b.owner.id) }}" style="display:inline">
+                {% elif owner.status == 'active' %}
+                <form method="post" action="{{ url_for('admin.owner_action', owner_id=owner.id) }}" style="display:inline">
                   <input type="hidden" name="action" value="suspend">
                   <button type="submit" class="btn-sm btn-suspend">⏸ Suspend</button>
                 </form>
-                {% elif b.owner.status == 'suspended' %}
-                <form method="post" action="{{ url_for('admin.owner_action', owner_id=b.owner.id) }}" style="display:inline">
+                {% elif owner.status == 'suspended' %}
+                <form method="post" action="{{ url_for('admin.owner_action', owner_id=owner.id) }}" style="display:inline">
                   <input type="hidden" name="action" value="reactivate">
                   <button type="submit" class="btn-sm btn-reactivate">↩ Reactivate</button>
                 </form>

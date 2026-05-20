@@ -95,22 +95,29 @@ def restaurants():
     q = request.args.get('q', '').strip()
 
     businesses = Business.query.order_by(Business.created_at.desc()).all()
+    owner_map = {
+        owner.business_id: owner
+        for owner in BusinessOwner.query.filter(BusinessOwner.business_id.isnot(None)).all()
+    }
 
     if q:
         businesses = [b for b in businesses if
                       q.lower() in b.name.lower() or
                       q.lower() in (b.city or '').lower() or
-                      (b.owner and (q.lower() in b.owner.name.lower() or
-                                    q.lower() in b.owner.email.lower()))]
+                      (owner_map.get(b.id) and (
+                          q.lower() in owner_map[b.id].name.lower() or
+                          q.lower() in owner_map[b.id].email.lower()
+                      ))]
 
     if status_filter == 'pending':
-        businesses = [b for b in businesses if b.owner and b.owner.status == 'pending']
+        businesses = [b for b in businesses if owner_map.get(b.id) and owner_map[b.id].status == 'pending']
     elif status_filter == 'active':
-        businesses = [b for b in businesses if not b.owner or b.owner.status == 'active']
+        businesses = [b for b in businesses if not owner_map.get(b.id) or owner_map[b.id].status == 'active']
     elif status_filter == 'suspended':
-        businesses = [b for b in businesses if b.owner and b.owner.status == 'suspended']
+        businesses = [b for b in businesses if owner_map.get(b.id) and owner_map[b.id].status == 'suspended']
 
     return render_template('admin/restaurants.html', businesses=businesses,
+                           owner_map=owner_map,
                            status_filter=status_filter, q=q)
 
 
@@ -343,9 +350,9 @@ def edit_restaurant(biz_id):
 def delete_business(biz_id):
     biz = Business.query.get_or_404(biz_id)
     name = biz.name
-    # Delete owner if exists
-    if biz.owner:
-        db.session.delete(biz.owner)
+    owners = BusinessOwner.query.filter_by(business_id=biz.id).all()
+    for owner in owners:
+        db.session.delete(owner)
     db.session.delete(biz)
     db.session.commit()
     flash(f'"{name}" deleted.', 'success')
