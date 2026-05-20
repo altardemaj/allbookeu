@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 from functools import wraps
-from database import db, Admin, BusinessOwner, Business, Booking, User, Review
+from database import db, Admin, BusinessOwner, Business, Booking, User, Review, RestaurantTable, Shift, TurnTimeRule, TableBlock
 from datetime import date, timedelta
 import hmac
 import json
@@ -112,6 +112,139 @@ def restaurants():
 
     return render_template('admin/restaurants.html', businesses=businesses,
                            status_filter=status_filter, q=q)
+
+
+def _readiness_status(score):
+    if score < 60:
+        return 'Not Ready', 'badge-cancelled'
+    if score < 80:
+        return 'Needs Setup', 'badge-pending'
+    if score < 95:
+        return 'Almost Ready', 'badge-confirmed'
+    return 'Launch Ready', 'badge-active'
+
+
+def _launch_readiness_for_business(business, emails_configured):
+    default_cover_marker = 'photo-1556742049-0cfed4f6a45d'
+    owner = BusinessOwner.query.filter_by(business_id=business.id).first()
+    profile_fields = [
+        business.name,
+        business.cuisine,
+        business.description,
+        business.address,
+        business.city,
+        business.country,
+        business.phone,
+    ]
+    tables = list(business.tables)
+    owner_email = owner.email if owner else ''
+    has_business_email = bool((business.email or '').strip() or owner_email)
+
+    checks = [
+        {
+            'key': 'profile',
+            'label': 'Profile completed',
+            'done': all(bool(str(v).strip()) for v in profile_fields),
+            'href': url_for('admin.edit_restaurant', biz_id=business.id),
+        },
+        {
+            'key': 'cover',
+            'label': 'Cover uploaded',
+            'done': bool(business.image_url and default_cover_marker not in business.image_url),
+            'href': url_for('admin.edit_restaurant', biz_id=business.id),
+        },
+        {
+            'key': 'shifts',
+            'label': 'Shifts configured',
+            'done': Shift.query.filter_by(business_id=business.id, is_active=True).count() > 0,
+            'href': url_for('biz.shifts'),
+        },
+        {
+            'key': 'tables',
+            'label': 'Tables created',
+            'done': len(tables) > 0,
+            'href': url_for('biz.tables'),
+        },
+        {
+            'key': 'floor',
+            'label': 'Floor configured',
+            'done': any(table.grid_x is not None and table.grid_y is not None for table in tables),
+            'href': url_for('biz.floor_builder'),
+        },
+        {
+            'key': 'flow',
+            'label': 'Flow controls configured',
+            'done': any([
+                int(business.max_reservations_per_slot or 0) > 0,
+                int(business.max_guests_per_slot or 0) > 0,
+                int(business.booking_buffer_minutes or 0) > 0,
+                int(business.booking_lead_time_minutes or 0) > 0,
+                int(business.booking_interval_minutes or 30) != 30,
+            ]),
+            'href': url_for('biz.flow_controls'),
+        },
+        {
+            'key': 'turn_times',
+            'label': 'Turn times configured',
+            'done': TurnTimeRule.query.filter_by(business_id=business.id).count() > 0,
+            'href': url_for('biz.turn_times'),
+        },
+        {
+            'key': 'test_booking',
+            'label': 'Test booking completed',
+            'done': Booking.query.filter(
+                Booking.business_id == business.id,
+                Booking.status != 'cancelled'
+            ).count() > 0,
+            'href': url_for('admin.bookings', restaurant=business.id),
+        },
+        {
+            'key': 'emails',
+            'label': 'Emails configured',
+            'done': emails_configured and has_business_email,
+            'href': url_for('admin.edit_restaurant', biz_id=business.id),
+        },
+    ]
+    optional = {
+        'key': 'table_blocks',
+        'label': 'Blocked tables configured',
+        'done': TableBlock.query.filter_by(business_id=business.id).count() > 0,
+        'href': url_for('biz.table_availability'),
+        'optional': True,
+    }
+    done_count = sum(1 for item in checks if item['done'])
+    score = round(done_count / len(checks) * 100) if checks else 0
+    label, badge = _readiness_status(score)
+    missing = [item for item in checks if not item['done']]
+    return {
+        'business': business,
+        'owner': owner,
+        'checks': checks,
+        'optional': optional,
+        'score': score,
+        'status_label': label,
+        'status_badge': badge,
+        'missing': missing,
+    }
+
+
+@admin.route('/launch-readiness')
+@admin_required
+def launch_readiness():
+    businesses = Business.query.order_by(Business.name).all()
+    emails_configured = bool(os.environ.get('RESEND_API_KEY')) and bool(os.environ.get('EMAIL_FROM'))
+    rows = [_launch_readiness_for_business(business, emails_configured) for business in businesses]
+    stats = {
+        'total': len(rows),
+        'launch_ready': sum(1 for row in rows if row['score'] >= 95),
+        'almost_ready': sum(1 for row in rows if 80 <= row['score'] < 95),
+        'needs_setup': sum(1 for row in rows if 60 <= row['score'] < 80),
+        'not_ready': sum(1 for row in rows if row['score'] < 60),
+    }
+    return render_template('admin/launch_readiness.html',
+                           rows=rows,
+                           stats=stats,
+                           emails_configured=emails_configured)
 
 
 @admin.route('/restaurants/add', methods=['GET', 'POST'])

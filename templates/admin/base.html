@@ -134,6 +134,9 @@ a { text-decoration: none; color: inherit; }
       <a href="{{ url_for('admin.restaurants') }}" class="admin-nav-link {% if request.endpoint in ('admin.restaurants','admin.owner_action') %}active{% endif %}">
         <span class="nav-icon">🍽</span> Restaurants
       </a>
+      <a href="{{ url_for('admin.launch_readiness') }}" class="admin-nav-link {% if request.endpoint == 'admin.launch_readiness' %}active{% endif %}">
+        <span class="nav-icon">OK</span> Launch Readiness
+      </a>
       <a href="{{ url_for('admin.bookings') }}" class="admin-nav-link {% if request.endpoint == 'admin.bookings' %}active{% endif %}">
         <span class="nav-icon">📅</span> Bookings
       </a>

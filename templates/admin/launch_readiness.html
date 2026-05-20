@@ -1,0 +1,202 @@
+{% extends "admin/base.html" %}
+{% block title %}Launch Readiness{% endblock %}
+
+{% block topbar %}
+<div class="admin-topbar">
+  <div>
+    <h1>Launch Readiness</h1>
+    <p>Operational setup audit for every restaurant</p>
+  </div>
+  <a href="{{ url_for('admin.restaurants') }}" class="btn-add" style="background:#111827">Restaurants</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+.readiness-score {
+  min-width: 72px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #111827;
+}
+.readiness-bar {
+  width: 110px;
+  height: 7px;
+  background: #f3f4f6;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 5px;
+}
+.readiness-fill {
+  height: 100%;
+  background: #e63946;
+  border-radius: inherit;
+}
+.readiness-fill.ready { background: #16a34a; }
+.readiness-fill.almost { background: #2563eb; }
+.readiness-fill.needs { background: #d97706; }
+.check-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 560px;
+}
+.check-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #6b7280;
+}
+.check-pill.done {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+.check-pill.missing {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #9a3412;
+}
+.check-pill.optional {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+.missing-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.missing-links a {
+  display: inline-flex;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  color: #374151;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+.missing-links a:hover {
+  border-color: #111827;
+  color: #111827;
+}
+.email-warning {
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+  border-radius: 8px;
+  font-size: 0.86rem;
+}
+@media (max-width: 980px) {
+  .readiness-table-wrap { overflow-x: auto; }
+  .readiness-table-wrap .admin-table { min-width: 980px; }
+}
+</style>
+
+{% if not emails_configured %}
+<div class="email-warning">
+  Email sending is not fully configured in this environment. Set RESEND_API_KEY and EMAIL_FROM before launch.
+</div>
+{% endif %}
+
+<div class="admin-stat-grid">
+  <div class="admin-stat">
+    <div class="admin-stat-num">{{ stats.total }}</div>
+    <div class="admin-stat-label">Restaurants audited</div>
+  </div>
+  <div class="admin-stat">
+    <div class="admin-stat-num green">{{ stats.launch_ready }}</div>
+    <div class="admin-stat-label">Launch ready</div>
+  </div>
+  <div class="admin-stat">
+    <div class="admin-stat-num">{{ stats.almost_ready }}</div>
+    <div class="admin-stat-label">Almost ready</div>
+  </div>
+  <div class="admin-stat">
+    <div class="admin-stat-num amber">{{ stats.needs_setup }}</div>
+    <div class="admin-stat-label">Needs setup</div>
+  </div>
+  <div class="admin-stat">
+    <div class="admin-stat-num red">{{ stats.not_ready }}</div>
+    <div class="admin-stat-label">Not ready</div>
+  </div>
+</div>
+
+<div class="admin-card">
+  <div class="admin-card-header">
+    <div class="admin-card-title">Restaurant readiness</div>
+  </div>
+  <div class="admin-card-body readiness-table-wrap">
+    {% if rows %}
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Restaurant</th>
+          <th>Score</th>
+          <th>Status</th>
+          <th>Checks</th>
+          <th>Missing setup</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        {% set b = row.business %}
+        {% set owner = row.owner %}
+        <tr>
+          <td>
+            <div style="font-weight:700">{{ b.name }}</div>
+            <div style="font-size:0.75rem;color:#6b7280">
+              {{ b.city or 'No city' }}{% if owner %} · {{ owner.email }}{% endif %}
+            </div>
+          </td>
+          <td>
+            <div class="readiness-score">{{ row.score }}%</div>
+            <div class="readiness-bar">
+              <div class="readiness-fill {% if row.score >= 95 %}ready{% elif row.score >= 80 %}almost{% elif row.score >= 60 %}needs{% endif %}" style="width: {{ row.score }}%"></div>
+            </div>
+          </td>
+          <td>
+            <span class="badge {{ row.status_badge }}">{{ row.status_label }}</span>
+          </td>
+          <td>
+            <div class="check-grid">
+              {% for item in row.checks %}
+              <a href="{{ item.href }}" class="check-pill {% if item.done %}done{% else %}missing{% endif %}" title="{% if item.done %}Complete{% else %}Missing{% endif %}: {{ item.label }}">
+                {% if item.done %}OK{% else %}Fix{% endif %} {{ item.label }}
+              </a>
+              {% endfor %}
+              <a href="{{ row.optional.href }}" class="check-pill optional {% if row.optional.done %}done{% endif %}" title="Optional: {{ row.optional.label }}">
+                {% if row.optional.done %}OK{% else %}Optional{% endif %} {{ row.optional.label }}
+              </a>
+            </div>
+          </td>
+          <td>
+            {% if row.missing %}
+            <div class="missing-links">
+              {% for item in row.missing %}
+              <a href="{{ item.href }}">{{ item.label }}</a>
+              {% endfor %}
+            </div>
+            {% else %}
+            <span style="color:#16a34a;font-size:0.82rem;font-weight:700">No required items missing</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="admin-empty">No restaurants found.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
