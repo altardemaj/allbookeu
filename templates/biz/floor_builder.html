@@ -109,6 +109,17 @@
 }
 .bld-tab-new:hover { color: rgba(255,255,255,0.75); border-color: rgba(255,255,255,0.35); }
 
+.bld-phone-warning {
+  display: none;
+  background: #fff7ed;
+  border-bottom: 1px solid #fed7aa;
+  color: #9a3412;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.bld-phone-warning strong { color: #7c2d12; }
+
 .bld-actions {
   display: flex;
   align-items: center;
@@ -493,12 +504,26 @@
 }
 @media (max-width: 640px) {
   .builder-page { height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+  .bld-phone-warning { display: block; }
   .bld-body { flex-direction: column; }
   .bld-dock { width: 100%; min-width: 0; max-height: 280px; border-right: none; border-bottom: 1px solid var(--dock-border); }
-  .bld-canvas-wrap { min-height: 480px; overflow: auto; }
+  .bld-canvas-wrap { min-height: 480px; overflow: auto; padding: 14px; }
   .bld-topbar { flex-wrap: wrap; height: auto; padding: 10px 12px; gap: 10px; }
   .bld-actions { width: 100%; margin-left: 0; justify-content: space-between; }
   .bld-quick-steps { grid-template-columns: 1fr; }
+  .bld-status { width: 100%; }
+  .btn-bld-clear,
+  .btn-bld-tables,
+  .btn-bld-view { min-height: 44px; justify-content: center; flex: 1; }
+  .dock-card { min-height: 48px; }
+  .bld-grid {
+    grid-template-columns: repeat({{ grid_cols }}, 72px);
+    grid-template-rows: repeat({{ grid_rows }}, 72px);
+  }
+  .grid-cell { width: 72px; height: 72px; }
+  .placed-table.shape-square .pt-body,
+  .placed-table.shape-round .pt-body { width: 54px; height: 54px; }
+  .placed-table.shape-rect .pt-body { width: 62px; height: 40px; }
 }
 </style>
 {% endblock %}
@@ -545,6 +570,10 @@
       <a href="{{ url_for('biz.tables') }}" class="btn-bld-tables">Tables</a>
       <a href="{{ url_for('biz.floor_view') }}" class="btn-bld-view">Live View -></a>
     </div>
+  </div>
+
+  <div class="bld-phone-warning">
+    <strong>Tablet recommended.</strong> You can make quick edits on this phone, but floor planning is easier on a tablet or laptop.
   </div>
 
   <div class="bld-body">

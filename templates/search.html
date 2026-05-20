@@ -88,6 +88,41 @@
                 </div>
             </aside>
 
+            <details class="mobile-filter-panel">
+                <summary>
+                    <span>Filters</span>
+                    <span>
+                        {% if country %}{{ country }}{% else %}{{ t('all_countries') }}{% endif %}
+                        {% if cuisine %} · {{ cuisine }}{% endif %}
+                    </span>
+                </summary>
+                <div class="mobile-filter-body">
+                    <div class="filter-group">
+                        <label class="filter-label">{{ t('all_countries') }}</label>
+                        <div class="filter-options">
+                            <a href="{{ url_for('search', city=city, cuisine=cuisine, date=date_str, time=time_str, party=party_str) }}"
+                               class="filter-opt {% if not country %}active{% endif %}">{{ t('all_countries') }}</a>
+                            <a href="{{ url_for('search', country='Kosovo', city=city, cuisine=cuisine, date=date_str, time=time_str, party=party_str) }}"
+                               class="filter-opt {% if country == 'Kosovo' %}active{% endif %}">Kosovo</a>
+                            <a href="{{ url_for('search', country='Albania', city=city, cuisine=cuisine, date=date_str, time=time_str, party=party_str) }}"
+                               class="filter-opt {% if country == 'Albania' %}active{% endif %}">Albania</a>
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">{{ t('cuisine_type') }}</label>
+                        <div class="filter-options filter-options-scroll">
+                            <a href="{{ url_for('search', city=city, country=country, date=date_str, time=time_str, party=party_str) }}"
+                               class="filter-opt {% if not cuisine %}active{% endif %}">{{ t('all_cuisines') }}</a>
+                            {% for c in cuisines %}
+                            <a href="{{ url_for('search', cuisine=c, city=city, country=country, date=date_str, time=time_str, party=party_str) }}"
+                               class="filter-opt {% if cuisine == c %}active{% endif %}">{{ c }}</a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </details>
+
             <!-- RESULTS -->
             <div class="search-results">
                 <div class="results-header">

@@ -1181,3 +1181,171 @@
   .quick-actions-grid { grid-template-columns: repeat(2, 1fr); }
   .hours-row { flex-wrap: wrap; }
 }
+
+/* Phone-only cleanup for dashboard/auth screens */
+@media (max-width: 768px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .auth-page {
+    padding: 22px 14px;
+    min-height: calc(100vh - 56px);
+  }
+
+  .auth-card,
+  .auth-card-wide,
+  .auth-card-xl {
+    max-width: 100%;
+    border-radius: 14px;
+    padding: 24px 18px;
+  }
+
+  .form-section {
+    padding: 16px;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea,
+  .dash-input,
+  .filter-select,
+  .filter-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .btn-auth-submit,
+  .btn-dash-primary,
+  .btn-dash-ghost,
+  .bc-btn-view,
+  .bc-btn-cancel,
+  .td-btn,
+  .svc-btn-edit,
+  .svc-btn-delete {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .dash-layout {
+    display: block;
+    min-width: 0;
+  }
+
+  .dash-sidebar {
+    display: none;
+  }
+
+  .dash-main {
+    padding: 18px 14px 40px;
+    overflow-x: hidden;
+  }
+
+  .dash-header {
+    margin-bottom: 18px;
+    gap: 12px;
+  }
+
+  .dash-header h1 {
+    font-size: 1.35rem;
+    line-height: 1.2;
+  }
+
+  .dash-header .btn-dash-primary,
+  .dash-header .btn-dash-ghost,
+  .dash-form-footer .btn-dash-primary,
+  .dash-form-footer .btn-dash-ghost {
+    width: 100%;
+  }
+
+  .dash-stats-row,
+  .dash-stats-4,
+  .biz-dash-grid,
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .dash-stat-card,
+  .dash-card,
+  .service-item {
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .bookings-filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .bookings-filters .filter-group,
+  .bookings-filters .filter-select,
+  .bookings-filters .filter-input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .filter-clear {
+    grid-column: 1 / -1;
+    width: 100%;
+    padding: 11px 0;
+    text-align: center;
+  }
+
+  .data-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    min-width: 680px;
+  }
+
+  .td-actions,
+  .svc-actions,
+  .bc-actions {
+    gap: 8px;
+  }
+
+  .booking-card {
+    border-radius: 12px;
+  }
+
+  .bc-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .bc-actions form,
+  .bc-actions button,
+  .bc-actions a {
+    width: 100%;
+  }
+
+  .hours-row {
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .hours-day-label,
+  .hours-closed-toggle {
+    min-width: 0;
+  }
+
+  .hours-times {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .hours-select {
+    flex: 1 1 130px;
+    min-height: 44px;
+  }
+}
