@@ -43,7 +43,7 @@
             {% endif %}
           </td>
           <td style="color:#6b7280">{{ b.city or '—' }}</td>
-          <td style="font-weight:700">{{ b.bookings|length }}</td>
+          <td style="font-weight:700">{{ booking_counts.get(b.id, 0) }}</td>
           <td>
             {% if owner %}
               <span class="badge badge-{{ owner.status }}">{{ owner.status }}</span>

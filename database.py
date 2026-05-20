@@ -75,6 +75,13 @@ class BusinessOwner(db.Model):
 
 class Business(db.Model):
     __tablename__ = 'businesses'
+    __table_args__ = (
+        db.Index('ix_businesses_category_city', 'category', 'city'),
+        db.Index('ix_businesses_category_featured', 'category', 'is_featured'),
+        db.Index('ix_businesses_country_city', 'country', 'city'),
+        db.Index('ix_businesses_category_cuisine', 'category', 'cuisine'),
+        db.Index('ix_businesses_created_at', 'created_at'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
@@ -139,13 +146,18 @@ class Business(db.Model):
     def _windows_overlap(first_start, first_end, second_start, second_end):
         return first_start < second_end and second_start < first_end
 
-    def turn_time_for_party(self, party_size):
+    def turn_time_for_party(self, party_size, rules=None):
         try:
             party_size = int(party_size)
         except (TypeError, ValueError):
             party_size = 2
 
-        rules = sorted(self.turn_time_rules, key=lambda rule: (rule.min_party_size, rule.max_party_size))
+        if rules is None:
+            rules = TurnTimeRule.query.filter(
+                TurnTimeRule.business_id == self.id,
+                TurnTimeRule.min_party_size <= party_size,
+                TurnTimeRule.max_party_size >= party_size
+            ).order_by(TurnTimeRule.min_party_size, TurnTimeRule.max_party_size).all()
         for rule in rules:
             if rule.min_party_size <= party_size <= rule.max_party_size:
                 return max(15, int(rule.duration_minutes or 90))
@@ -158,12 +170,12 @@ class Business(db.Model):
             return 150
         return 180
 
-    def reservation_window_minutes(self, time_str, party_size):
+    def reservation_window_minutes(self, time_str, party_size, turn_rules=None):
         start = self._parse_display_time(time_str)
         if start is None:
             return None
         buffer_minutes = max(0, int(self.booking_buffer_minutes or 0))
-        return start, start + self.turn_time_for_party(party_size) + buffer_minutes
+        return start, start + self.turn_time_for_party(party_size, turn_rules) + buffer_minutes
 
     def _block_day_matches(self, block, for_date):
         if not block.start_date or not block.end_date:
@@ -187,13 +199,22 @@ class Business(db.Model):
             return table is not None and (table.section or '').strip() == block.section.strip()
         return True
 
-    def table_blocked_for_time(self, table, for_date, time_str, party_size=1):
-        target_window = self.reservation_window_minutes(time_str, party_size)
+    def _blocks_for_date(self, for_date):
+        return TableBlock.query.filter(
+            TableBlock.business_id == self.id,
+            TableBlock.start_date <= for_date,
+            TableBlock.end_date >= for_date
+        ).all()
+
+    def table_blocked_for_time(self, table, for_date, time_str, party_size=1, blocks=None, turn_rules=None):
+        target_window = self.reservation_window_minutes(time_str, party_size, turn_rules)
         if target_window is None:
             return True
         target_start, target_end = target_window
 
-        for block in self.table_blocks:
+        if blocks is None:
+            blocks = self._blocks_for_date(for_date)
+        for block in blocks:
             if not self._block_day_matches(block, for_date):
                 continue
             if not self._block_applies_to_table(block, table):
@@ -211,12 +232,13 @@ class Business(db.Model):
         return False
 
     def _bookings_for_slot_checks(self, for_date):
-        return [
-            b for b in self.bookings
-            if b.booking_date == for_date and b.status not in ('cancelled', 'completed')
-        ]
+        return Booking.query.filter(
+            Booking.business_id == self.id,
+            Booking.booking_date == for_date,
+            Booking.status.notin_(('cancelled', 'completed'))
+        ).all()
 
-    def _flow_allows_time(self, for_date, time_str, party_size):
+    def _flow_allows_time(self, for_date, time_str, party_size, day_bookings=None):
         time_minutes = self._parse_display_time(time_str)
         if time_minutes is None:
             return False
@@ -234,8 +256,10 @@ class Business(db.Model):
         if time_minutes % interval != 0:
             return False
 
+        if day_bookings is None:
+            day_bookings = self._bookings_for_slot_checks(for_date)
         slot_bookings = [
-            b for b in self._bookings_for_slot_checks(for_date)
+            b for b in day_bookings
             if b.booking_time == time_str
         ]
         max_res = int(self.max_reservations_per_slot or 0)
@@ -248,37 +272,51 @@ class Business(db.Model):
 
         return True
 
-    def table_available_for_time(self, table, for_date, time_str, party_size=1, ignore_booking_id=None):
-        target_window = self.reservation_window_minutes(time_str, party_size)
+    def table_available_for_time(self, table, for_date, time_str, party_size=1, ignore_booking_id=None,
+                                 day_bookings=None, blocks=None, turn_rules=None):
+        target_window = self.reservation_window_minutes(time_str, party_size, turn_rules)
         if target_window is None:
             return False
-        if self.table_blocked_for_time(table, for_date, time_str, party_size):
+        if self.table_blocked_for_time(table, for_date, time_str, party_size, blocks, turn_rules):
             return False
         target_start, target_end = target_window
-        for booking in self._bookings_for_slot_checks(for_date):
+        if day_bookings is None:
+            day_bookings = self._bookings_for_slot_checks(for_date)
+        for booking in day_bookings:
             if ignore_booking_id and booking.id == ignore_booking_id:
                 continue
             if booking.table_id != table.id:
                 continue
-            booking_window = self.reservation_window_minutes(booking.booking_time, booking.party_size)
+            booking_window = self.reservation_window_minutes(booking.booking_time, booking.party_size, turn_rules)
             if booking_window is None:
                 continue
             if self._windows_overlap(target_start, target_end, booking_window[0], booking_window[1]):
                 return False
         return True
 
-    def business_blocked_for_time(self, for_date, time_str, party_size=1):
-        return self.table_blocked_for_time(None, for_date, time_str, party_size)
+    def business_blocked_for_time(self, for_date, time_str, party_size=1, blocks=None, turn_rules=None):
+        return self.table_blocked_for_time(None, for_date, time_str, party_size, blocks, turn_rules)
 
-    def get_available_tables(self, for_date, time_str, party_size=1):
+    def get_available_tables(self, for_date, time_str, party_size=1, tables=None,
+                             day_bookings=None, blocks=None, turn_rules=None):
         try:
             party_size = int(party_size)
         except (TypeError, ValueError):
             party_size = 1
-        tables = [t for t in self.tables if t.is_active and t.capacity >= party_size]
+        if tables is None:
+            tables = RestaurantTable.query.filter(
+                RestaurantTable.business_id == self.id,
+                RestaurantTable.is_active == True,
+                RestaurantTable.capacity >= party_size
+            ).order_by(RestaurantTable.capacity, RestaurantTable.section, RestaurantTable.table_number).all()
+        else:
+            tables = [t for t in tables if t.is_active and t.capacity >= party_size]
         return [
-            t for t in sorted(tables, key=lambda table: (table.capacity, table.section or '', table.table_number))
-            if self.table_available_for_time(t, for_date, time_str, party_size)
+            t for t in tables
+            if self.table_available_for_time(t, for_date, time_str, party_size,
+                                             day_bookings=day_bookings,
+                                             blocks=blocks,
+                                             turn_rules=turn_rules)
         ]
 
     def get_available_times(self, for_date, party_size=1):
@@ -301,24 +339,37 @@ class Business(db.Model):
         else:
             times = RESTAURANT_TIMES if self.category == 'restaurant' else DEFAULT_TIMES
 
-        times = [t for t in times if self._flow_allows_time(for_date, t, party_size)]
+        day_bookings = self._bookings_for_slot_checks(for_date)
+        day_blocks = self._blocks_for_date(for_date)
+        turn_rules = TurnTimeRule.query.filter_by(business_id=self.id)\
+            .order_by(TurnTimeRule.min_party_size, TurnTimeRule.max_party_size).all()
 
-        active_tables = [t for t in self.tables if t.is_active]
-        suitable_tables = [t for t in active_tables if t.capacity >= party_size]
+        times = [t for t in times if self._flow_allows_time(for_date, t, party_size, day_bookings)]
+
+        active_tables = RestaurantTable.query.filter_by(business_id=self.id, is_active=True)\
+            .order_by(RestaurantTable.capacity, RestaurantTable.section, RestaurantTable.table_number).all()
+        suitable_tables = [
+            table for table in active_tables
+            if table.capacity >= party_size
+        ]
         if active_tables and not suitable_tables:
             return []
         if suitable_tables:
             available = []
             for time in times:
-                if self.get_available_tables(for_date, time, party_size):
+                if self.get_available_tables(for_date, time, party_size,
+                                             tables=suitable_tables,
+                                             day_bookings=day_bookings,
+                                             blocks=day_blocks,
+                                             turn_rules=turn_rules):
                     available.append(time)
             return available
 
-        booked = {
-            b.booking_time for b in self.bookings
-            if b.booking_date == for_date and b.status not in ('cancelled', 'completed')
-        }
-        return [t for t in times if t not in booked and not self.business_blocked_for_time(for_date, t, party_size)]
+        booked = {b.booking_time for b in day_bookings}
+        return [
+            t for t in times
+            if t not in booked and not self.business_blocked_for_time(for_date, t, party_size, day_blocks, turn_rules)
+        ]
 
     def get_hours_display(self):
         if not self.hours:
@@ -363,6 +414,11 @@ class Business(db.Model):
 
 class RestaurantTable(db.Model):
     __tablename__ = 'restaurant_tables'
+    __table_args__ = (
+        db.Index('ix_restaurant_tables_business_active_capacity', 'business_id', 'is_active', 'capacity'),
+        db.Index('ix_restaurant_tables_business_section', 'business_id', 'section'),
+        db.Index('ix_restaurant_tables_business_grid', 'business_id', 'grid_x', 'grid_y'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     business_id = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=False)
@@ -389,6 +445,9 @@ class RestaurantTable(db.Model):
 
 class TurnTimeRule(db.Model):
     __tablename__ = 'turn_time_rules'
+    __table_args__ = (
+        db.Index('ix_turn_time_rules_business_party_range', 'business_id', 'min_party_size', 'max_party_size'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     business_id = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=False)
@@ -400,6 +459,11 @@ class TurnTimeRule(db.Model):
 
 class TableBlock(db.Model):
     __tablename__ = 'table_blocks'
+    __table_args__ = (
+        db.Index('ix_table_blocks_business_date_range', 'business_id', 'start_date', 'end_date'),
+        db.Index('ix_table_blocks_business_table_dates', 'business_id', 'table_id', 'start_date', 'end_date'),
+        db.Index('ix_table_blocks_business_section_dates', 'business_id', 'section', 'start_date', 'end_date'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     business_id = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=False)
@@ -438,6 +502,14 @@ class Service(db.Model):
 
 class Booking(db.Model):
     __tablename__ = 'bookings'
+    __table_args__ = (
+        db.Index('ix_bookings_business_date_status', 'business_id', 'booking_date', 'status'),
+        db.Index('ix_bookings_business_date_time_status', 'business_id', 'booking_date', 'booking_time', 'status'),
+        db.Index('ix_bookings_table_date_time_status', 'table_id', 'booking_date', 'booking_time', 'status'),
+        db.Index('ix_bookings_user_date_status', 'user_id', 'booking_date', 'status'),
+        db.Index('ix_bookings_customer_email_date', 'customer_email', 'booking_date'),
+        db.Index('ix_bookings_created_at', 'created_at'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     business_id = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=False)

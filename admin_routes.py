@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from functools import wraps
 from database import db, Admin, BusinessOwner, Business, Booking, User, Review, RestaurantTable, Shift, TurnTimeRule, TableBlock
 from datetime import date, timedelta
+from sqlalchemy import func
 import hmac
 import json
 import os
@@ -99,6 +100,12 @@ def restaurants():
         owner.business_id: owner
         for owner in BusinessOwner.query.filter(BusinessOwner.business_id.isnot(None)).all()
     }
+    booking_counts = dict(
+        db.session.query(Booking.business_id, func.count(Booking.id))
+        .filter(Booking.status != 'cancelled')
+        .group_by(Booking.business_id)
+        .all()
+    )
 
     if q:
         businesses = [b for b in businesses if
@@ -118,6 +125,7 @@ def restaurants():
 
     return render_template('admin/restaurants.html', businesses=businesses,
                            owner_map=owner_map,
+                           booking_counts=booking_counts,
                            status_filter=status_filter, q=q)
 
 

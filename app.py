@@ -118,6 +118,26 @@ def _migrate_db():
         ("businesses", "booking_buffer_minutes", "INTEGER DEFAULT 0"),
         ("businesses", "booking_lead_time_minutes", "INTEGER DEFAULT 0"),
     ]
+    new_indexes = [
+        ("ix_bookings_business_date_status", "bookings", "business_id, booking_date, status"),
+        ("ix_bookings_business_date_time_status", "bookings", "business_id, booking_date, booking_time, status"),
+        ("ix_bookings_table_date_time_status", "bookings", "table_id, booking_date, booking_time, status"),
+        ("ix_bookings_user_date_status", "bookings", "user_id, booking_date, status"),
+        ("ix_bookings_customer_email_date", "bookings", "customer_email, booking_date"),
+        ("ix_bookings_created_at", "bookings", "created_at"),
+        ("ix_restaurant_tables_business_active_capacity", "restaurant_tables", "business_id, is_active, capacity"),
+        ("ix_restaurant_tables_business_section", "restaurant_tables", "business_id, section"),
+        ("ix_restaurant_tables_business_grid", "restaurant_tables", "business_id, grid_x, grid_y"),
+        ("ix_turn_time_rules_business_party_range", "turn_time_rules", "business_id, min_party_size, max_party_size"),
+        ("ix_table_blocks_business_date_range", "table_blocks", "business_id, start_date, end_date"),
+        ("ix_table_blocks_business_table_dates", "table_blocks", "business_id, table_id, start_date, end_date"),
+        ("ix_table_blocks_business_section_dates", "table_blocks", "business_id, section, start_date, end_date"),
+        ("ix_businesses_category_city", "businesses", "category, city"),
+        ("ix_businesses_category_featured", "businesses", "category, is_featured"),
+        ("ix_businesses_country_city", "businesses", "country, city"),
+        ("ix_businesses_category_cuisine", "businesses", "category, cuisine"),
+        ("ix_businesses_created_at", "businesses", "created_at"),
+    ]
     with app.app_context():
         db.create_all()
         inspector = inspect(db.engine)
@@ -130,6 +150,16 @@ def _migrate_db():
             if col not in existing:
                 with db.engine.begin() as conn:
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {dtype}"))
+        existing_tables = inspect(db.engine).get_table_names()
+        existing_indexes = {
+            index['name']
+            for table in existing_tables
+            for index in inspect(db.engine).get_indexes(table)
+        }
+        with db.engine.begin() as conn:
+            for index_name, table, columns in new_indexes:
+                if table in existing_tables and index_name not in existing_indexes:
+                    conn.execute(text(f"CREATE INDEX IF NOT EXISTS {index_name} ON {table} ({columns})"))
 
 from auth_routes import auth
 from customer_routes import customer
