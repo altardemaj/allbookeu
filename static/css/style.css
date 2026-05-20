@@ -417,12 +417,41 @@ img { max-width: 100%; display: block; }
   gap: 8px;
   overflow-x: auto;
   padding-bottom: 8px;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+}
+.date-picker-shell {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  gap: 8px;
+  align-items: stretch;
+}
+.date-nav-btn {
+  min-height: 82px;
+  border: 1.5px solid #dfe3e8;
+  border-radius: 8px;
+  background: #fff;
+  color: #111827;
+  font-size: 1rem;
+  font-weight: 900;
+  font-family: inherit;
+  cursor: pointer;
+}
+.date-nav-btn:hover:not(:disabled) {
+  border-color: var(--red);
+  color: var(--red);
+  background: #fff7f8;
+}
+.date-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 .premium-date-btn {
   width: 94px;
   min-height: 82px;
   border-radius: 8px;
   padding: 10px 8px;
+  scroll-snap-align: start;
 }
 .premium-date-btn .db-day { font-size: 0.7rem; }
 .premium-date-btn .db-date { font-size: 0.9rem; }
@@ -1047,6 +1076,14 @@ img { max-width: 100%; display: block; }
         padding-right: 16px;
     }
     .premium-summary { margin-left: 16px; margin-right: 16px; }
+    .date-picker-shell {
+        grid-template-columns: 34px minmax(0, 1fr) 34px;
+        gap: 6px;
+    }
+    .date-nav-btn {
+        min-height: 76px;
+        font-size: 0.9rem;
+    }
     .premium-time-grid { grid-template-columns: 1fr; }
     .premium-facts { gap: 6px; }
     .premium-facts span { width: 100%; text-align: center; }

@@ -135,17 +135,21 @@
                             <label class="rw-label">{{ t('date') }}</label>
                             <span class="section-helper">Next 14 days</span>
                         </div>
-                        <div class="date-scroll premium-date-scroll" id="dateScroll">
-                            {% for slot in slots %}
-                            <button class="date-btn premium-date-btn {% if slot.date == pre_date or (loop.first and not pre_date) %}date-active{% endif %}"
-                                    data-date="{{ slot.date }}"
-                                    data-label="{{ slot.full_display }}"
-                                    data-times='{{ slot.times | tojson }}'>
-                                <span class="db-day">{% if slot.is_today %}Today{% else %}{{ slot.short_day }}{% endif %}</span>
-                                <span class="db-date">{{ slot.short_date }}</span>
-                                <span class="db-count">{{ slot.times|length }} slots</span>
-                            </button>
-                            {% endfor %}
+                        <div class="date-picker-shell">
+                            <button type="button" class="date-nav-btn" id="datePrev" aria-label="Previous dates">&lt;</button>
+                            <div class="date-scroll premium-date-scroll" id="dateScroll">
+                                {% for slot in slots %}
+                                <button class="date-btn premium-date-btn {% if slot.date == pre_date or (loop.first and not pre_date) %}date-active{% endif %}"
+                                        data-date="{{ slot.date }}"
+                                        data-label="{{ slot.full_display }}"
+                                        data-times='{{ slot.times | tojson }}'>
+                                    <span class="db-day">{% if slot.is_today %}Today{% else %}{{ slot.short_day }}{% endif %}</span>
+                                    <span class="db-date">{{ slot.short_date }}</span>
+                                    <span class="db-count">{{ slot.times|length }} slots</span>
+                                </button>
+                                {% endfor %}
+                            </div>
+                            <button type="button" class="date-nav-btn" id="dateNext" aria-label="Next dates">&gt;</button>
                         </div>
                     </div>
 
@@ -231,6 +235,9 @@ let partySize = parseInt({{ (pre_party or 2)|tojson }}) || 2;
 const partyCountEl = document.getElementById('partyCount');
 const timeGrid = document.getElementById('timeGrid');
 const dateLabelEl = document.getElementById('selectedDateLabel');
+const dateScroll = document.getElementById('dateScroll');
+const datePrev = document.getElementById('datePrev');
+const dateNext = document.getElementById('dateNext');
 const firstDateBtn = document.querySelector('.date-btn');
 
 partyCountEl.textContent = partySize;
@@ -238,6 +245,19 @@ if (firstDateBtn && !selectedDate) selectedDate = firstDateBtn.dataset.date;
 
 function activeDateButton() {
     return document.querySelector('.date-btn.date-active');
+}
+
+function updateDateArrows() {
+    if (!dateScroll || !datePrev || !dateNext) return;
+    const maxScroll = dateScroll.scrollWidth - dateScroll.clientWidth - 2;
+    datePrev.disabled = dateScroll.scrollLeft <= 2;
+    dateNext.disabled = dateScroll.scrollLeft >= maxScroll;
+}
+
+function scrollDates(direction) {
+    if (!dateScroll) return;
+    const amount = Math.max(120, Math.floor(dateScroll.clientWidth * 0.8));
+    dateScroll.scrollBy({ left: direction * amount, behavior: 'smooth' });
 }
 
 function formatPartyLabel(count) {
@@ -286,6 +306,7 @@ function renderTimes(times) {
 function selectDateButton(btn) {
     document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('date-active'));
     btn.classList.add('date-active');
+    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     selectedDate = btn.dataset.date;
     selectedTime = null;
     renderTimes(JSON.parse(btn.dataset.times || '[]'));
@@ -296,6 +317,13 @@ function selectDateButton(btn) {
 document.querySelectorAll('.date-btn').forEach(btn => {
     btn.addEventListener('click', function() { selectDateButton(this); });
 });
+
+if (datePrev && dateNext) {
+    datePrev.addEventListener('click', () => scrollDates(-1));
+    dateNext.addEventListener('click', () => scrollDates(1));
+    dateScroll.addEventListener('scroll', updateDateArrows, { passive: true });
+    window.addEventListener('resize', updateDateArrows);
+}
 
 document.getElementById('partyMinus').addEventListener('click', () => {
     if (partySize > 1) {
@@ -453,5 +481,6 @@ if (initialActiveDate) {
     }
 }
 updateMobileBar();
+updateDateArrows();
 </script>
 {% endblock %}
