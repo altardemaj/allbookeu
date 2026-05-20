@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 
@@ -97,6 +97,11 @@ class Business(db.Model):
     is_featured = db.Column(db.Boolean, default=False)
     reservations_paused = db.Column(db.Boolean, default=False)
     pause_message = db.Column(db.String(300), default='Reservations are temporarily paused.')
+    max_reservations_per_slot = db.Column(db.Integer, default=0)
+    max_guests_per_slot = db.Column(db.Integer, default=0)
+    booking_interval_minutes = db.Column(db.Integer, default=30)
+    booking_buffer_minutes = db.Column(db.Integer, default=0)
+    booking_lead_time_minutes = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     bookings = db.relationship('Booking', backref='business', lazy=True)
@@ -106,6 +111,69 @@ class Business(db.Model):
                              order_by='RestaurantTable.section, RestaurantTable.table_number')
     shifts = db.relationship('Shift', backref='business', lazy=True,
                              order_by='Shift.start_time')
+
+    @staticmethod
+    def _parse_display_time(time_str):
+        for fmt in ('%I:%M %p', '%I %p'):
+            try:
+                parsed = datetime.strptime((time_str or '').strip(), fmt)
+                return parsed.hour * 60 + parsed.minute
+            except ValueError:
+                continue
+        return None
+
+    def _bookings_for_slot_checks(self, for_date):
+        return [
+            b for b in self.bookings
+            if b.booking_date == for_date and b.status not in ('cancelled', 'completed')
+        ]
+
+    def _flow_allows_time(self, for_date, time_str, party_size):
+        time_minutes = self._parse_display_time(time_str)
+        if time_minutes is None:
+            return False
+
+        lead = max(0, int(self.booking_lead_time_minutes or 0))
+        if lead and for_date == date.today():
+            now = datetime.now()
+            slot_dt = datetime.combine(for_date, datetime.min.time()) + timedelta(minutes=time_minutes)
+            if slot_dt < now + timedelta(minutes=lead):
+                return False
+
+        interval = int(self.booking_interval_minutes or 30)
+        if interval not in (15, 30, 60):
+            interval = 30
+        if time_minutes % interval != 0:
+            return False
+
+        slot_bookings = [
+            b for b in self._bookings_for_slot_checks(for_date)
+            if b.booking_time == time_str
+        ]
+        max_res = int(self.max_reservations_per_slot or 0)
+        if max_res > 0 and len(slot_bookings) >= max_res:
+            return False
+
+        max_guests = int(self.max_guests_per_slot or 0)
+        if max_guests > 0 and sum(b.party_size for b in slot_bookings) + party_size > max_guests:
+            return False
+
+        return True
+
+    def table_available_for_time(self, table, for_date, time_str):
+        target_minutes = self._parse_display_time(time_str)
+        if target_minutes is None:
+            return False
+        buffer_minutes = max(0, int(self.booking_buffer_minutes or 0))
+        for booking in self._bookings_for_slot_checks(for_date):
+            if booking.table_id != table.id:
+                continue
+            booking_minutes = self._parse_display_time(booking.booking_time)
+            if booking_minutes is None:
+                continue
+            if booking.booking_time == time_str or (buffer_minutes and abs(booking_minutes - target_minutes) < buffer_minutes):
+                return False
+        return True
 
     def get_available_times(self, for_date, party_size=1):
         if self.reservations_paused:
@@ -127,6 +195,8 @@ class Business(db.Model):
         else:
             times = RESTAURANT_TIMES if self.category == 'restaurant' else DEFAULT_TIMES
 
+        times = [t for t in times if self._flow_allows_time(for_date, t, party_size)]
+
         active_tables = [t for t in self.tables if t.is_active]
         suitable_tables = [t for t in active_tables if t.capacity >= party_size]
         if active_tables and not suitable_tables:
@@ -134,20 +204,13 @@ class Business(db.Model):
         if suitable_tables:
             available = []
             for time in times:
-                booked_table_ids = {
-                    b.table_id for b in self.bookings
-                    if b.booking_date == for_date
-                    and b.booking_time == time
-                    and b.status == 'confirmed'
-                    and b.table_id is not None
-                }
-                if any(t.id not in booked_table_ids for t in suitable_tables):
+                if any(self.table_available_for_time(t, for_date, time) for t in suitable_tables):
                     available.append(time)
             return available
 
         booked = {
             b.booking_time for b in self.bookings
-            if b.booking_date == for_date and b.status == 'confirmed'
+            if b.booking_date == for_date and b.status not in ('cancelled', 'completed')
         }
         return [t for t in times if t not in booked]
 

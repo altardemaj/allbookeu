@@ -111,6 +111,11 @@ def _migrate_db():
         ("business_owners", "status", "VARCHAR(20) DEFAULT 'active'"),
         ("reviews", "user_id", "INTEGER"),
         ("restaurant_tables", "shape", "VARCHAR(20) DEFAULT 'square'"),
+        ("businesses", "max_reservations_per_slot", "INTEGER DEFAULT 0"),
+        ("businesses", "max_guests_per_slot", "INTEGER DEFAULT 0"),
+        ("businesses", "booking_interval_minutes", "INTEGER DEFAULT 30"),
+        ("businesses", "booking_buffer_minutes", "INTEGER DEFAULT 0"),
+        ("businesses", "booking_lead_time_minutes", "INTEGER DEFAULT 0"),
     ]
     with app.app_context():
         db.create_all()
@@ -119,11 +124,11 @@ def _migrate_db():
         for table, col, dtype in new_cols:
             if table not in existing_tables:
                 continue
-            existing = [c['name'] for c in inspector.get_columns(table)]
+            current_inspector = inspect(db.engine)
+            existing = [c['name'] for c in current_inspector.get_columns(table)]
             if col not in existing:
-                with db.engine.connect() as conn:
+                with db.engine.begin() as conn:
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {dtype}"))
-                    conn.commit()
 
 from auth_routes import auth
 from customer_routes import customer
@@ -352,7 +357,7 @@ def book():
     tables = RestaurantTable.query.filter_by(business_id=business_id, is_active=True).all()
     if tables:
         for t in sorted(tables, key=lambda x: x.capacity):
-            if t.capacity >= party_size and not t.is_booked_at(booking_day, booking_time):
+            if t.capacity >= party_size and business.table_available_for_time(t, booking_day, booking_time):
                 table_id = t.id
                 break
         if table_id is None:

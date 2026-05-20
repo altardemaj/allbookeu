@@ -398,6 +398,69 @@ def toggle_pause():
     return redirect(request.referrer or url_for('biz.dashboard'))
 
 
+@biz.route('/flow-controls', methods=['GET', 'POST'])
+@owner_required
+def flow_controls():
+    owner, business = get_owner_business()
+    if not business:
+        return redirect(url_for('biz.dashboard'))
+
+    if request.method == 'POST':
+        business.max_reservations_per_slot = _safe_int(
+            request.form.get('max_reservations_per_slot'),
+            default=0,
+            minimum=0,
+            maximum=100
+        )
+        business.max_guests_per_slot = _safe_int(
+            request.form.get('max_guests_per_slot'),
+            default=0,
+            minimum=0,
+            maximum=500
+        )
+
+        interval = _safe_int(request.form.get('booking_interval_minutes'), default=30)
+        business.booking_interval_minutes = interval if interval in (15, 30, 60) else 30
+
+        business.booking_buffer_minutes = _safe_int(
+            request.form.get('booking_buffer_minutes'),
+            default=0,
+            minimum=0,
+            maximum=240
+        )
+        business.booking_lead_time_minutes = _safe_int(
+            request.form.get('booking_lead_time_minutes'),
+            default=0,
+            minimum=0,
+            maximum=1440
+        )
+
+        business.reservations_paused = request.form.get('reservations_paused') == 'on'
+        pause_message = request.form.get('pause_message', '').strip()
+        business.pause_message = pause_message or 'Reservations are temporarily paused. Please call us to book.'
+
+        db.session.commit()
+        flash('Reservation flow controls updated.', 'success')
+        return redirect(url_for('biz.flow_controls'))
+
+    defaults = {
+        'max_reservations_per_slot': 0,
+        'max_guests_per_slot': 0,
+        'booking_interval_minutes': 30,
+        'booking_buffer_minutes': 0,
+        'booking_lead_time_minutes': 0,
+    }
+    current = {
+        key: getattr(business, key, value) if getattr(business, key, None) is not None else value
+        for key, value in defaults.items()
+    }
+
+    return render_template('biz/flow_controls.html',
+                           owner=owner,
+                           business=business,
+                           current=current)
+
+
 @biz.route('/tables', methods=['GET', 'POST'])
 @owner_required
 def tables():

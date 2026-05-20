@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% block title %}Flow Controls - {{ business.name }} - AllBookEU{% endblock %}
+
+{% block head %}
+<style>
+.flow-page-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
+    align-items: end;
+    margin-bottom: 22px;
+}
+.flow-kicker {
+    color: var(--red);
+    font-size: 0.76rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+}
+.flow-status-card {
+    background: #fff;
+    border: 1px solid #e2e5ea;
+    border-radius: 8px;
+    padding: 14px 16px;
+    min-width: 220px;
+    box-shadow: 0 1px 2px rgba(17,24,39,0.04);
+}
+.flow-status-card strong {
+    display: block;
+    color: #111827;
+    font-size: 0.95rem;
+    margin-bottom: 3px;
+}
+.flow-status-card span {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+.flow-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.75fr);
+    gap: 18px;
+    align-items: start;
+}
+.flow-card {
+    background: #fff;
+    border: 1px solid #e2e5ea;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(17,24,39,0.04);
+}
+.flow-card-head {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+}
+.flow-card-head h2 {
+    font-size: 1rem;
+    font-weight: 850;
+    margin-bottom: 4px;
+}
+.flow-card-head p {
+    color: var(--text-muted);
+    font-size: 0.86rem;
+}
+.flow-form {
+    padding: 20px;
+}
+.flow-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+.flow-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+.flow-field.full { grid-column: 1 / -1; }
+.flow-field label {
+    color: var(--text-muted);
+    font-size: 0.73rem;
+    font-weight: 850;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.flow-input,
+.flow-select,
+.flow-textarea {
+    width: 100%;
+    min-height: 46px;
+    border: 1.5px solid #dfe3e8;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.94rem;
+    font-family: inherit;
+    color: #111827;
+    background: #fff;
+    outline: none;
+}
+.flow-input:focus,
+.flow-select:focus,
+.flow-textarea:focus {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(218,55,67,0.12);
+}
+.flow-textarea {
+    min-height: 84px;
+    resize: vertical;
+}
+.flow-help {
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    line-height: 1.45;
+}
+.flow-zero-note {
+    color: #166534;
+    background: #f0faf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 7px;
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+.flow-switch-panel {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    border: 1px solid #e2e5ea;
+    background: #fbfbfc;
+    border-radius: 8px;
+    padding: 14px;
+}
+.flow-switch-copy strong {
+    display: block;
+    font-size: 0.94rem;
+    margin-bottom: 3px;
+}
+.flow-switch-copy span {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+.flow-switch {
+    position: relative;
+    width: 54px;
+    height: 32px;
+    flex-shrink: 0;
+}
+.flow-switch input { opacity: 0; width: 0; height: 0; }
+.flow-slider {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: #d1d5db;
+    cursor: pointer;
+}
+.flow-slider::before {
+    content: "";
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    left: 3px;
+    top: 3px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: transform 0.15s;
+}
+.flow-switch input:checked + .flow-slider { background: #f59e0b; }
+.flow-switch input:checked + .flow-slider::before { transform: translateX(22px); }
+.flow-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 18px;
+}
+.flow-save {
+    min-width: 190px;
+    min-height: 48px;
+    border: none;
+    border-radius: 8px;
+    background: var(--red);
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.94rem;
+    font-weight: 850;
+    cursor: pointer;
+}
+.flow-side-list {
+    padding: 18px 20px 20px;
+    display: grid;
+    gap: 12px;
+}
+.flow-rule {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 13px 14px;
+    background: #fbfbfc;
+}
+.flow-rule strong {
+    display: block;
+    color: #111827;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+.flow-rule span {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+@media (max-width: 980px) {
+    .flow-page-head,
+    .flow-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+    .flow-grid { grid-template-columns: 1fr; }
+    .flow-field.full { grid-column: auto; }
+    .flow-actions { justify-content: stretch; }
+    .flow-save { width: 100%; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dash-page">
+    <div class="dash-sidebar">
+        <div class="ds-biz-name">{{ business.name }}</div>
+        <nav class="ds-nav">
+            <a href="{{ url_for('biz.dashboard') }}" class="ds-link">{{ t('dashboard') }}</a>
+            <a href="{{ url_for('biz.floor_view') }}" class="ds-link">{{ t('floor_view') }}</a>
+            <a href="{{ url_for('biz.floor_builder') }}" class="ds-link">{{ t('floor_builder') }}</a>
+            <a href="{{ url_for('biz.bookings') }}" class="ds-link">{{ t('reservations') }}</a>
+            <a href="{{ url_for('biz.tables') }}" class="ds-link">{{ t('tables') }}</a>
+            <a href="{{ url_for('biz.shifts') }}" class="ds-link">{{ t('schedule') }}</a>
+            <a href="{{ url_for('biz.flow_controls') }}" class="ds-link active">Flow Controls</a>
+            <a href="{{ url_for('biz.services') }}" class="ds-link">{{ t('menu_items') }}</a>
+            <a href="{{ url_for('biz.profile') }}" class="ds-link">{{ t('profile') }}</a>
+            <a href="{{ url_for('business_detail', business_id=business.id) }}" class="ds-link" target="_blank">{{ t('view_listing') }}</a>
+        </nav>
+    </div>
+
+    <main class="dash-main">
+        <div class="flow-page-head">
+            <div>
+                <div class="flow-kicker">Reservation flow</div>
+                <h1>Flow Controls</h1>
+                <p>Control how many guests can book online, how often slots appear, and when reservations should pause.</p>
+            </div>
+            <div class="flow-status-card">
+                <strong>{% if business.reservations_paused %}Online reservations paused{% else %}Online reservations open{% endif %}</strong>
+                <span>{{ current.booking_interval_minutes }} minute slots{% if current.booking_lead_time_minutes %} with {{ current.booking_lead_time_minutes }} minute lead time{% endif %}</span>
+            </div>
+        </div>
+
+        <div class="flow-layout">
+            <section class="flow-card">
+                <div class="flow-card-head">
+                    <h2>Booking limits</h2>
+                    <p>Use 0 for automatic/unlimited. Table capacity still protects availability.</p>
+                </div>
+                <form method="post" class="flow-form">
+                    <div class="flow-grid">
+                        <div class="flow-field">
+                            <label for="maxReservations">Max reservations per slot</label>
+                            <input id="maxReservations" class="flow-input" type="number" min="0" max="100" name="max_reservations_per_slot" value="{{ current.max_reservations_per_slot }}">
+                            <div class="flow-help">Example: 8 means no more than 8 bookings at 7:00 PM.</div>
+                        </div>
+                        <div class="flow-field">
+                            <label for="maxGuests">Max guests per slot</label>
+                            <input id="maxGuests" class="flow-input" type="number" min="0" max="500" name="max_guests_per_slot" value="{{ current.max_guests_per_slot }}">
+                            <div class="flow-help">Example: 40 means no more than 40 total guests at one time.</div>
+                        </div>
+                        <div class="flow-field">
+                            <label for="interval">Booking interval</label>
+                            <select id="interval" class="flow-select" name="booking_interval_minutes">
+                                {% for value in [15, 30, 60] %}
+                                <option value="{{ value }}" {% if current.booking_interval_minutes == value %}selected{% endif %}>Every {{ value }} minutes</option>
+                                {% endfor %}
+                            </select>
+                            <div class="flow-help">Controls which time buttons guests see online.</div>
+                        </div>
+                        <div class="flow-field">
+                            <label for="buffer">Booking buffer</label>
+                            <select id="buffer" class="flow-select" name="booking_buffer_minutes">
+                                {% for value in [0, 15, 30, 45, 60, 90, 120] %}
+                                <option value="{{ value }}" {% if current.booking_buffer_minutes == value %}selected{% endif %}>{% if value == 0 %}No buffer{% else %}{{ value }} minutes{% endif %}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="flow-help">Prevents the same table from being booked too close together.</div>
+                        </div>
+                        <div class="flow-field">
+                            <label for="leadTime">Booking lead time</label>
+                            <select id="leadTime" class="flow-select" name="booking_lead_time_minutes">
+                                {% for value in [0, 15, 30, 60, 120, 240, 1440] %}
+                                <option value="{{ value }}" {% if current.booking_lead_time_minutes == value %}selected{% endif %}>{% if value == 0 %}No lead time{% elif value == 1440 %}24 hours{% else %}{{ value }} minutes{% endif %}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="flow-help">Hides same-day times that are too soon for the kitchen or host stand.</div>
+                        </div>
+                        <div class="flow-field">
+                            <label>Defaults</label>
+                            <div class="flow-zero-note">Defaults: 0 max reservations, 0 max guests, 30 minute interval, no buffer, no lead time.</div>
+                        </div>
+                        <div class="flow-field full">
+                            <div class="flow-switch-panel">
+                                <div class="flow-switch-copy">
+                                    <strong>Pause online reservations</strong>
+                                    <span>Guests will not be able to book online while this is on. They will see your pause message instead.</span>
+                                </div>
+                                <label class="flow-switch">
+                                    <input type="checkbox" name="reservations_paused" {% if business.reservations_paused %}checked{% endif %}>
+                                    <span class="flow-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="flow-field full">
+                            <label for="pauseMessage">Pause message</label>
+                            <textarea id="pauseMessage" class="flow-textarea" name="pause_message" placeholder="Reservations are temporarily paused. Please call us to book.">{{ business.pause_message or '' }}</textarea>
+                        </div>
+                    </div>
+                    <div class="flow-actions">
+                        <button class="flow-save" type="submit">Save flow controls</button>
+                    </div>
+                </form>
+            </section>
+
+            <aside class="flow-card">
+                <div class="flow-card-head">
+                    <h2>How these rules work</h2>
+                    <p>These rules apply before a guest can confirm a booking.</p>
+                </div>
+                <div class="flow-side-list">
+                    <div class="flow-rule">
+                        <strong>Tables still matter</strong>
+                        <span>If your tables are set up, AllBookEU still checks table capacity and existing assignments.</span>
+                    </div>
+                    <div class="flow-rule">
+                        <strong>Slot limits are global</strong>
+                        <span>Max reservations and max guests count all active bookings at the same time.</span>
+                    </div>
+                    <div class="flow-rule">
+                        <strong>Buffer is table-based</strong>
+                        <span>A 60 minute buffer keeps the same table from being booked within 60 minutes of another active booking.</span>
+                    </div>
+                    <div class="flow-rule">
+                        <strong>Lead time is guest-facing</strong>
+                        <span>Same-day times inside the lead-time window disappear from the public booking widget.</span>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </main>
+</div>
+{% endblock %}
