@@ -1127,23 +1127,49 @@ def save_table_position(table_id):
 @owner_required
 def floor_assign():
     owner, business = get_owner_business()
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     booking_id = data.get('booking_id')
     table_id = data.get('table_id')
     action = data.get('action', 'seat')  # seat | unassign | finish
 
-    booking = Booking.query.get_or_404(booking_id)
+    booking = Booking.query.filter_by(id=booking_id).with_for_update().first_or_404()
     if booking.business_id != business.id:
         return jsonify({'error': 'Unauthorized'}), 403
 
     if action == 'seat':
-        booking.table_id = table_id
+        try:
+            table_id = int(table_id)
+        except (TypeError, ValueError):
+            return jsonify({'error': 'Choose a valid table.'}), 400
+
+        table = RestaurantTable.query.filter_by(
+            id=table_id,
+            business_id=business.id,
+            is_active=True
+        ).with_for_update().first()
+        if not table:
+            return jsonify({'error': 'Table not found.'}), 404
+
+        if not business.table_available_for_time(
+            table,
+            booking.booking_date,
+            booking.booking_time,
+            booking.party_size,
+            ignore_booking_id=booking.id
+        ):
+            return jsonify({
+                'error': f'Table {table.table_number} is not available for that reservation time.'
+            }), 409
+
+        booking.table_id = table.id
         booking.status = 'seated'
     elif action == 'unassign':
         booking.table_id = None
         booking.status = 'confirmed'
     elif action == 'finish':
         booking.status = 'completed'
+    else:
+        return jsonify({'error': 'Unknown floor action.'}), 400
 
     db.session.commit()
     return jsonify({'ok': True, 'booking_id': booking_id, 'status': booking.status})

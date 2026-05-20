@@ -429,18 +429,29 @@ def book():
         t = RestaurantTable.query.get(table_id)
         table_info = f'{t.section} – Table {t.table_number}'
 
+    email_status = {'customer_confirmation': False, 'owner_alert': False}
     try:
         from email_utils import send_booking_confirmation, send_new_booking_alert
-        send_booking_confirmation(booking, business)
+        email_status['customer_confirmation'] = bool(send_booking_confirmation(booking, business))
         owner = BusinessOwner.query.filter_by(business_id=business.id).first()
         if owner:
-            send_new_booking_alert(booking, business, owner.email)
+            email_status['owner_alert'] = bool(send_new_booking_alert(booking, business, owner.email))
+        else:
+            app.logger.error(
+                "Booking %s has no owner alert recipient for business %s.",
+                booking.id,
+                business.id
+            )
     except Exception:
-        pass
+        app.logger.exception("Booking %s was created, but email delivery failed.", booking.id)
+
+    if not email_status['customer_confirmation'] or not email_status['owner_alert']:
+        app.logger.error("Booking %s email delivery incomplete: %s", booking.id, email_status)
 
     return jsonify({
         'success': True,
         'booking_id': booking.id,
+        'email_status': email_status,
         'table_info': table_info,
         'restaurant_name': business.name,
         'restaurant_phone': business.phone or '',

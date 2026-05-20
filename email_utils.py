@@ -1,4 +1,5 @@
 import os
+import logging
 import resend
 
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
@@ -9,6 +10,7 @@ if 'vercel.app' in BASE_URL:
 
 _RED = '#e63946'
 _DARK = '#1a1a2e'
+logger = logging.getLogger(__name__)
 
 
 def _base(content_html, preheader=''):
@@ -48,11 +50,14 @@ def _base(content_html, preheader=''):
 
 def _send(to, subject, html):
     if not resend.api_key:
-        return
+        logger.error("Email not sent to %s: RESEND_API_KEY is not configured.", to)
+        return False
     try:
         resend.Emails.send({"from": SENDER, "to": [to], "subject": subject, "html": html})
+        return True
     except Exception as e:
-        print(f"[email] failed to send to {to}: {e}")
+        logger.exception("Email failed to send to %s: %s", to, e)
+        return False
 
 
 def send_booking_confirmation(booking, business):
@@ -101,7 +106,7 @@ def send_booking_confirmation(booking, business):
 
     <p style="margin:0;font-size:13px;color:#9ca3af">See you there!</p>
     """
-    _send(
+    return _send(
         booking.customer_email,
         f"Reservation confirmed — {business.name} · {booking.booking_time} {date_str}",
         _base(content, preheader=f"Your table at {business.name} is confirmed for {date_str} at {booking.booking_time}.")
@@ -151,7 +156,7 @@ def send_new_booking_alert(booking, business, owner_email):
       </td>
     </tr></table>
     """
-    _send(
+    return _send(
         owner_email,
         f"New reservation: {booking.customer_name} · {booking.booking_time} {booking.booking_date.strftime('%b %d')}",
         _base(content, preheader=f"{booking.customer_name} booked for {booking.party_size} on {date_str} at {booking.booking_time}.")
@@ -181,7 +186,7 @@ def send_password_reset(to_email, name, reset_url, is_owner=False):
       Or copy this link: {reset_url}
     </p>
     """
-    _send(
+    return _send(
         to_email,
         "Reset your AllBookEU password",
         _base(content, preheader="Click the link to set a new password. Expires in 1 hour.")
